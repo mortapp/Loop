@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { setActiveAccountId } from "@/lib/active-account";
 
 export type CreateBusinessState = { error: string } | null;
 
@@ -44,4 +45,14 @@ export async function createBusiness(
 
   revalidatePath("/business");
   return null;
+}
+
+export async function switchActiveAccount(formData: FormData): Promise<void> {
+  const accountId = String(formData.get("accountId") ?? "");
+  if (!accountId) {
+    return;
+  }
+
+  await setActiveAccountId(accountId);
+  revalidatePath("/", "layout");
 }

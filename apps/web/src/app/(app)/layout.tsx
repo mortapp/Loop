@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveAccountSummary } from "@/lib/active-account";
 import { NAV_ITEMS } from "@/lib/nav";
 import { signOut } from "../(auth)/actions";
 
@@ -21,13 +22,26 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/sign-in");
   }
 
+  const activeAccount = await getActiveAccountSummary();
+
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-black">
       <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <span className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-            LOOP
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+              LOOP
+            </span>
+            {activeAccount ? (
+              <Link
+                href="/business"
+                className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                title="Switch account"
+              >
+                {activeAccount.label}
+              </Link>
+            ) : null}
+          </div>
           <form action={signOut}>
             <button
               type="submit"
