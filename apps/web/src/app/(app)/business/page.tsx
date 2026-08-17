@@ -87,6 +87,24 @@ export default async function BusinessPage() {
             MAKE / QuoteCloser — track interest before it&apos;s worth quoting.
           </p>
         </Link>
+        <Link
+          href="/business/opportunities"
+          className="rounded-2xl border border-zinc-200 bg-white p-4 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+        >
+          <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">Opportunities</p>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            Qualified interest, tracked through to won or lost.
+          </p>
+        </Link>
+        <Link
+          href="/business/quotes"
+          className="rounded-2xl border border-zinc-200 bg-white p-4 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+        >
+          <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">Quotes</p>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            Line items, totals, and status — the close.
+          </p>
+        </Link>
       </div>
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">

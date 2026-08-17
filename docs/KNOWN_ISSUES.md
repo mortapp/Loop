@@ -71,6 +71,18 @@ node_modules/<package>` and reinstall just that package rather than
 debugging application code. Doesn't affect Vercel's Linux build
 environment — see docs/VERCEL_DEPLOYMENT.md.
 
+## Quote creation is not transactional
+
+`apps/web/src/app/(app)/business/quotes/actions.ts` (`createQuote`)
+inserts the `quotes` header row, then inserts `quote_line_items` in a
+second request. Supabase JS doesn't expose multi-statement client-side
+transactions, so a failure between the two steps leaves a quote with no
+line items (the action surfaces this as an error rather than hiding it,
+but doesn't roll back the header row). Fix properly by moving this into
+a Postgres function (`security invoker`, callable via `.rpc()`) that
+does both inserts in one transaction — not done yet, low volume risk
+for now.
+
 ## `@loop/contracts` is hand-synced with migrations
 
 See docs/DECISIONS.md — no automated drift check yet between
