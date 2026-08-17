@@ -154,3 +154,44 @@ export async function refundReturn(_prev: FormState, formData: FormData): Promis
   revalidatePath("/money");
   return null;
 }
+
+export async function addWarranty(_prev: FormState, formData: FormData): Promise<FormState> {
+  const itemId = String(formData.get("itemId") ?? "").trim();
+  const provider = String(formData.get("provider") ?? "").trim() || null;
+  const expiresAt = String(formData.get("expiresAt") ?? "").trim() || null;
+
+  if (!itemId) {
+    return { error: "This purchase has no linked item — warranties need one." };
+  }
+
+  const accountId = await getActiveAccountId();
+  if (!accountId) {
+    return { error: "No active account." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase.from("warranties").insert({
+    account_id: accountId,
+    item_id: itemId,
+    provider,
+    expires_at: expiresAt,
+    created_by: user?.id ?? null,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/money/purchases");
+  return null;
+}
+
+export async function setWarrantyClaimStatus(id: string, claimStatus: string) {
+  const supabase = await createClient();
+  await supabase.from("warranties").update({ claim_status: claimStatus }).eq("id", id);
+  revalidatePath("/money/purchases");
+}

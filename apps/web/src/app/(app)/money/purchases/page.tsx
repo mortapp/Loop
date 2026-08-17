@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
 import { CreatePurchaseForm } from "./create-purchase-form";
 import { ReturnControls } from "./return-controls";
+import { WarrantyControls } from "./warranty-controls";
 
 type PurchaseRow = {
   id: string;
@@ -17,6 +18,13 @@ type PurchaseRow = {
 };
 
 type ReturnRow = { id: string; purchase_id: string | null; status: ReturnStatus };
+type WarrantyRow = {
+  id: string;
+  item_id: string;
+  provider: string | null;
+  expires_at: string | null;
+  claim_status: string | null;
+};
 
 function formatCents(cents: number | null): string {
   if (cents === null) return "—";
@@ -27,7 +35,7 @@ export default async function PurchasesPage() {
   const accountId = await getActiveAccountId();
   const supabase = await createClient();
 
-  const [{ data: purchases }, { data: items }, { data: returns }] = await Promise.all([
+  const [{ data: purchases }, { data: items }, { data: returns }, { data: warranties }] = await Promise.all([
     accountId
       ? supabase
           .from("purchases")
@@ -44,11 +52,23 @@ export default async function PurchasesPage() {
     accountId
       ? supabase.from("returns").select("id, purchase_id, status").eq("account_id", accountId).returns<ReturnRow[]>()
       : Promise.resolve({ data: [] as ReturnRow[] }),
+    accountId
+      ? supabase
+          .from("warranties")
+          .select("id, item_id, provider, expires_at, claim_status")
+          .eq("account_id", accountId)
+          .returns<WarrantyRow[]>()
+      : Promise.resolve({ data: [] as WarrantyRow[] }),
   ]);
 
   const returnByPurchase = new Map<string, ReturnRow>();
   for (const r of returns ?? []) {
     if (r.purchase_id) returnByPurchase.set(r.purchase_id, r);
+  }
+
+  const warrantiesByItem = new Map<string, WarrantyRow[]>();
+  for (const w of warranties ?? []) {
+    warrantiesByItem.set(w.item_id, [...(warrantiesByItem.get(w.item_id) ?? []), w]);
   }
 
   return (
@@ -97,6 +117,10 @@ export default async function PurchasesPage() {
                 purchaseId={purchase.id}
                 itemId={purchase.item_id}
                 existingReturn={returnByPurchase.get(purchase.id) ?? null}
+              />
+              <WarrantyControls
+                itemId={purchase.item_id}
+                warranties={purchase.item_id ? (warrantiesByItem.get(purchase.item_id) ?? []) : []}
               />
             </li>
           ))
