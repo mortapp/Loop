@@ -1,0 +1,14 @@
+{
+  "name": "@loop/shared-config",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Shared TypeScript, ESLint, and Prettier configuration for LOOP web packages.",
+  "files": [
+    "tsconfig.base.json",
+    "eslint.base.mjs",
+    "prettier.base.mjs"
+  ],
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,60 @@
+# Architecture Decisions
+
+Record important architecture/product decisions here.
+
+Do not rewrite history silently.
+
+## 2026-08-17 — Monorepo tooling
+
+npm workspaces (`apps/web`, `packages/*`) for the JS/TS side. Flutter
+(`apps/mobile`) is not part of the npm workspace — it has its own
+toolchain (pub) and is built/linted independently.
+
+## 2026-08-17 — Unified account model
+
+Every domain row (contacts, items, quotes, returns, listings, ...)
+belongs to exactly one `account_id`. An account is either a person's
+personal account or a business account — never both, never neither
+(`accounts_owner_matches_type` check constraint). This is the single
+shared ownership boundary CLAUDE.md asks for ("identity, account
+context... shared" across MAKE/PROTECT/RECOVER): one authorization
+function, `public.has_account_access(account_id)`, is reused by every
+table's RLS policy instead of each domain reimplementing access control.
+See `packages/domain-docs/README.md` for the full data model map.
+
+A personal account is auto-created on profile creation; a business
+account and an owner `business_members` row are auto-created on business
+creation. Both via `AFTER INSERT` triggers, so client code never creates
+accounts directly (`accounts` has no INSERT policy for `authenticated`).
+
+## 2026-08-17 — Money is always integer cents
+
+Every amount column is `*_cents bigint`. No floating point money,
+anywhere, ever.
+
+## 2026-08-17 — Ledger tables are append-only
+
+`money_events` and `events` have SELECT + INSERT policies/grants only —
+no UPDATE, no DELETE. Corrections are new rows, not edits, so the ledger
+stays trustworthy as an audit trail. `valuations` follows the same
+pattern (a history of estimates). `sales` allows UPDATE (to correct fees)
+but not DELETE.
+
+## 2026-08-17 — Local Supabase port range
+
+This machine also runs MORT's local Supabase stack (Docker project id
+`mort-mobile`, default ports 54321-54327). LOOP's `supabase/config.toml`
+intentionally uses project_id `loop` and ports 55321-55329 so `supabase
+start`/`db reset` can never collide with or touch MORT's containers. If
+`supabase/config.toml` is ever regenerated (e.g. via `supabase init`),
+these ports must be restored before running `supabase start` — see the
+comment at the top of that file.
+
+## 2026-08-17 — `@loop/contracts` is hand-maintained, not generated
+
+`packages/contracts` mirrors `supabase/migrations` column-for-column as
+zod schemas, by hand. Supabase's own TS type generator
+(`generate_typescript_types`) requires a linked/running project; for now
+the migrations are the single source of truth and contracts are kept in
+sync manually. Revisit generating this once a real Supabase project
+exists (see docs/KNOWN_ISSUES.md).

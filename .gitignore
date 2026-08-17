@@ -1,0 +1,53 @@
+﻿# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+
+# Android
+.gradle/
+local.properties
+*.jks
+*.keystore
+
+# iOS/macOS
+Pods/
+DerivedData/
+
+# Node / Next
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude/local agent state if created
+.claude/settings.local.json

@@ -1,0 +1,3 @@
+-- Local development seed data.
+-- Runs after migrations on `supabase db reset`. Empty for now; add fixture
+-- data here as domain features come online.

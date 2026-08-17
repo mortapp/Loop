@@ -1,0 +1,18 @@
+{
+  "name": "@loop/contracts",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Shared LOOP domain types and validation schemas, mirroring the Supabase schema in supabase/migrations. This is the one place web and future codegen consumers agree on shape.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
