@@ -52,40 +52,26 @@ export async function createQuote(_prev: CreateQuoteState, formData: FormData): 
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: quote, error: quoteError } = await supabase
-    .from("quotes")
-    .insert({
-      account_id: accountId,
-      contact_id: contactId,
-      opportunity_id: opportunityId,
-      quote_number: generateQuoteNumber(),
-      subtotal_cents: subtotalCents,
-      tax_cents: 0,
-      total_cents: subtotalCents,
-      created_by: user?.id ?? null,
-    })
-    .select("id")
-    .single();
-
-  if (quoteError || !quote) {
-    return { error: quoteError?.message ?? "Failed to create quote." };
-  }
-
-  const { error: lineItemsError } = await supabase.from("quote_line_items").insert(
-    lineItems.map((line, position) => ({
-      quote_id: quote.id,
+  // Header + line items are inserted atomically by this RPC (one plpgsql
+  // transaction) — see supabase/migrations/20260817000008_quote_rpc.sql.
+  const { error } = await supabase.rpc("create_quote_with_line_items", {
+    p_account_id: accountId,
+    p_contact_id: contactId,
+    p_opportunity_id: opportunityId,
+    p_quote_number: generateQuoteNumber(),
+    p_subtotal_cents: subtotalCents,
+    p_tax_cents: 0,
+    p_total_cents: subtotalCents,
+    p_created_by: user?.id ?? null,
+    p_line_items: lineItems.map((line) => ({
       description: line.description,
       quantity: line.quantity,
       unit_price_cents: line.unitPriceCents,
-      position,
     })),
-  );
+  });
 
-  if (lineItemsError) {
-    // The quote header exists but is missing its lines — not wrapped in a
-    // transaction yet (see docs/KNOWN_ISSUES.md). Surface it rather than
-    // hiding a half-written quote.
-    return { error: `Quote created but line items failed: ${lineItemsError.message}` };
+  if (error) {
+    return { error: error.message };
   }
 
   revalidatePath("/business/quotes");

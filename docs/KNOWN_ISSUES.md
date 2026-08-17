@@ -71,17 +71,21 @@ node_modules/<package>` and reinstall just that package rather than
 debugging application code. Doesn't affect Vercel's Linux build
 environment — see docs/VERCEL_DEPLOYMENT.md.
 
-## Quote creation is not transactional
+## ~~Quote creation is not transactional~~ — fixed 2026-08-17
 
-`apps/web/src/app/(app)/business/quotes/actions.ts` (`createQuote`)
-inserts the `quotes` header row, then inserts `quote_line_items` in a
-second request. Supabase JS doesn't expose multi-statement client-side
-transactions, so a failure between the two steps leaves a quote with no
-line items (the action surfaces this as an error rather than hiding it,
-but doesn't roll back the header row). Fix properly by moving this into
-a Postgres function (`security invoker`, callable via `.rpc()`) that
-does both inserts in one transaction — not done yet, low volume risk
-for now.
+Was: `createQuote` inserted the `quotes` header row, then
+`quote_line_items` in a second request, so a failure between the two
+left an orphaned header. Fixed by `public.create_quote_with_line_items`
+(`supabase/migrations/20260817000008_quote_rpc.sql`), a `security
+invoker` plpgsql function that does both inserts in one transaction;
+`createQuote` now calls it via `.rpc()`. Verified live: a successful
+call returns the quote id with its line items attached, and a rejected
+call (empty line items) leaves no quote row at all. Note for future
+`jsonb_array_elements(...) WITH ORDINALITY` uses: you must alias both
+output columns explicitly (`AS t(item, line_ordinality)`) — omitting
+the alias list binds `item` to the whole `(value, ordinality)` record
+instead of just the jsonb value, breaking `->>`/`->` with `operator
+does not exist: record ->> unknown`.
 
 ## `@loop/contracts` is hand-synced with migrations
 
