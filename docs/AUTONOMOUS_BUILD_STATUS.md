@@ -41,9 +41,8 @@ surface area.
   web uses — see docs/KNOWN_ISSUES.md.
 - CI workflows for all three (`web-ci.yml`, `mobile-ci.yml`,
   `supabase-ci.yml`).
-- Pushed to `mortapp/Loop` (GitHub) via SSH; local commits are ahead of
-  `origin/main` as of this writing (see Last Known Good Commit below —
-  push before starting new work if continuing this session).
+- Pushed to `mortapp/Loop` (GitHub) via SSH; `origin/main` is fully
+  up to date as of this writing.
 
 ## Nav-placement decisions (see docs/DECISIONS.md for full reasoning)
 
@@ -97,12 +96,12 @@ None outstanding.
 
 ## Last Known Good Commit
 
-`90c7fae` — "Bring mobile to feature parity with web (Today,
-Money+Purchases, Sell, MAKE)", locally on `main`. **Not yet pushed** —
-push before ending this session if nothing else changes. Full history
+`1ed147a` — "Add AI: tool registry with confirmation gating, starting
+Phase 8". Pushed; `origin/main` matches local `main`. Full history
 (newest first):
 
 ```
+1ed147a  Add AI: tool registry with confirmation gating, starting Phase 8
 90c7fae  Bring mobile to feature parity with web (Today, Money+Purchases, Sell, MAKE)
 665cf8c  Add Warranties, completing PROTECT
 1fd5259  Make quote creation transactional via a Postgres RPC
@@ -118,11 +117,8 @@ ea767df  Add MAKE: Contacts and Leads under Business (Phase 4, part 1)
 7f4fccd  Foundation: unified account model, MAKE/PROTECT/RECOVER schema
 ```
 
-(AI feature commit pending as of this status update — see git log for
-the actual latest commit if this file is stale.)
-
 ## Next Action
 
-Push to `origin/main`. Then: mobile Warranties (closes the mobile/web
-gap), or AI tool-registry depth (more safe actions, streaming), or the
-shared design system — all reasonable next chunks, none blocking.
+Mobile Warranties (closes the mobile/web gap), or AI tool-registry
+depth (more safe actions, streaming), or the shared design system —
+all reasonable next chunks, none blocking.
