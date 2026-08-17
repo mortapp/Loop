@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
 import { CreateBusinessForm } from "./create-business-form";
@@ -66,6 +67,27 @@ export default async function BusinessPage() {
           );
         })}
       </ul>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Link
+          href="/business/contacts"
+          className="rounded-2xl border border-zinc-200 bg-white p-4 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+        >
+          <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">Contacts</p>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            Customers, vendors, and anyone else you deal with.
+          </p>
+        </Link>
+        <Link
+          href="/business/leads"
+          className="rounded-2xl border border-zinc-200 bg-white p-4 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+        >
+          <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">Leads</p>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            MAKE / QuoteCloser — track interest before it&apos;s worth quoting.
+          </p>
+        </Link>
+      </div>
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
         <h2 className="mb-3 text-sm font-semibold text-zinc-950 dark:text-zinc-50">

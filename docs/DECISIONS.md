@@ -50,6 +50,30 @@ start`/`db reset` can never collide with or touch MORT's containers. If
 these ports must be restored before running `supabase start` — see the
 comment at the top of that file.
 
+## 2026-08-17 — Where MAKE/PROTECT/RECOVER UI lives in the 5-tab nav
+
+CLAUDE.md's five Primary Product Areas (Today, Money, Sell, Business,
+AI) don't map 1:1 to the three engines, and ROADMAP.md's phases don't
+say which tab hosts what. Decision, so this doesn't get re-litigated
+per feature:
+
+- **RECOVER** (valuations/listings/sales) lives under **Sell** — already
+  built this way, it's the obvious fit (turning owned items into cash).
+- **MAKE** (contacts/leads/opportunities/quotes) lives under
+  **Business**, as `/business/contacts`, `/business/leads`, etc. —
+  closing quotes is a business-development activity, and `contacts` as
+  a shared core primitive (customers, vendors, buyers) belongs somewhere
+  that isn't engine-specific. Business is that place.
+- **PROTECT** (purchases/returns/warranties) doesn't have a home yet.
+  Likely split across Today (expiring windows as actions) and an
+  item-detail view that doesn't exist yet — revisit when building it
+  (Phase 5).
+- `contacts` and `items` (shared core primitives, not MAKE/PROTECT/
+  RECOVER-specific) will likely need their own top-level list views
+  eventually, since PROTECT and RECOVER both reference `items` and
+  MAKE references `contacts`. Not built yet — Contacts got a home under
+  Business first because MAKE needed it first.
+
 ## 2026-08-17 — `@loop/contracts` is hand-maintained, not generated
 
 `packages/contracts` mirrors `supabase/migrations` column-for-column as
