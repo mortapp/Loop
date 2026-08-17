@@ -2,61 +2,64 @@
 
 ## Current Phase
 
-Phases 1-6 built and verified in `apps/web`, including real cross-engine
-integration (Phase 7) between them. Phase 8 (AI) is still a placeholder.
-`apps/mobile` has the shared shell but none of the MAKE/PROTECT/RECOVER
-feature UIs web now has — mobile feature parity is the next big gap.
+Phases 1-8 all have real, verified implementations in both `apps/web`
+and `apps/mobile`. Phase 8 (AI) is functionally complete but has never
+made a live model call — no `ANTHROPIC_API_KEY` exists in this
+environment (human step). Remaining work is depth (warranties on
+mobile, streaming AI responses, more AI tools) and polish (a real
+shared design system, browser/component test coverage), not missing
+surface area.
 
 ## Completed
 
-- Full Supabase schema (7 migrations), verified locally and via an
-  automated pgTAP suite (`supabase/tests/database/`, 15/15 passing).
+- Full Supabase schema (8 migrations) verified locally and via an
+  automated pgTAP suite (`supabase/tests/database/`, 20/20 passing
+  across 2 files).
 - `@loop/contracts`, `packages/domain-docs`, root npm workspace tooling.
-- `apps/mobile`: Flutter shell (Riverpod + GoRouter + supabase_flutter),
-  five-tab nav, working account-switcher UI. Feature UIs (contacts,
-  leads, quotes, items, purchases, money ledger) not yet built — web has
-  all of these, mobile doesn't yet.
-- `apps/web`: Next.js 16 (App Router), Supabase Auth wired end to end.
-  Every one of the five product areas is functional, not a placeholder,
-  except AI:
-  - **Today**: unified `actions` queue — quick-add, done, dismiss,
-    reopen.
-  - **Money**: `money_events` ledger with per-kind totals + net, manual
-    entry form, and **Purchases** (`/money/purchases`, PROTECT) —
-    record a purchase (auto-logs a spend event), start a return, refund
-    it (auto-logs a refund event, marks the item `returned`).
-  - **Sell** (RECOVER): items, manual valuations, listings, and
-    recording a sale (auto-logs a `recovered` money event, marks item +
-    listing sold).
-  - **Business** (MAKE, under `/business/*`): account switcher,
-    contacts, leads (status cycling), opportunities (stage cycling),
-    quotes (dynamic line items, computed totals, status cycling).
-  - **AI**: still a placeholder — Phase 8, not started.
-  - Cross-engine integration (Phase 7) is real, not aspirational: a
-    RECOVER sale and a PROTECT refund both post directly to the same
-    Money ledger, verified live end-to-end (see docs/TEST_MATRIX.md).
+- **apps/web** (Next.js 16): every one of the five product areas is
+  real, not a placeholder —
+  - Today: `actions` queue, quick-add/done/dismiss/reopen.
+  - Money: `money_events` ledger + totals + manual entry; Purchases
+    (`/money/purchases`, PROTECT): purchases, returns, **and
+    warranties**.
+  - Sell (RECOVER): items, valuations, listings, sales.
+  - Business (MAKE, under `/business/*`): contacts, leads,
+    opportunities, quotes (line items via an atomic Postgres RPC —
+    `create_quote_with_line_items`).
+  - AI (Phase 8): tool registry (`create_action`, `log_money_event`)
+    with a mandatory human confirm/decline step before any tool
+    executes — `/api/ai/chat` + `/api/ai/confirm`. Built and verified
+    to compile/build; **never exercised against a real model** (no API
+    key — see docs/KNOWN_ISSUES.md).
+  - Cross-engine integration (Phase 7) is real: RECOVER sales, PROTECT
+    refunds, and MAKE (implicitly, once quotes convert) all post to the
+    same Money ledger, verified live end-to-end.
+- **apps/mobile** (Flutter): feature parity with web for Today, Money
+  (+ Purchases/Returns, not yet Warranties), Sell, and Business/MAKE
+  (contacts/leads/opportunities/quotes). Same account-switcher, same
+  five-tab shell. Quote creation is not yet on the transactional RPC
+  web uses — see docs/KNOWN_ISSUES.md.
 - CI workflows for all three (`web-ci.yml`, `mobile-ci.yml`,
   `supabase-ci.yml`).
-- Pushed to `mortapp/Loop` (GitHub) via SSH; `main` is up to date with
-  every commit below.
+- Pushed to `mortapp/Loop` (GitHub) via SSH; local commits are ahead of
+  `origin/main` as of this writing (see Last Known Good Commit below —
+  push before starting new work if continuing this session).
 
 ## Nav-placement decisions (see docs/DECISIONS.md for full reasoning)
 
-CLAUDE.md's five tabs don't map 1:1 to the three engines:
-- RECOVER → **Sell**
-- MAKE → **Business** (`/business/contacts`, `/leads`, `/opportunities`,
-  `/quotes`)
-- PROTECT → **Money** (`/money/purchases`)
+RECOVER → **Sell**. MAKE → **Business** (`/business/contacts`,
+`/leads`, `/opportunities`, `/quotes`). PROTECT → **Money**
+(`/money/purchases`, now including warranties).
 
 ## Verified
 
-Every feature above was checked three ways before being committed:
-`lint` + `typecheck` + `next build` from the repo root, and the exact
-Supabase query/mutation shapes each page uses exercised live via REST
-against the running local instance (not just build-time type checks —
-actual round trips against real RLS policies). Full detail in
-docs/TEST_MATRIX.md. `apps/mobile`: `flutter analyze` / `dart format`
-/ `flutter test` all clean.
+Every web feature: `lint` + `typecheck` + `next build` from the repo
+root, plus the exact Supabase query/mutation shapes exercised live via
+REST against the running local instance. Every mobile feature:
+independently re-run `dart format` / `flutter analyze` / `flutter
+test` (not just trusting the building agent's self-report) — all
+clean. AI: build-verified only, not live-verified (no credential).
+Full detail in docs/TEST_MATRIX.md.
 
 ## Failed
 
@@ -64,37 +67,46 @@ None outstanding.
 
 ## Blocked
 
+- **`ANTHROPIC_API_KEY`**: AI chat cannot be exercised end-to-end
+  without one. Set it (and optionally `ANTHROPIC_MODEL`, defaults to
+  `claude-opus-5`) in `apps/web/.env.local` — see `.env.example`. This
+  is the only thing standing between the current AI code and a real
+  conversation.
 - No hosted Supabase project or Vercel project yet (human account
   setup) — see docs/VERCEL_DEPLOYMENT.md "Human Action Required". Local
   development and GitHub are both unblocked.
 
 ## Remaining
 
-- **Mobile feature parity**: apps/mobile has the shell but none of the
-  Today/Money/Sell/Business feature UIs apps/web now has. Biggest gap.
-- **AI (Phase 8)**: tool registry, confirmation system, safe actions —
-  not started.
-- **Warranties**: schema exists, no UI (Returns got built first as the
-  more central ReturnGuard feature).
-- **Today doesn't auto-populate yet**: actions are manually typed; nothing
-  generates an action row from an expiring return window, an unsent
-  quote, etc. The ledger integration (Phase 7) is real for money events,
-  but action-generation automation isn't built.
-- Quote creation is non-transactional (two sequential inserts) — see
-  docs/KNOWN_ISSUES.md.
+- **AI depth**: only two tools exist (`create_action`,
+  `log_money_event`); no streaming (responses are non-streaming
+  request/response, a deliberate v1 scope cut — see
+  docs/KNOWN_ISSUES.md rationale in this doc's history); no AI surface
+  on mobile at all yet.
+- **Mobile**: Warranties not built (web has it, mobile doesn't); quote
+  creation not yet migrated to the transactional RPC.
+- **Today doesn't auto-populate**: actions are manually typed; nothing
+  yet generates an action row from an expiring return window, an
+  unsent quote, etc.
 - No browser/component test runner for apps/web (manual + live REST
-  verification only so far).
+  verification only).
 - A real shared design system between web and mobile (both are
   independently "clean" right now, not visually unified).
-- Push to hosted Supabase / Vercel (human steps, see
-  docs/VERCEL_DEPLOYMENT.md).
+- Push local commits to `origin/main`; push to hosted Supabase / Vercel
+  (human steps, see docs/VERCEL_DEPLOYMENT.md).
 
 ## Last Known Good Commit
 
-`feaa93e` — "Add PROTECT: Purchases and Returns, completing Phase 5".
-Pushed to `origin/main` (`mortapp/Loop`, SSH). Full history:
+`90c7fae` — "Bring mobile to feature parity with web (Today,
+Money+Purchases, Sell, MAKE)", locally on `main`. **Not yet pushed** —
+push before ending this session if nothing else changes. Full history
+(newest first):
 
 ```
+90c7fae  Bring mobile to feature parity with web (Today, Money+Purchases, Sell, MAKE)
+665cf8c  Add Warranties, completing PROTECT
+1fd5259  Make quote creation transactional via a Postgres RPC
+ac78d42  Update build status: Phases 1-6 + cross-engine integration complete in web
 feaa93e  Add PROTECT: Purchases and Returns, completing Phase 5
 97b8f90  Add Money ledger view, closing the loop with RECOVER
 5eefd48  Add RECOVER: Sell page, completing Phase 6
@@ -106,9 +118,11 @@ ea767df  Add MAKE: Contacts and Leads under Business (Phase 4, part 1)
 7f4fccd  Foundation: unified account model, MAKE/PROTECT/RECOVER schema
 ```
 
+(AI feature commit pending as of this status update — see git log for
+the actual latest commit if this file is stale.)
+
 ## Next Action
 
-Highest-leverage next chunk: bring `apps/mobile` up to feature parity
-with what `apps/web` now has (Today, Money+Purchases, Sell, Business
-contacts/leads/quotes), since that gap is now the widest one in the
-build. AI (Phase 8) is the other major unstarted area.
+Push to `origin/main`. Then: mobile Warranties (closes the mobile/web
+gap), or AI tool-registry depth (more safe actions, streaming), or the
+shared design system — all reasonable next chunks, none blocking.

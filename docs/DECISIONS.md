@@ -76,6 +76,21 @@ per feature:
   MAKE references `contacts`. Not built yet — Contacts got a home under
   Business first because MAKE needed it first.
 
+## 2026-08-17 — AI confirmation flow is two HTTP round trips, not the Tool Runner
+
+`apps/web/src/app/api/ai/{chat,confirm}/route.ts` implement a manual
+tool-use exchange rather than the Anthropic SDK's Tool Runner helper.
+Reason: the Tool Runner auto-executes tool calls within a single
+process call, but LOOP's Phase 8 requirement is a human confirmation
+step *between* the model proposing an action and it actually running —
+that pause has to survive a full page round trip (the user reads a
+card, clicks Confirm, which is a separate request). So `/api/ai/chat`
+returns a `tool_use` as a `tool_confirmation` payload without running
+it; only `/api/ai/confirm`, called after the human clicks Confirm,
+executes the tool and sends the `tool_result` back to Claude for a
+follow-up turn. Model is always `claude-opus-5` unless a deployer sets
+`ANTHROPIC_MODEL` — see `apps/web/src/lib/ai/client.ts`.
+
 ## 2026-08-17 — `@loop/contracts` is hand-maintained, not generated
 
 `packages/contracts` mirrors `supabase/migrations` column-for-column as

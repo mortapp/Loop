@@ -87,6 +87,33 @@ the alias list binds `item` to the whole `(value, ordinality)` record
 instead of just the jsonb value, breaking `->>`/`->` with `operator
 does not exist: record ->> unknown`.
 
+## AI (Phase 8) is built but blocked on a credential
+
+`ANTHROPIC_API_KEY` is unset — there is no Anthropic API key configured
+anywhere in this environment. `apps/web`'s AI chat (tool registry:
+`create_action`, `log_money_event`, both gated behind an explicit
+confirm/decline step before executing) is fully implemented and passes
+lint/typecheck/build, but has never made a real model call — it cannot
+be live-verified the way every other feature in this build was. The
+`/ai` page detects the missing key and shows a "not configured" state
+rather than a broken chat UI. Setting the key (and optionally
+`ANTHROPIC_MODEL`, see `.env.example`) is a human step — see
+docs/AUTONOMOUS_BUILD_STATUS.md "Blocked".
+
+## Mobile's quote creation drifted from web's (both non-transactional... differently)
+
+Web's quote creation (`apps/web/.../business/quotes/actions.ts`) now
+calls `public.create_quote_with_line_items` — see the resolved "Quote
+creation is not transactional" entry above. Mobile's equivalent
+(`apps/mobile/lib/features/business/quotes/quotes_providers.dart`) was
+built by a separate agent pass that read the *pre-RPC* web code and
+correctly mirrored what was there at the time: a two-step insert. The
+two platforms are now inconsistent — mobile still has the header/
+line-items race the RPC was written to fix. Low urgency (same low
+volume risk as before), but worth swapping mobile's `createQuote` to
+call the same RPC via `_client.rpc('create_quote_with_line_items', {...})`
+next time that file is touched.
+
 ## `@loop/contracts` is hand-synced with migrations
 
 See docs/DECISIONS.md — no automated drift check yet between
