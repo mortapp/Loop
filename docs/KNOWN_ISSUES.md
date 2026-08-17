@@ -49,6 +49,28 @@ can always see what they just created. Keep this in mind for any future
 table where a trigger provisions the very access that table's own SELECT
 policy depends on.
 
+## No browser/component test coverage for apps/web yet
+
+Only build-time checks (lint, typecheck, `next build`) and a few
+unauthenticated-route curl checks have been run against `apps/web` (see
+docs/TEST_MATRIX.md). The actual sign-up → sign-in → authenticated-app
+click-through has not been exercised in a real browser. No JS/TS test
+runner is configured. Add one (and Playwright or similar for the auth
+flow) before treating apps/web as more than a verified-to-compile
+scaffold.
+
+## `npm install` can silently corrupt packages inside a OneDrive-synced repo
+
+Observed on this machine: `npm install`/`npm ci` running inside a
+OneDrive-synced folder can intermittently drop files during tarball
+extraction (`npm warn tar TAR_ENTRY_ERROR ENOENT`), most often losing a
+package's `.d.ts` files without any install-time error — `tsc` then
+fails with a misleading "Could not find a declaration file" error that
+looks like an application bug. If that happens, `rm -rf
+node_modules/<package>` and reinstall just that package rather than
+debugging application code. Doesn't affect Vercel's Linux build
+environment — see docs/VERCEL_DEPLOYMENT.md.
+
 ## `@loop/contracts` is hand-synced with migrations
 
 See docs/DECISIONS.md — no automated drift check yet between

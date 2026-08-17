@@ -2,107 +2,95 @@
 
 ## Current Phase
 
-Phase 1 (Foundation) + Phase 2 (Identity) — schema and monorepo tooling
-built and verified; apps (web/mobile) in progress.
+Phase 1 (Foundation) and Phase 2 (Identity) are built and verified.
+Phase 3 (Today) is next — the schema exists (`actions`, `events`) but no
+UI reads it yet.
 
 ## Completed
 
-- Base repository structure created.
-- Git initialized, GitHub remote configured (not yet pushed).
-- Persistent Claude instructions created.
-- Full Supabase schema designed and migrated locally (7 migrations):
+- Base repository structure, git initialized, GitHub remote configured
+  (not yet pushed).
+- Full Supabase schema, migrated and verified locally (7 migrations):
   helpers, identity (profiles/businesses/business_members/accounts),
-  core primitives (contacts/items/documents/money_events/actions/events),
-  MAKE (leads/opportunities/quotes/quote_line_items), PROTECT
+  core primitives (contacts/items/documents/money_events/actions/
+  events), MAKE (leads/opportunities/quotes/quote_line_items), PROTECT
   (purchases/returns/warranties), RECOVER (valuations/listings/sales),
   storage (documents bucket + RLS).
 - Local Supabase dev stack running (Docker, ports 55321-55329, isolated
-  from MORT's stack on the same machine — see docs/DECISIONS.md).
-- RLS verified end-to-end against a live local instance: identity
-  auto-provisioning, cross-user isolation, business creation, append-only
-  ledger inserts. Two real bugs found and fixed in the process (RLS
+  from another local Supabase project on this machine — see
+  docs/DECISIONS.md).
+- RLS verified end-to-end, both manually (docs/TEST_MATRIX.md) and now
+  as an automated pgTAP suite (`supabase/tests/database/`, 15/15
+  passing). Two real bugs were found and fixed in the process (RLS
   self-recursion, missing GRANTs) — see docs/KNOWN_ISSUES.md.
-- `@loop/contracts` package: zod schemas + types for every table, hand-
-  mirrored from the migrations.
-- `packages/domain-docs/README.md`: data model map from product concepts
-  to schema.
-- Root npm workspace tooling (`package.json`, `packages/shared-config`
-  for shared tsconfig/eslint/prettier).
-- Flutter mobile scaffold (`apps/mobile`) — in progress via background
-  agent as of this writing; check back for completion before assuming
-  done.
-
-## In Progress
-
-- Next.js web app scaffold (`apps/web`).
-- Flutter mobile app scaffold (`apps/mobile`) — delegated to a background
-  agent; verify its output (flutter analyze/format results) before
-  trusting it's clean.
+- `@loop/contracts`: zod schemas + types for every table, hand-mirrored
+  from the migrations. `packages/domain-docs/README.md`: data model map.
+- Root npm workspace tooling (`package.json`, `packages/shared-config`).
+- `apps/web`: Next.js 16 (App Router) client. Supabase Auth wired end to
+  end — browser/server clients, `src/proxy.ts` (session refresh + route
+  gating), PKCE `/auth/callback`, sign-in/sign-up. Authenticated shell
+  for the five product areas (Today/Money/Sell/Business/AI); Business is
+  wired to real data, the rest are placeholders. Lint/typecheck/build
+  all pass; unauthenticated-route redirect behavior verified against a
+  running dev server. Deployment readiness documented in
+  docs/VERCEL_DEPLOYMENT.md (no Vercel project or hosted Supabase
+  project exists yet — human steps only).
+- `apps/mobile`: Flutter (Riverpod + GoRouter + supabase_flutter)
+  mirroring the same five-tab shell and shared-core/domain-extension
+  folder structure. Business tab has a working account-switcher UI.
+  `flutter analyze` / `dart format` / `flutter test` all pass clean.
+- CI workflows for all three (`web-ci.yml`, `mobile-ci.yml`,
+  `supabase-ci.yml`) mirror the local verification steps above.
 
 ## Verified
 
-- Migrations apply cleanly from empty on `supabase db reset`.
-- Identity auto-provisioning (auth.users -> profiles -> personal
-  account) works.
-- Business creation auto-provisions owner membership + business account,
-  including the `INSERT ... RETURNING` path.
-- Cross-account RLS isolation confirmed for profiles, items, businesses.
-- See docs/TEST_MATRIX.md for the full list.
+See docs/TEST_MATRIX.md for the full, current list (Supabase/RLS pgTAP
+suite, apps/web build + runtime redirect checks, apps/mobile
+analyze/format/test).
 
 ## Failed
 
-None outstanding — two issues were found and fixed during this pass
-(documented in docs/KNOWN_ISSUES.md for future reference, not because
-they're still broken).
+None outstanding — issues found during this build are documented in
+docs/KNOWN_ISSUES.md as context for future work, not as open breakage.
 
 ## Blocked
 
-- No hosted Supabase project exists yet (needs a human to pick an
-  org/billing account and create it — see docs/KNOWN_ISSUES.md). Local
-  development is unblocked in the meantime.
-- CI cannot yet run database-dependent checks against a real project for
-  the same reason.
+- No hosted Supabase project exists yet (org/billing/region is a human
+  decision). Local development is unblocked in the meantime.
+- No Vercel project exists yet (GitHub repo isn't pushed, and creating/
+  linking a Vercel project requires human account access). See
+  docs/VERCEL_DEPLOYMENT.md "Human Action Required" for the full list.
+- CI cannot run against a real hosted Supabase project for the same
+  reason (local-stack-based `supabase-ci.yml` is unblocked).
 
 ## Remaining
 
-- Flutter application (scaffold in progress)
-- Next.js application (in progress)
-- CI workflows (lint/build for web; analyze/format for mobile)
-- Auth UI (sign up / sign in / account switcher) in both apps
-- Today engine UI wired to `actions`/`events`
-- MAKE / PROTECT / RECOVER feature UIs
-- AI framework (tool registry, confirmation system, safe actions)
-- Automated test suite (currently manual REST/psql smoke tests only)
-- Documentation pass once apps exist
+- Today UI wired to `actions`/`events` (Phase 3).
+- MAKE / PROTECT / RECOVER feature UIs beyond the Business tab
+  (Phases 4-6).
+- Cross-engine integration (Phase 7): purchase -> item, item -> return,
+  item -> resale, quote -> revenue, sale -> recovered value — mostly a
+  UI/workflow concern now that the schema already supports it.
+- AI framework: tool registry, confirmation system, safe actions
+  (Phase 8).
+- Browser/component test coverage for apps/web (no JS/TS test runner
+  configured yet — see docs/KNOWN_ISSUES.md).
+- A real shared design system/token set between apps/web and
+  apps/mobile — both currently have their own independently-chosen
+  clean-but-different visual style (ROADMAP Phase 1 lists "Design
+  system" and it isn't done yet).
+- Push to GitHub, create hosted Supabase + Vercel projects (human
+  steps).
 
 ## Last Known Good Commit
 
-Not yet established — first commit pending in this session.
+`9458b09` — "Add web and mobile app shells, CI workflows, and pgTAP
+regression tests" (parent `7f4fccd`, the schema/tooling foundation).
+Both commits are local only; not yet pushed to the `mortapp/Loop`
+remote.
 
 ## Next Action
 
-Finish apps/web scaffold, review the Flutter agent's output, commit the
-foundation, then continue toward Phase 3 (Today).
-
-## Vercel Deployment Readiness (apps/web) — subagent note
-
-Scoped subagent pass, 2026-08-17, covering deployment config only (not
-feature work — that's owned by the parallel apps/web build). Summary:
-
-- `npm ci` / `lint --workspace apps/web` / `typecheck --workspace
-  apps/web` / `build --workspace apps/web` all pass against the current
-  tree (added a `typecheck` script to `apps/web/package.json` — none
-  shipped by `create-next-app`, and `.github/workflows/web-ci.yml`
-  already expected one).
-- No `apps/web/vercel.json` needed — Vercel's npm-workspaces monorepo
-  auto-detection handles installing `@loop/contracts` from the repo
-  root when Root Directory is set to `apps/web`.
-- Added `NEXT_PUBLIC_SITE_URL` to root `.env.example` (already
-  referenced by `apps/web/src/app/(auth)/actions.ts` and
-  `apps/web/.env.local.example`, but missing from the root template).
-- Full detail, human setup steps, and env var table: see
-  `docs/VERCEL_DEPLOYMENT.md` (new).
-- Did not touch anything under `apps/web/src` — inspected it read-only
-  and found Supabase Auth (browser/server clients, PKCE callback,
-  `proxy.ts` session refresh, sign-in/up) already substantially built,
-  ahead of what this subagent expected going in.
+Build the Today feed (UI over `public.actions`/`public.events`) in both
+apps, since Phase 3 is the next unbuilt roadmap phase and the schema for
+it already exists.

@@ -13,10 +13,22 @@
 | RLS isolation | User B reads User A's `businesses` (not a member) | Empty array | Pass | REST smoke test 2026-08-17 |
 | Grants | Authenticated user inserts into `items`, `businesses`, `money_events` | Succeeds (previously `42501` before explicit GRANTs were added) | Pass (after fix — see docs/KNOWN_ISSUES.md) | REST smoke test 2026-08-17 |
 | Ledger semantics | Insert into `money_events` | Succeeds, row returned | Pass | REST smoke test 2026-08-17 |
+| pgTAP suite | `supabase test db --local supabase/tests/database` | All assertions pass | Pass — 15/15 | `supabase/tests/database/001_identity_and_rls.sql`, run 2026-08-17 |
+| apps/web build | `lint` / `typecheck` / `build` from repo root | All pass | Pass | See docs/VERCEL_DEPLOYMENT.md "Build Verification" |
+| apps/web runtime | `next dev`, unauthenticated `GET /`, `/today`, `/business` | 307 redirect to `/sign-in` (proxy.ts gating) | Pass | Manual curl against local dev server 2026-08-17 |
+| apps/web runtime | `GET /sign-in` | 200, renders "LOOP" / "Sign in" | Pass | Manual curl 2026-08-17 |
+| apps/mobile | `flutter analyze` / `dart format --set-exit-if-changed` / `flutter test` | All clean | Pass | Run 2026-08-17 |
 
 Method: local Supabase stack (`supabase/config.toml`, ports 55321-55329)
 driven via raw `curl` against `/auth/v1` and `/rest/v1` with two
 throwaway signed-up users, cross-checked with direct `psql` queries where
-REST responses alone couldn't distinguish the root cause. No automated
-test suite exists yet — see docs/KNOWN_ISSUES.md and docs/ROADMAP.md for
-that gap.
+REST responses alone couldn't distinguish the root cause — now also
+codified as an automated pgTAP suite (`supabase/tests/database/`) so it
+runs as regression coverage, not just a one-off session.
+
+Not yet covered: end-to-end browser testing of the sign-up → sign-in →
+authenticated-app flow (only unauthenticated redirect behavior and raw
+HTML of `/sign-in` were checked via curl; no interactive browser session
+was available in this session to click through the actual form
+submission). No JS/TS unit or component test runner is configured for
+apps/web yet. See docs/KNOWN_ISSUES.md.
