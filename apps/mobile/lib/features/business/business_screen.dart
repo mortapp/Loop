@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/account/account_context.dart';
 import '../../core/account/account_providers.dart';
@@ -66,7 +67,89 @@ class BusinessScreen extends ConsumerWidget {
               'separate books, one login.',
               style: theme.textTheme.bodyMedium,
             ),
+            const SizedBox(height: AppSpacing.xl),
+            Text('MAKE / QuoteCloser', style: theme.textTheme.titleMedium),
+            const SizedBox(height: AppSpacing.sm),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: AppSpacing.sm,
+              crossAxisSpacing: AppSpacing.sm,
+              childAspectRatio: 1.6,
+              children: [
+                _NavCard(
+                  title: 'Contacts',
+                  description:
+                      'Customers, vendors, and anyone else you deal with.',
+                  icon: Icons.contacts_outlined,
+                  onTap: () => context.push('/business/contacts'),
+                ),
+                _NavCard(
+                  title: 'Leads',
+                  description: 'Track interest before it\'s worth quoting.',
+                  icon: Icons.leaderboard_outlined,
+                  onTap: () => context.push('/business/leads'),
+                ),
+                _NavCard(
+                  title: 'Opportunities',
+                  description: 'Qualified interest, tracked to won or lost.',
+                  icon: Icons.trending_up,
+                  onTap: () => context.push('/business/opportunities'),
+                ),
+                _NavCard(
+                  title: 'Quotes',
+                  description: 'Line items, totals, and status — the close.',
+                  icon: Icons.request_quote_outlined,
+                  onTap: () => context.push('/business/quotes'),
+                ),
+              ],
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavCard extends StatelessWidget {
+  const _NavCard({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String title;
+  final String description;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: theme.colorScheme.primary),
+              const SizedBox(height: AppSpacing.xs),
+              Text(title, style: theme.textTheme.titleMedium),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                description,
+                style: theme.textTheme.bodyMedium,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );

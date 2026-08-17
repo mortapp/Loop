@@ -1,22 +1,250 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/widgets/placeholder_screen.dart';
+import '../../core/account/account_providers.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/widgets/async_error_view.dart';
+import 'models/action_item.dart';
+import 'today_providers.dart';
 
 /// The Today tab: a unified action feed spanning every engine — quotes to
 /// close (MAKE), returns/warranties needing attention (PROTECT), and
 /// resell opportunities (RECOVER) — surfaced as one prioritized list.
-class TodayScreen extends StatelessWidget {
+///
+/// Mirrors `apps/web/src/app/(app)/today/page.tsx`: today this is a plain
+/// shared task list backed by `public.actions`; `related_type`/`related_id`
+/// are reserved for future auto-generated rows.
+class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const PlaceholderScreen(
-      title: 'Today',
-      icon: Icons.today_outlined,
-      description:
-          'Your unified action feed. Quotes to close, returns to handle, '
-          'and resell opportunities — all in one prioritized list, across '
-          'every business you work with.',
+  Widget build(BuildContext context, WidgetRef ref) {
+    final actionsAsync = ref.watch(todayActionsProvider);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Today')),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () => ref.refresh(todayActionsProvider.future),
+          child: actionsAsync.when(
+            data: (actions) => _TodayList(actions: actions),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, _) => AsyncErrorView(
+              error: error,
+              onRetry: () => ref.invalidate(todayActionsProvider),
+            ),
+          ),
+        ),
+      ),
     );
   }
+}
+
+class _TodayList extends ConsumerWidget {
+  const _TodayList({required this.actions});
+
+  final List<ActionItem> actions;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final open = actions
+        .where(
+          (a) =>
+              a.status == ActionStatus.open || a.status == ActionStatus.snoozed,
+        )
+        .toList();
+    final done = actions.where((a) => a.status == ActionStatus.done).toList();
+
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      children: [
+        const _QuickAddForm(),
+        const SizedBox(height: AppSpacing.lg),
+        if (open.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            child: Text('Nothing open. Add something above.'),
+          )
+        else
+          ...open.map((action) => _ActionTile(action: action)),
+        if (done.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.lg),
+          Text('Recently done', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.sm),
+          ...done.map((action) => _DoneActionTile(action: action)),
+        ],
+      ],
+    );
+  }
+}
+
+class _QuickAddForm extends ConsumerStatefulWidget {
+  const _QuickAddForm();
+
+  @override
+  ConsumerState<_QuickAddForm> createState() => _QuickAddFormState();
+}
+
+class _QuickAddFormState extends ConsumerState<_QuickAddForm> {
+  final _controller = TextEditingController();
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final title = _controller.text.trim();
+    if (title.isEmpty) return;
+
+    setState(() => _submitting = true);
+    try {
+      final accountId = ref.read(activeAccountProvider).id;
+      await ref
+          .read(todayActionsRepositoryProvider)
+          .quickAdd(accountId: accountId, title: title);
+      _controller.clear();
+      ref.invalidate(todayActionsProvider);
+    } catch (e) {
+      if (mounted) showErrorSnackBar(context, 'Failed to add: $e');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            decoration: const InputDecoration(
+              hintText: 'Add something to do…',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        FilledButton(
+          onPressed: _submitting ? null : _submit,
+          child: _submitting
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Add'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionTile extends ConsumerWidget {
+  const _ActionTile({required this.action});
+
+  final ActionItem action;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+
+    Future<void> setStatus(ActionStatus status) async {
+      try {
+        await ref
+            .read(todayActionsRepositoryProvider)
+            .setStatus(id: action.id, status: status);
+        ref.invalidate(todayActionsProvider);
+      } catch (e) {
+        if (context.mounted) showErrorSnackBar(context, 'Failed: $e');
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(action.title, style: theme.textTheme.bodyLarge),
+                    if (action.dueAt != null)
+                      Text(
+                        'Due ${_formatDate(action.dueAt!)}',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () => setStatus(ActionStatus.done),
+                child: const Text('Done'),
+              ),
+              TextButton(
+                onPressed: () => setStatus(ActionStatus.dismissed),
+                child: const Text('Dismiss'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DoneActionTile extends ConsumerWidget {
+  const _DoneActionTile({required this.action});
+
+  final ActionItem action;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+
+    Future<void> reopen() async {
+      try {
+        await ref
+            .read(todayActionsRepositoryProvider)
+            .setStatus(id: action.id, status: ActionStatus.open);
+        ref.invalidate(todayActionsProvider);
+      } catch (e) {
+        if (context.mounted) showErrorSnackBar(context, 'Failed: $e');
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              action.title,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                decoration: TextDecoration.lineThrough,
+                color: theme.colorScheme.outline,
+              ),
+            ),
+          ),
+          TextButton(onPressed: reopen, child: const Text('Reopen')),
+        ],
+      ),
+    );
+  }
+}
+
+String _formatDate(DateTime date) {
+  return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }
