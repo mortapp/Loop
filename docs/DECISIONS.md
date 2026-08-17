@@ -64,10 +64,12 @@ per feature:
   closing quotes is a business-development activity, and `contacts` as
   a shared core primitive (customers, vendors, buyers) belongs somewhere
   that isn't engine-specific. Business is that place.
-- **PROTECT** (purchases/returns/warranties) doesn't have a home yet.
-  Likely split across Today (expiring windows as actions) and an
-  item-detail view that doesn't exist yet — revisit when building it
-  (Phase 5).
+- **PROTECT** (purchases/returns) lives under **Money**, as
+  `/money/purchases` — a purchase is a spend event first and foremost,
+  and returns/refunds are money events too. Warranties aren't built yet
+  (would likely live on the same page). Today surfacing expiring
+  windows as actions is still unbuilt — revisit once `actions` rows are
+  generated from purchase/warranty deadlines, not just manually typed.
 - `contacts` and `items` (shared core primitives, not MAKE/PROTECT/
   RECOVER-specific) will likely need their own top-level list views
   eventually, since PROTECT and RECOVER both reference `items` and

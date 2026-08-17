@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { MoneyEvent, MoneyEventKind } from "@loop/contracts";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
@@ -52,7 +53,10 @@ export default async function MoneyPage() {
         <h1 className="text-xl font-semibold text-zinc-950 dark:text-zinc-50">Money</h1>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
           Everything earned, spent, refunded, and recovered — the append-only ledger every engine
-          writes to.
+          writes to.{" "}
+          <Link href="/money/purchases" className="underline">
+            Purchases &amp; returns →
+          </Link>
         </p>
       </div>
 
