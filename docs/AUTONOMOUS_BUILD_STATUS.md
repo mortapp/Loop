@@ -83,3 +83,26 @@ Not yet established — first commit pending in this session.
 
 Finish apps/web scaffold, review the Flutter agent's output, commit the
 foundation, then continue toward Phase 3 (Today).
+
+## Vercel Deployment Readiness (apps/web) — subagent note
+
+Scoped subagent pass, 2026-08-17, covering deployment config only (not
+feature work — that's owned by the parallel apps/web build). Summary:
+
+- `npm ci` / `lint --workspace apps/web` / `typecheck --workspace
+  apps/web` / `build --workspace apps/web` all pass against the current
+  tree (added a `typecheck` script to `apps/web/package.json` — none
+  shipped by `create-next-app`, and `.github/workflows/web-ci.yml`
+  already expected one).
+- No `apps/web/vercel.json` needed — Vercel's npm-workspaces monorepo
+  auto-detection handles installing `@loop/contracts` from the repo
+  root when Root Directory is set to `apps/web`.
+- Added `NEXT_PUBLIC_SITE_URL` to root `.env.example` (already
+  referenced by `apps/web/src/app/(auth)/actions.ts` and
+  `apps/web/.env.local.example`, but missing from the root template).
+- Full detail, human setup steps, and env var table: see
+  `docs/VERCEL_DEPLOYMENT.md` (new).
+- Did not touch anything under `apps/web/src` — inspected it read-only
+  and found Supabase Auth (browser/server clients, PKCE callback,
+  `proxy.ts` session refresh, sign-in/up) already substantially built,
+  ahead of what this subagent expected going in.
