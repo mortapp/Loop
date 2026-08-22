@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/account/account_context.dart';
 import '../../core/account/account_providers.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/widgets/account_sheet.dart';
 
 /// The Business tab: account/business switching and membership management.
 ///
@@ -23,7 +24,10 @@ class BusinessScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Business')),
+      appBar: AppBar(
+        title: const Text('Business'),
+        actions: const [AccountAvatarButton()],
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.md),

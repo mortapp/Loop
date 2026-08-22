@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/account/account_providers.dart';
-import '../../core/supabase/supabase_providers.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/widgets/account_sheet.dart';
 import '../../core/widgets/async_error_view.dart';
 import 'models/action_item.dart';
 import 'today_providers.dart';
@@ -25,19 +25,8 @@ class TodayScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.account_circle_outlined),
-            onSelected: (value) {
-              if (value == 'sign-out') {
-                ref.read(supabaseClientProvider).auth.signOut();
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'sign-out', child: Text('Sign out')),
-            ],
-          ),
-        ],
+        title: const Text('Today'),
+        actions: const [AccountAvatarButton()],
       ),
       body: SafeArea(
         child: RefreshIndicator(

@@ -11,9 +11,13 @@ import '../../features/business/contacts/contacts_screen.dart';
 import '../../features/business/leads/leads_screen.dart';
 import '../../features/business/opportunities/opportunities_screen.dart';
 import '../../features/business/quotes/quotes_screen.dart';
+import '../../features/help/help_screen.dart';
 import '../../features/money/money_screen.dart';
 import '../../features/money/purchases/purchases_screen.dart';
+import '../../features/profile/profile_screen.dart';
 import '../../features/sell/sell_screen.dart';
+import '../../features/settings/personalization_screen.dart';
+import '../../features/settings/settings_screen.dart';
 import '../../features/today/today_screen.dart';
 
 /// Route paths for the top-level tabs. Kept centralized so navigation
@@ -34,6 +38,10 @@ class AppRoutes {
   static const business = '/business';
   static const ai = '/ai';
   static const signIn = '/sign-in';
+  static const profile = '/profile';
+  static const settings = '/settings';
+  static const personalization = '/settings/personalization';
+  static const help = '/help';
 }
 
 /// Whether a Supabase session currently exists — a thin, overridable
@@ -77,6 +85,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.signIn,
         builder: (context, state) => const AuthScreen(),
+      ),
+      // Account identity — full-screen pushes (with a back button) reached
+      // from the account sheet, not new bottom-nav destinations.
+      GoRoute(
+        path: AppRoutes.profile,
+        builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.settings,
+        builder: (context, state) => const SettingsScreen(),
+        routes: [
+          GoRoute(
+            path: 'personalization',
+            builder: (context, state) => const PersonalizationScreen(),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: AppRoutes.help,
+        builder: (context, state) => const HelpScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {

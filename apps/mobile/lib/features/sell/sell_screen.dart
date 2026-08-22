@@ -5,6 +5,7 @@ import '../../core/account/account_providers.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/money.dart';
+import '../../core/widgets/account_sheet.dart';
 import '../../core/widgets/async_error_view.dart';
 import '../../core/widgets/loop_seal.dart';
 import 'item_actions.dart';
@@ -41,7 +42,10 @@ class SellScreen extends ConsumerWidget {
     final pageAsync = ref.watch(sellPageProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Sell')),
+      appBar: AppBar(
+        title: const Text('Sell'),
+        actions: const [AccountAvatarButton()],
+      ),
       body: SafeArea(
         child: pageAsync.when(
           data: (data) => _SellBody(data: data),

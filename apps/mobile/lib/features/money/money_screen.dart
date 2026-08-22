@@ -6,6 +6,7 @@ import '../../core/account/account_providers.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/money.dart';
+import '../../core/widgets/account_sheet.dart';
 import '../../core/widgets/async_error_view.dart';
 import 'models/money_event.dart';
 import 'money_providers.dart';
@@ -53,6 +54,7 @@ class MoneyScreen extends ConsumerWidget {
             icon: const Icon(Icons.receipt_long_outlined),
             onPressed: () => context.push('/money/purchases'),
           ),
+          const AccountAvatarButton(),
         ],
       ),
       body: SafeArea(

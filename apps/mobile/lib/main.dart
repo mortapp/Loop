@@ -5,6 +5,7 @@ import 'core/router/app_router.dart';
 import 'core/supabase/supabase_config.dart';
 import 'core/supabase/supabase_providers.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_preference.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +18,17 @@ Future<void> main() async {
     anonKey: SupabaseConfig.anonKey,
   );
 
-  runApp(const ProviderScope(child: LoopApp()));
+  // Read the persisted theme preference before the first frame, same
+  // bootstrap-before-runApp pattern as Supabase config, so there's no
+  // flash of the wrong theme.
+  final initialTheme = await loadThemePreference();
+
+  runApp(
+    ProviderScope(
+      overrides: [themePreferenceProvider.overrideWith((ref) => initialTheme)],
+      child: const LoopApp(),
+    ),
+  );
 }
 
 /// Root widget for the LOOP mobile app.
@@ -32,13 +43,14 @@ class LoopApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final themePreference = ref.watch(themePreferenceProvider);
 
     return MaterialApp.router(
       title: 'LOOP',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
+      themeMode: themeModeFor(themePreference),
       routerConfig: router,
     );
   }
