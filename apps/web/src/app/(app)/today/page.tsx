@@ -23,6 +23,18 @@ export default async function TodayPage() {
   const accountId = await getActiveAccountId();
   const supabase = await createClient();
 
+  if (accountId) {
+    // Best-effort: turn due quote/return/warranty deadlines into actions
+    // before reading the list. A transient failure here should never block
+    // showing whatever actions already exist -- see
+    // supabase/migrations/20260822160000_today_automation.sql.
+    try {
+      await supabase.rpc("generate_today_actions", { p_account_id: accountId });
+    } catch {
+      // Ignored -- see comment above.
+    }
+  }
+
   const { data: actions } = accountId
     ? await supabase
         .from("actions")

@@ -16,6 +16,21 @@ final todayActionsProvider = FutureProvider.autoDispose<List<ActionItem>>((
   final client = ref.watch(supabaseClientProvider);
   final accountId = ref.watch(activeAccountProvider).id;
 
+  if (accountId.isNotEmpty) {
+    // Best-effort: turn due quote/return/warranty deadlines into actions
+    // before reading the list. A transient failure here (offline, RLS
+    // edge case) should never block showing whatever actions already
+    // exist — see supabase/migrations/20260822160000_today_automation.sql.
+    try {
+      await client.rpc(
+        'generate_today_actions',
+        params: {'p_account_id': accountId},
+      );
+    } catch (_) {
+      // Ignored — see comment above.
+    }
+  }
+
   final rows = await client
       .from('actions')
       .select()
