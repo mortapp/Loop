@@ -43,6 +43,10 @@
   --color-brand-pressed: #2b1728; /* Imperial Plum */
   --color-brand-soft: #d6c7c2;
   --color-brand-text: #401c38;
+  /* Non-text UI accent only (focus rings, active-nav markers) — Murex
+     Bloom clears the 3:1 UI-component floor but not 4.5:1 text; never
+     use this for text. Same value both modes. */
+  --color-brand-accent: #98637d;
 
   --color-info: #4d6474; /* Sapphire Ash */
   --color-info-soft: #d0d0c8;
@@ -115,6 +119,7 @@
   --color-brand-pressed: var(--color-brand-pressed);
   --color-brand-soft: var(--color-brand-soft);
   --color-brand-text: var(--color-brand-text);
+  --color-brand-accent: var(--color-brand-accent);
 
   --color-info: var(--color-info);
   --color-info-soft: var(--color-info-soft);

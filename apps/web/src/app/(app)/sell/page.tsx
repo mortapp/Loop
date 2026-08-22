@@ -5,6 +5,7 @@ import { Amount } from "@/components/ui/amount";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { LoopSeal } from "@/components/ui/loop-seal";
 import { CreateItemForm } from "./create-item-form";
 import { ValuationForm, ListingForm, SaleForm } from "./item-actions";
 
@@ -75,63 +76,80 @@ export default async function SellPage() {
         <CreateItemForm />
       </Card>
 
-      <div className="flex flex-col gap-2">
-        {(items ?? []).length === 0 ? (
-          <EmptyState
-            title="No items ready to recover value from yet"
-            description="Add an item above, then value it and list it when you're ready to sell."
-          />
-        ) : (
-          (items ?? []).map((item) => {
+      {(items ?? []).length === 0 ? (
+        <EmptyState
+          title="No items ready to recover value from yet"
+          description="Add an item above, then value it and list it when you're ready to sell."
+        />
+      ) : (
+        // A private collection, not a marketplace feed — one column on
+        // phones, an editorial grid from tablet up. Image carries the
+        // tile; chrome stays minimal.
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {(items ?? []).map((item) => {
             const valuation = latestValuationByItem.get(item.id);
             const itemListings = listingsByItem.get(item.id) ?? [];
+            const photo = item.photos?.[0];
             return (
-              <Card key={item.id} className="flex flex-col gap-3 px-4 py-3">
-                <div className="flex items-start justify-between gap-2">
+              <Card key={item.id} className="flex flex-col gap-3 overflow-hidden p-0">
+                <div className="relative flex aspect-[4/3] items-center justify-center bg-[var(--color-bg-secondary)]">
+                  {photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- item photos are user-uploaded Storage URLs, not build-time assets
+                    <img src={photo} alt={item.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <LoopSeal size={44} className="opacity-20" />
+                  )}
+                  <div className="absolute right-2 top-2">
+                    <StatusBadge label={item.status} tone={STATUS_TONE[item.status]} />
+                  </div>
+                </div>
+
+                <div className="flex flex-1 flex-col gap-3 px-4 pb-4">
                   <div>
                     <p className="text-sm font-medium text-[var(--color-text-primary)]">{item.name}</p>
                     <p className="text-xs text-[var(--color-text-tertiary)]">
                       {[item.category, item.condition].filter(Boolean).join(" · ") || "No details"}
                     </p>
                     {valuation ? (
-                      <p className="mt-1 flex items-center gap-1 text-xs text-[var(--color-text-tertiary)]">
-                        Est. value
-                        <Amount cents={valuation.estimated_value_cents} tone="opportunity" className="text-xs" />
+                      <p className="mt-2 flex items-baseline gap-1.5">
+                        <span className="text-[10px] font-semibold tracking-[0.1em] text-[var(--color-text-tertiary)]">
+                          EST. VALUE
+                        </span>
+                        <Amount cents={valuation.estimated_value_cents} tone="opportunity" className="text-sm font-medium" />
                       </p>
                     ) : null}
                   </div>
-                  <StatusBadge label={item.status} tone={STATUS_TONE[item.status]} />
+
+                  {itemListings.length > 0 ? (
+                    <div className="flex flex-col gap-1">
+                      {itemListings.map((listing) => (
+                        <p key={listing.id} className="text-xs text-[var(--color-text-tertiary)]">
+                          Listed on {listing.marketplace}
+                          {listing.list_price_cents ? (
+                            <>
+                              {" for "}
+                              <Amount cents={listing.list_price_cents} className="text-xs" />
+                            </>
+                          ) : null}{" "}
+                          · {listing.status}
+                        </p>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {item.status !== "sold" ? (
+                    <div className="mt-auto flex flex-wrap items-center gap-4 border-t border-[var(--color-border-subtle)] pt-3">
+                      <ValuationForm itemId={item.id} />
+                      {item.status !== "listed" ? <ListingForm itemId={item.id} /> : null}
+                      <SaleForm itemId={item.id} listingId={itemListings[0]?.id} />
+                    </div>
+                  ) : null}
                 </div>
-
-                {itemListings.length > 0 ? (
-                  <div className="flex flex-col gap-1">
-                    {itemListings.map((listing) => (
-                      <p key={listing.id} className="text-xs text-[var(--color-text-tertiary)]">
-                        Listed on {listing.marketplace}
-                        {listing.list_price_cents ? (
-                          <>
-                            {" for "}
-                            <Amount cents={listing.list_price_cents} className="text-xs" />
-                          </>
-                        ) : null}{" "}
-                        · {listing.status}
-                      </p>
-                    ))}
-                  </div>
-                ) : null}
-
-                {item.status !== "sold" ? (
-                  <div className="flex flex-wrap items-center gap-4">
-                    <ValuationForm itemId={item.id} />
-                    {item.status !== "listed" ? <ListingForm itemId={item.id} /> : null}
-                    <SaleForm itemId={item.id} listingId={itemListings[0]?.id} />
-                  </div>
-                ) : null}
               </Card>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { MoneyEvent, MoneyEventKind } from "@loop/contracts";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { formatCents } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -47,7 +48,7 @@ export default async function MoneyPage() {
   const net = (events ?? []).reduce((sum, e) => sum + KIND_SIGN[e.kind] * e.amount_cents, 0);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <div className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Money</h1>
         <Link
@@ -58,20 +59,54 @@ export default async function MoneyPage() {
         </Link>
       </div>
 
-      {/* One dominant figure, not six equally-weighted boxes — Net is what
-          answers "how am I doing," everything else is supporting detail. */}
+      {/* The hero: one dominant editorial figure, not six equally-weighted
+          boxes. Neutral Bone even when positive — a private ledger states
+          a number, it doesn't cheer for it. */}
       <div>
-        <p className="text-sm text-[var(--color-text-tertiary)]">Net through LOOP</p>
-        <Amount cents={net} tone="auto" signed size="lg" className="mt-1" />
-      </div>
+        <p className="text-xs font-semibold tracking-[0.15em] text-[var(--color-text-secondary)]">
+          TOTAL VALUE THROUGH LOOP
+        </p>
+        <p
+          className={`tabular-nums-mono mt-1 text-5xl ${
+            net < 0 ? "text-[var(--color-danger-text)]" : "text-[var(--color-text-primary)]"
+          }`}
+          style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}
+        >
+          {formatCents(net)}
+        </p>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        {(["earn", "recovered", "refund", "spend", "fee"] as MoneyEventKind[]).map((kind) => (
-          <div key={kind}>
-            <p className="text-xs text-[var(--color-text-tertiary)]">{KIND_LABEL[kind]}</p>
-            <Amount cents={totals[kind] ?? 0} tone="neutral" size="sm" className="mt-0.5 font-medium" />
-          </div>
-        ))}
+        {/* MAKE / PROTECT / RECOVER — the three engines that produced this
+            number. */}
+        <div className="mt-6 grid grid-cols-3 gap-4 border-t border-[var(--color-border-subtle)] pt-4">
+          {(
+            [
+              ["MADE", totals.earn ?? 0],
+              ["PROTECTED", totals.refund ?? 0],
+              ["RECOVERED", totals.recovered ?? 0],
+            ] as const
+          ).map(([label, cents]) => (
+            <div key={label}>
+              <p className="text-[10px] font-semibold tracking-[0.12em] text-[var(--color-text-tertiary)]">
+                {label}
+              </p>
+              <Amount cents={cents} tone="neutral" size="md" className="mt-0.5 font-medium" />
+            </div>
+          ))}
+        </div>
+
+        {/* Costs — real, but quieter; not part of the three-engine story. */}
+        <div className="mt-3 flex gap-6">
+          {(
+            [
+              ["Spent", totals.spend ?? 0],
+              ["Fees", totals.fee ?? 0],
+            ] as const
+          ).map(([label, cents]) => (
+            <p key={label} className="text-xs text-[var(--color-text-tertiary)]">
+              {label} <Amount cents={cents} tone="neutral" size="sm" className="ml-1" />
+            </p>
+          ))}
+        </div>
       </div>
 
       <details className="group">
@@ -86,7 +121,7 @@ export default async function MoneyPage() {
       <div className="flex flex-col gap-2">
         {(events ?? []).length === 0 ? (
           <EmptyState
-            title="No recorded value yet"
+            title="Your ledger begins with the first recorded value"
             description="Sales, refunds, and manual entries will appear here as they happen."
           />
         ) : (

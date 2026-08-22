@@ -5,6 +5,12 @@
  * as a banking seal, an archive stamp, and a monogram — deliberately not
  * a crown or shield. A handful of static SVG strokes; costs nothing to
  * render, no filters, no animation.
+ *
+ * Colors are fixed hex (Platinum #BCBAB5 / Murex Bloom #98637D /
+ * Champagne #B89A68 — same values as globals.css's --color-* tokens and
+ * apps/mobile's AppColors) rather than `var(--color-*)`, since SVG
+ * presentation attributes resolve CSS custom properties inconsistently
+ * across renderers; this mark should always read the same regardless.
  */
 export function LoopSeal({ size = 40, className }: { size?: number; className?: string }) {
   const height = size * 0.7;

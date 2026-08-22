@@ -11,6 +11,15 @@ import '../contacts/models/contact.dart';
 import 'leads_providers.dart';
 import 'models/lead.dart';
 
+/// The single natural next status — mirrors quotes_screen.dart's and
+/// opportunities_screen.dart's identical "one primary action + Other…"
+/// pattern (matches `NEXT_STATUS` in
+/// apps/web/src/app/(app)/business/leads/page.tsx).
+const _nextStatus = <LeadStatus, LeadStatus>{
+  LeadStatus.new_: LeadStatus.contacted,
+  LeadStatus.contacted: LeadStatus.qualified,
+};
+
 Color _statusColor(LeadStatus status) {
   switch (status) {
     case LeadStatus.new_:
@@ -129,6 +138,22 @@ class _LeadTile extends ConsumerWidget {
       lead.notes,
     ].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
 
+    Future<void> setStatus(LeadStatus status) async {
+      try {
+        await ref
+            .read(leadsRepositoryProvider)
+            .setStatus(id: lead.id, status: status);
+        ref.invalidate(leadsProvider);
+      } catch (e) {
+        if (context.mounted) showErrorSnackBar(context, 'Failed: $e');
+      }
+    }
+
+    final next = _nextStatus[lead.status];
+    final otherStatuses = leadStatusOptions.where(
+      (s) => s != lead.status && s != next,
+    );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Card(
@@ -159,23 +184,32 @@ class _LeadTile extends ConsumerWidget {
                     labelStyle: TextStyle(color: _statusColor(lead.status)),
                     side: BorderSide.none,
                   ),
-                  for (final status in leadStatusOptions.where(
-                    (s) => s != lead.status,
-                  ))
+                  if (next != null)
                     TextButton(
-                      onPressed: () async {
-                        try {
-                          await ref
-                              .read(leadsRepositoryProvider)
-                              .setStatus(id: lead.id, status: status);
-                          ref.invalidate(leadsProvider);
-                        } catch (e) {
-                          if (context.mounted) {
-                            showErrorSnackBar(context, 'Failed: $e');
-                          }
-                        }
-                      },
-                      child: Text(leadStatusLabel(status)),
+                      onPressed: () => setStatus(next),
+                      child: Text('Mark ${leadStatusLabel(next)}'),
+                    ),
+                  if (otherStatuses.isNotEmpty)
+                    PopupMenuButton<LeadStatus>(
+                      tooltip: 'Other…',
+                      onSelected: setStatus,
+                      itemBuilder: (context) => [
+                        for (final status in otherStatuses)
+                          PopupMenuItem(
+                            value: status,
+                            child: Text('Mark ${leadStatusLabel(status)}'),
+                          ),
+                      ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xs,
+                          vertical: AppSpacing.xs,
+                        ),
+                        child: Text(
+                          'Other…',
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
                     ),
                 ],
               ),

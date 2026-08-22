@@ -2,6 +2,9 @@ import Link from "next/link";
 import type { LeadStatus } from "@loop/contracts";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { CreateLeadForm } from "./create-lead-form";
 import { setLeadStatus } from "./actions";
 
@@ -15,12 +18,18 @@ type LeadRow = {
 
 const STATUS_OPTIONS: LeadStatus[] = ["new", "contacted", "qualified", "disqualified", "converted"];
 
-const STATUS_STYLES: Record<LeadStatus, string> = {
-  new: "bg-zinc-100 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400",
-  contacted: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400",
-  qualified: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
-  disqualified: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400",
-  converted: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
+const STATUS_TONE: Record<LeadStatus, "neutral" | "info" | "opportunity" | "danger" | "brand"> = {
+  new: "neutral",
+  contacted: "info",
+  qualified: "opportunity",
+  disqualified: "danger",
+  converted: "brand",
+};
+
+/** One natural next status, not four equally-weighted buttons. */
+const NEXT_STATUS: Partial<Record<LeadStatus, LeadStatus>> = {
+  new: "contacted",
+  contacted: "qualified",
 };
 
 export default async function LeadsPage() {
@@ -48,62 +57,86 @@ export default async function LeadsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/business" className="text-xs text-zinc-500 hover:underline dark:text-zinc-400">
+        <Link href="/business" className="text-xs text-[var(--color-text-tertiary)] hover:underline">
           ← Business
         </Link>
-        <h1 className="mt-1 text-xl font-semibold text-zinc-950 dark:text-zinc-50">Leads</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="mt-1 text-xl font-semibold text-[var(--color-text-primary)]">Leads</h1>
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
           MAKE / QuoteCloser. Track interest before it becomes an opportunity worth quoting.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+      <Card className="p-4">
         {(contacts ?? []).length === 0 ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Add a <Link href="/business/contacts" className="underline">contact</Link> first — leads
-            need one.
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            Add a{" "}
+            <Link href="/business/contacts" className="text-[var(--color-brand-text)] hover:underline">
+              contact
+            </Link>{" "}
+            first — leads need one.
           </p>
         ) : (
           <CreateLeadForm contacts={contacts ?? []} />
         )}
-      </div>
+      </Card>
 
-      <ul className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
         {(leads ?? []).length === 0 ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">No leads yet.</p>
+          <EmptyState title="No leads yet" description="Add one above to start tracking it." />
         ) : (
-          (leads ?? []).map((lead) => (
-            <li
-              key={lead.id}
-              className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="text-sm font-medium text-zinc-950 dark:text-zinc-50">
-                  {lead.contacts?.display_name ?? "Unknown contact"}
-                </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {[lead.source, lead.notes].filter(Boolean).join(" · ") || "No details"}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[lead.status]}`}>
-                  {lead.status}
-                </span>
-                {STATUS_OPTIONS.filter((s) => s !== lead.status).map((status) => (
-                  <form key={status} action={setLeadStatus.bind(null, lead.id, status)}>
-                    <button
-                      type="submit"
-                      className="text-xs font-medium text-zinc-400 hover:underline dark:text-zinc-500"
-                    >
-                      {status}
-                    </button>
-                  </form>
-                ))}
-              </div>
-            </li>
-          ))
+          (leads ?? []).map((lead) => {
+            const next = NEXT_STATUS[lead.status];
+            const otherStatuses = STATUS_OPTIONS.filter((s) => s !== lead.status && s !== next);
+            return (
+              <Card
+                key={lead.id}
+                className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                    {lead.contacts?.display_name ?? "Unknown contact"}
+                  </p>
+                  <p className="text-xs text-[var(--color-text-tertiary)]">
+                    {[lead.source, lead.notes].filter(Boolean).join(" · ") || "No details"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <StatusBadge label={lead.status} tone={STATUS_TONE[lead.status]} />
+                  {next ? (
+                    <form action={setLeadStatus.bind(null, lead.id, next)}>
+                      <button
+                        type="submit"
+                        className="text-xs font-medium text-[var(--color-brand-text)] hover:underline"
+                      >
+                        Mark {next}
+                      </button>
+                    </form>
+                  ) : null}
+                  {otherStatuses.length > 0 ? (
+                    <details className="relative">
+                      <summary className="cursor-pointer list-none text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]">
+                        Other…
+                      </summary>
+                      <div className="absolute right-0 z-10 mt-1 flex flex-col gap-1 rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-2 shadow-lg">
+                        {otherStatuses.map((status) => (
+                          <form key={status} action={setLeadStatus.bind(null, lead.id, status)}>
+                            <button
+                              type="submit"
+                              className="w-full whitespace-nowrap rounded px-2 py-1 text-left text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                            >
+                              Mark {status}
+                            </button>
+                          </form>
+                        ))}
+                      </div>
+                    </details>
+                  ) : null}
+                </div>
+              </Card>
+            );
+          })
         )}
-      </ul>
+      </div>
     </div>
   );
 }

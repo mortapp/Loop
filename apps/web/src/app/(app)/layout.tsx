@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountSummary } from "@/lib/active-account";
-import { NavLinks } from "@/lib/nav-links";
+import { AppShell } from "@/components/app-shell";
 import { signOut } from "../(auth)/actions";
 
 /**
@@ -25,35 +24,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const activeAccount = await getActiveAccountSummary();
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-[var(--color-bg)]">
-      <header className="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)]">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-semibold tracking-tight text-[var(--color-text-primary)]">
-              LOOP
-            </span>
-            {activeAccount ? (
-              <Link
-                href="/business"
-                className="rounded-full bg-[var(--color-surface)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)]"
-                title="Switch account"
-              >
-                {activeAccount.label}
-              </Link>
-            ) : null}
-          </div>
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="text-sm text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-primary)]"
-            >
-              Sign out
-            </button>
-          </form>
-        </div>
-        <NavLinks />
-      </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
-    </div>
+    <AppShell activeAccountLabel={activeAccount?.label ?? null} signOutAction={signOut}>
+      {children}
+    </AppShell>
   );
 }

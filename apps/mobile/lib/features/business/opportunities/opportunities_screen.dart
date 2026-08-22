@@ -12,6 +12,17 @@ import '../contacts/models/contact.dart';
 import 'models/opportunity.dart';
 import 'opportunities_providers.dart';
 
+/// The single natural next stage — the one action rendered prominently.
+/// Terminal stages (won/lost) have none; every other transition is still
+/// reachable via "Other…" (matches `NEXT_STAGE` in
+/// apps/web/src/app/(app)/business/opportunities/page.tsx and mirrors
+/// quotes_screen.dart's identical pattern).
+const _nextStage = <OpportunityStage, OpportunityStage>{
+  OpportunityStage.new_: OpportunityStage.qualifying,
+  OpportunityStage.qualifying: OpportunityStage.quoted,
+  OpportunityStage.quoted: OpportunityStage.negotiating,
+};
+
 Color _stageColor(OpportunityStage stage) {
   switch (stage) {
     case OpportunityStage.new_:
@@ -125,6 +136,22 @@ class _OpportunityTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
+    Future<void> setStage(OpportunityStage stage) async {
+      try {
+        await ref
+            .read(opportunitiesRepositoryProvider)
+            .setStage(id: opportunity.id, stage: stage);
+        ref.invalidate(opportunitiesProvider);
+      } catch (e) {
+        if (context.mounted) showErrorSnackBar(context, 'Failed: $e');
+      }
+    }
+
+    final next = _nextStage[opportunity.stage];
+    final otherStages = opportunityStageOptions.where(
+      (s) => s != opportunity.stage && s != next,
+    );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Card(
@@ -155,23 +182,32 @@ class _OpportunityTile extends ConsumerWidget {
                     ),
                     side: BorderSide.none,
                   ),
-                  for (final stage in opportunityStageOptions.where(
-                    (s) => s != opportunity.stage,
-                  ))
+                  if (next != null)
                     TextButton(
-                      onPressed: () async {
-                        try {
-                          await ref
-                              .read(opportunitiesRepositoryProvider)
-                              .setStage(id: opportunity.id, stage: stage);
-                          ref.invalidate(opportunitiesProvider);
-                        } catch (e) {
-                          if (context.mounted) {
-                            showErrorSnackBar(context, 'Failed: $e');
-                          }
-                        }
-                      },
-                      child: Text(opportunityStageLabel(stage)),
+                      onPressed: () => setStage(next),
+                      child: Text('Mark ${opportunityStageLabel(next)}'),
+                    ),
+                  if (otherStages.isNotEmpty)
+                    PopupMenuButton<OpportunityStage>(
+                      tooltip: 'Other…',
+                      onSelected: setStage,
+                      itemBuilder: (context) => [
+                        for (final stage in otherStages)
+                          PopupMenuItem(
+                            value: stage,
+                            child: Text('Mark ${opportunityStageLabel(stage)}'),
+                          ),
+                      ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xs,
+                          vertical: AppSpacing.xs,
+                        ),
+                        child: Text(
+                          'Other…',
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
                     ),
                 ],
               ),
