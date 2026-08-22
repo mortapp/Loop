@@ -257,6 +257,36 @@ for a low-stakes, isolated QA account. **Owner action required:**
 
 Once those exist, the specs run themselves — no code changes needed.
 
+## Accessibility: automated coverage + concrete fixes added, full manual sweep still open
+
+Real, scoped work done 2026-08-22, not a full audit:
+- **Fixed** two real bugs found while wiring up axe-core: the account
+  menu trigger button (`apps/web/src/components/account-menu.tsx`) had
+  no accessible name at all in the "mobile" variant and at `md`-only
+  rail width (the display-name text only renders at `lg:`) — now has an
+  explicit `aria-label`. The same component also hardcoded
+  `id="account-menu"`, and since both the rail and mobile-web variants
+  render simultaneously (one hidden via CSS per breakpoint), that was a
+  latent duplicate-id bug — fixed with `useId()`.
+- **Fixed** three forms with no accessible field labels at all (relying
+  on placeholder text only): `money/log-event-form.tsx`,
+  `sell/create-item-form.tsx`, `today/quick-add-form.tsx` — added
+  `sr-only` `<label>` text to each field, no visual change.
+- **Added** automated axe-core (WCAG2A/2AA) scans
+  (`apps/web/e2e/accessibility.spec.ts`): `/sign-in` and `/sign-up`
+  verified live with zero violations; `/today`, `/money`, `/sell`,
+  `/business`, `/ai`, `/profile`, `/settings` are wired the same way but
+  gated behind the same QA account this session cannot create (see the
+  entry above) — they will run for real once that account exists.
+
+**Not done** (explicitly, not silently): a manual keyboard-only pass
+per page, focus-trap verification beyond the account menu, touch-target
+sizing, and text-scaling stress testing on web; and the equivalent
+Flutter `Semantics`/focus/touch-target audit on apps/mobile has not
+been started at all. axe-core catches structural/ARIA/contrast issues
+well but does not replace either of those. Track as open work, not
+PASS.
+
 ## `npm install` can silently corrupt packages inside a OneDrive-synced repo
 
 Observed on this machine: `npm install`/`npm ci` running inside a

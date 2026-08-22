@@ -20,15 +20,24 @@ export function LogEventForm() {
   return (
     <form ref={formRef} action={formAction} className="flex flex-col gap-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <select name="kind" required defaultValue="earn" className={inputClass}>
-          <option value="earn">Earn</option>
-          <option value="spend">Spend</option>
-          <option value="refund">Refund</option>
-          <option value="fee">Fee</option>
-          <option value="recovered">Recovered</option>
-        </select>
-        <input name="amount" type="number" step="0.01" min="0.01" required placeholder="$ amount" className={inputClass} />
-        <input name="description" placeholder="Description (optional)" className={inputClass} />
+        <label className="flex flex-col gap-1">
+          <span className="sr-only">Kind</span>
+          <select name="kind" required defaultValue="earn" className={inputClass}>
+            <option value="earn">Earn</option>
+            <option value="spend">Spend</option>
+            <option value="refund">Refund</option>
+            <option value="fee">Fee</option>
+            <option value="recovered">Recovered</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="sr-only">Amount</span>
+          <input name="amount" type="number" step="0.01" min="0.01" required placeholder="$ amount" className={inputClass} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="sr-only">Description</span>
+          <input name="description" placeholder="Description (optional)" className={inputClass} />
+        </label>
       </div>
       <div className="flex items-center gap-3">
         <Button type="submit" loading={pending} variant="secondary">

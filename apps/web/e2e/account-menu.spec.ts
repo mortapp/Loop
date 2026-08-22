@@ -14,7 +14,7 @@ test.describe("account menu", () => {
   test("opens with every expected item and no billing/plan UI", async ({ page }) => {
     await page.goto("/today");
 
-    await page.locator('button[aria-controls="account-menu"]').first().click();
+    await page.getByRole("button", { name: /^Account menu for/ }).first().click();
     const menu = page.getByRole("menu", { name: "Account menu" });
     await expect(menu).toBeVisible();
 
@@ -29,7 +29,7 @@ test.describe("account menu", () => {
 
   test("closes on Escape and returns focus to the trigger", async ({ page }) => {
     await page.goto("/today");
-    const trigger = page.locator('button[aria-controls="account-menu"]').first();
+    const trigger = page.getByRole("button", { name: /^Account menu for/ }).first();
 
     await trigger.click();
     await expect(page.getByRole("menu", { name: "Account menu" })).toBeVisible();
@@ -41,7 +41,7 @@ test.describe("account menu", () => {
 
   test("Profile navigates and closes the menu", async ({ page }) => {
     await page.goto("/today");
-    await page.locator('button[aria-controls="account-menu"]').first().click();
+    await page.getByRole("button", { name: /^Account menu for/ }).first().click();
     await page.getByRole("menuitem", { name: "Profile" }).click();
     await expect(page).toHaveURL(/\/profile$/);
     await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();

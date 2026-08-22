@@ -20,17 +20,29 @@ export function CreateItemForm() {
   return (
     <form ref={formRef} action={formAction} className="flex flex-col gap-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        <input name="name" required placeholder="Item name" className={inputClass} />
-        <input name="category" placeholder="Category (optional)" className={inputClass} />
-        <input name="condition" placeholder="Condition (optional)" className={inputClass} />
-        <input
-          name="purchasePrice"
-          type="number"
-          step="0.01"
-          min="0"
-          placeholder="Paid ($, optional)"
-          className={inputClass}
-        />
+        <label className="flex flex-col gap-1">
+          <span className="sr-only">Item name</span>
+          <input name="name" required placeholder="Item name" className={inputClass} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="sr-only">Category</span>
+          <input name="category" placeholder="Category (optional)" className={inputClass} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="sr-only">Condition</span>
+          <input name="condition" placeholder="Condition (optional)" className={inputClass} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="sr-only">Paid</span>
+          <input
+            name="purchasePrice"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="Paid ($, optional)"
+            className={inputClass}
+          />
+        </label>
       </div>
       <div className="flex items-center gap-3">
         <Button type="submit" loading={pending} variant="secondary">

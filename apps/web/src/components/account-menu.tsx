@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 
 type AccountMenuProps = {
@@ -62,7 +62,11 @@ export function AccountMenu({
     };
   }, [open]);
 
-  const menuId = "account-menu";
+  // Two AccountMenu instances render at once (the desktop rail + the
+  // mobile-web header, each hidden via CSS at the other's breakpoint) --
+  // useId keeps their menu ids from colliding in the DOM even though
+  // only one is ever open at a time.
+  const menuId = useId();
 
   return (
     <div ref={containerRef} className="relative">
@@ -72,6 +76,7 @@ export function AccountMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
+        aria-label={`Account menu for ${displayName || email}`}
         onClick={() => setOpen((v) => !v)}
         className={
           variant === "rail"
