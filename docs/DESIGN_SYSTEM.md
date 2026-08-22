@@ -1,5 +1,80 @@
 # LOOP Design System
 
+## 2026-08-22 — Superseded: "Imperial Verdigris" replaces "Ledger"
+
+Owner-directed rebrand: the "Ledger" system below (mint-green accent,
+Geist Sans everywhere) was judged too generic — read as "standard
+fintech / starter SaaS / default Supabase auth" rather than a premium
+product. "Imperial Verdigris" replaces it in full. Concept: old-world
+royal treasury × private financial ledger × modern 2026 software —
+communicated through material, typography, and restraint, never through
+literal crowns/shields/medieval cosplay.
+
+**Palette** (`apps/mobile/lib/core/theme/app_colors.dart`, mirrored in
+`apps/web/src/app/globals.css`): Royal Obsidian (`#08090A`/`#0E1011`/
+`#151718`/`#1B1E1F`, the world) · Imperial Verdigris (`#356C67` family,
+aged oxidized-copper green — the LOOP identity, deliberately mineral,
+not mint/Spotify/banking green) · Cathedral Ivory (`#F1ECDD` family,
+warm archival off-white, never plain `#FFF`) · Blackened Silver/Pewter
+(structure — borders, dividers) · Oxblood Seal (`#6D2934` family, rare
+emphasis only) · Archival Blue (`#536D73` family, information/PROTECT)
+· Success/Warning/Danger semantic states.
+
+**WCAG contrast, computed live, not assumed** — the literal hex list in
+the design brief has real failures as direct body text on dark
+surfaces, found and fixed here:
+- `verdigris` (`#356C67`) measures 3.3:1 as text on Obsidian — fails
+  AA normal text (4.5:1), only clears the 3:1 large-text/UI floor.
+  Fixed with a dedicated `verdigrisText` role pointing at the brighter
+  `verdigrisBright` (`#5E9891`, 6.1:1) for any small text/link use;
+  raw `verdigris` stays reserved for fills, icons, and large headings.
+- `oxblood` (`#6D2934`) measures 1.9:1 as text — a severe fail. `danger`
+  (`#A14E53`) measures 3.5:1 — also fails AA normal text. Both get
+  dedicated lighter text-only tints (`oxbloodText` `#C08088`, 6.3:1;
+  `dangerText` `#C97882`, 6.2:1) rather than being used directly as
+  small text; the raw swatches remain correct for fills/badges/icons.
+- Button foregrounds: dark ink on a Verdigris fill measures only 3.3:1
+  (fails as button-label text) — Ivory-on-Verdigris (5.1:1) is the only
+  foreground that clears AA on that fill. Every accent fill
+  (Verdigris/Oxblood/Danger/Archival Blue) uses Ivory as its
+  foreground; Success/Warning fills use dark ink instead (Ivory-on-
+  Success measures 2.7:1 and fails).
+Full computed table lives in git history of this file's companion
+contrast script output; re-derive with the standard relative-luminance
+formula against any new pairing before shipping it as text.
+
+**Typography**: `google_fonts` package — Fraunces (heritage serif,
+OFL-licensed) for the wordmark, hero figures, and section titles only;
+Inter (grotesk sans, OFL-licensed) for everything else — forms, nav,
+tables, body copy. Never render the whole app in serif. Runtime-fetched
+via `google_fonts`'s default caching (no bundled font assets), which
+keeps APK size unaffected; falls back gracefully if the first fetch has
+no network.
+
+**Material language**: hairline borders (Blackened Silver/Pewter,
+~35-50% alpha) instead of elevation/shadow, moderate 12px radius on
+primary surfaces, a single lightweight `CustomPainter`-drawn brand mark
+(two interlocking circles — "the loop," deliberately not a crown or
+shield), a subtle ~16%-alpha radial Verdigris gradient behind the auth
+screen (no blur filter, no image asset). Explicitly avoiding
+`BackdropFilter`/heavy blur/large shadows per the brief's Galaxy A14
+performance constraint.
+
+**Reference screens built and physically verified so far**: mobile auth
+(`apps/mobile/lib/features/auth/auth_screen.dart`) — installed on a
+real Samsung Galaxy A14 (Android 15), screenshotted, confirmed the
+primary CTA reads as aged mineral teal rather than mint/Spotify green,
+the Fraunces wordmark reads distinctive, the Google button and divider
+read restrained, no overflow/clipping. Every other screen still
+inherits the new palette automatically through `AppColors`'
+backward-compatible aliases (old token names like `AppColors.brand`
+now resolve to the new palette) but has not had its own structural
+redesign pass yet — see `docs/LOOP_COMPLETION_LEDGER.md` for exactly
+which screens are done vs. still pending.
+
+The "Ledger" system's rationale below is preserved for history, not
+current guidance.
+
 ## Direction chosen: "Ledger" — premium financial utility + editorial restraint
 
 ### Three directions considered

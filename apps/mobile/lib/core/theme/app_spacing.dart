@@ -16,8 +16,10 @@ class AppSpacing {
   // Same values as apps/web's --radius-sm/md/lg (docs/DESIGN_SYSTEM.md) —
   // deliberately not one radius everywhere. Small interactive elements
   // read as more precise with a tighter radius; larger containers get
-  // more.
+  // more. Primary ledger surfaces sit at 12 (directive-specified
+  // "moderate, approximately 12-16"); archival/compact panels use the
+  // tighter 6.
   static const double radiusSm = 6;
-  static const double radiusMd = 10;
+  static const double radiusMd = 12;
   static const double radiusLg = 16;
 }
