@@ -98,18 +98,54 @@ roles rather than literal color names. Confirmed via `flutter analyze`
 (0 issues), `flutter test` (5/5), `tsc --noEmit`, `eslint`, and
 `next build` (all clean) — see docs/AUTONOMOUS_BUILD_STATUS.md.
 Structurally redesigned this pass: mobile + web auth (the brief's
-required first reference screen). Mobile Today/Money/Sell/Business
-screens and the five web reference screens (Today, Money, Sell,
-Business/Quotes) already had row-based/ledger-style structural passes
-from the Verdigris session and inherited the new palette without
-further structural change. **Not yet done**: the web vertical-rail nav
-(still a horizontal pill nav), Money's "hero screen" treatment on web,
-Sell's auction-catalog gallery layout, Business's non-Quotes
-subpages (contacts/leads/opportunities) and AI (both still on raw
-Tailwind zinc/emerald, never migrated to tokens under any design
-system), and physical Galaxy A14 verification (device not connected —
-see docs/KNOWN_ISSUES.md). Real, valuable follow-up work, not treated
-as done.
+required first reference screen).
+
+**Second pass, same day — full propagation**: closed every gap the
+first pass left open. Web navigation replaced the horizontal pill bar
+with a compact vertical rail (`apps/web/src/components/app-shell.tsx`)
+— icon-only at `md`, labels at `lg`, capped at 13rem, with its own
+mobile-web top bar + bottom tab bar rather than a shrunk desktop
+layout. Money got the hero treatment: one dominant Fraunces figure
+(neutral Bone even when positive), a MADE/PROTECTED/RECOVERED
+breakdown, Spent/Fees demoted to a quiet line underneath. Sell became
+a responsive image grid (falls back to a Loop Seal watermark tile —
+`items.photos` exists in the schema but nothing uploads to it yet, see
+docs/KNOWN_ISSUES.md). Business's contacts/leads/opportunities pages
+and their create-forms were still literally unthemed Tailwind
+zinc/white/emerald (the real "before" state, not a themed-but-wrong
+one) — rebuilt onto the same Card/StatusBadge/EmptyState primitives
+Quotes already used, and picked up the "one primary next action +
+Other… menu" pattern (mobile's equivalent screens got the same fix —
+they'd been listing every remaining status as an equal button). AI
+became "Ask LOOP": Fraunces heading, no robot/gradient, a small Loop
+Seal marks assistant messages instead of a colored bubble. The
+Double Loop Seal is now a single shared widget
+(`apps/mobile/lib/core/widgets/loop_seal.dart`,
+`apps/web/src/components/ui/loop-seal.tsx`) used by the auth screen,
+Sell's placeholder tiles, and — replacing a literal `Icons
+.auto_awesome` sparkle glyph the directive explicitly warns against —
+the mobile AI nav destination.
+
+Accessibility follow-up from this pass: the icon-only rail nav, the
+LOOP wordmark link, the account-switcher chip, and the sign-out button
+all render with no visible text below the `lg` breakpoint — audited
+and gave each an explicit `aria-label` so the accessible name doesn't
+silently disappear at `md`/`sm` widths (`app-shell.tsx`). A full
+accessibility pass (keyboard nav, focus visibility, screen reader
+walkthrough, touch targets, reduced motion) has not been done — this
+was a targeted fix for an issue found while building the new
+component, not a substitute for that audit.
+
+Confirmed via `flutter analyze` (0 issues), `flutter test` (5/5),
+`tsc --noEmit`, `eslint`, and `next build` (all clean) after each
+change in both passes — see docs/AUTONOMOUS_BUILD_STATUS.md. Visually
+verified in a real browser: `/sign-in` and `/sign-up` at 1522px and
+390px. **Not verified visually**: the authenticated pages (nav rail,
+Money, Sell, Business, AI) — doing so requires signing in, and this
+session's browser-automation safety classifier correctly blocks typing
+a password into any field regardless of whose account it is; see
+docs/KNOWN_ISSUES.md. Physical Galaxy A14 verification remains blocked
+(device not connected).
 
 ## 2026-08-22 — Superseded: "Imperial Verdigris" replaces "Ledger"
 

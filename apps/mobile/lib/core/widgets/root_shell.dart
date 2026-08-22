@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'loop_seal.dart';
+
 /// The persistent bottom-navigation shell wrapping every top-level tab:
 /// Today, Money, Sell, Business, AI.
 ///
@@ -33,9 +35,11 @@ class RootShell extends StatelessWidget {
       selectedIcon: Icon(Icons.business),
       label: 'Business',
     ),
+    // No robot/sparkle glyph — the Double Loop Seal identifies AI the
+    // same way it identifies generated content elsewhere in the app.
     NavigationDestination(
-      icon: Icon(Icons.auto_awesome_outlined),
-      selectedIcon: Icon(Icons.auto_awesome),
+      icon: LoopSeal(size: 22, keyPoint: false, opacity: 0.7),
+      selectedIcon: LoopSeal(size: 22, keyPoint: false),
       label: 'AI',
     ),
   ];

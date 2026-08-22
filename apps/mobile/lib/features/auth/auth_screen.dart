@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/supabase/supabase_providers.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/widgets/loop_seal.dart';
 
 /// The redirect Supabase's OAuth flow lands back on after Google's consent
 /// screen. Must match an intent-filter registered in AndroidManifest.xml
@@ -143,7 +144,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Center(child: _LoopSeal()),
+                      const Center(child: LoopSeal(size: 40)),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         'LOOP',
@@ -411,73 +412,16 @@ class _GoogleGlyph extends StatelessWidget {
   }
 }
 
-/// LOOP's brand mark: the "double loop seal" — two precisely interlocked
-/// rings, each drawn with an engraved double line (outer Platinum, inner
-/// Tyrian) and a tiny Champagne key point where they cross. Reads at once
-/// as a banking seal, an archive stamp, and a monogram — deliberately not
-/// a crown or shield. Drawn, not imported: a handful of stroked arcs,
-/// nothing that costs anything to ship or render.
-class _LoopSeal extends StatelessWidget {
-  const _LoopSeal();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      width: 40,
-      height: 28,
-      child: CustomPaint(painter: _LoopSealPainter()),
-    );
-  }
-}
-
-class _LoopSealPainter extends CustomPainter {
-  const _LoopSealPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final outer = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4
-      ..color = AppColors.platinum.withValues(alpha: 0.85);
-    final inner = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = AppColors.tyrianAccent;
-    final keyPoint = Paint()..color = AppColors.champagne;
-
-    final radius = size.height / 2 - 1;
-    final leftCenter = Offset(size.width / 2 - radius * 0.55, size.height / 2);
-    final rightCenter = Offset(size.width / 2 + radius * 0.55, size.height / 2);
-
-    canvas.drawCircle(leftCenter, radius, outer);
-    canvas.drawCircle(rightCenter, radius, outer);
-    canvas.drawCircle(leftCenter, radius - 3, inner);
-    canvas.drawCircle(rightCenter, radius - 3, inner);
-    canvas.drawCircle(Offset(size.width / 2, size.height / 2), 1.1, keyPoint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-/// The same seal drawn at ~30x scale and ~3% opacity, offset off-canvas —
-/// "felt, not seen" watermark per the directive. A single static paint,
-/// no animation, no filter.
+/// The auth screen's seal drawn at ~10x scale and ~3.5% opacity, offset
+/// off-canvas — "felt, not seen" watermark per the directive. A single
+/// static paint, no animation, no filter. (See `LoopSeal` in
+/// core/widgets/loop_seal.dart for the shared brand mark this reuses.)
 class _SealWatermark extends StatelessWidget {
   const _SealWatermark();
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Opacity(
-        opacity: 0.035,
-        child: SizedBox(
-          width: 420,
-          height: 300,
-          child: CustomPaint(painter: _LoopSealPainter()),
-        ),
-      ),
-    );
+    return const IgnorePointer(child: LoopSeal(size: 420, opacity: 0.035));
   }
 }
 

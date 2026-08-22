@@ -15,6 +15,35 @@ no overflow/clipping, keyboard usable. All static verification that
 doesn't require the device — `dart format`, `flutter analyze`,
 `flutter test` — is done and passing.
 
+## Item photos exist in the schema but nothing uploads to them yet
+
+`items.photos` (`text[]`) has been in the schema and `@loop/contracts`
+since the original Sell feature shipped, but no upload flow was ever
+built on either platform — `create-item-form.tsx` and mobile's
+`_CreateItemForm` only collect name/category/condition/price. The
+Murex Noir Sell redesign (both platforms) now renders `item.photos[0]`
+as a real image when present and falls back to a Loop Seal watermark
+tile otherwise, so the gallery layout is correct and forward-compatible,
+but every item shows the placeholder today. Building the actual upload
+(Supabase Storage bucket + signed URL flow, picker UI) is real,
+separate follow-up work, not a styling task.
+
+## No browser session available to visually verify authenticated pages
+
+The Murex Noir web propagation pass (nav rail, Money, Sell, Business,
+AI — see docs/DESIGN_SYSTEM.md) was verified via `tsc --noEmit`,
+`eslint`, and `next build`, plus close reading, but not by loading the
+authenticated app in a real browser: doing so requires signing in, and
+this environment's browser-automation safety classifier correctly
+refuses to type a password into any field, including a disposable
+account created solely for this QA (confirmed by testing — the classifier
+blocked it outright). The public, unauthenticated pages (`/sign-in`,
+`/sign-up`) *were* visually verified at 1522px and 390px and look
+correct. Re-verify the authenticated shell/Money/Sell/Business/AI
+pages the next time a human is present to complete a real sign-in, or
+if a non-interactive test-auth path (e.g. a seeded session cookie
+for CI) gets built.
+
 ## ~~No hosted Supabase project yet~~ — resolved 2026-08-21
 
 Was stale: a hosted project (`zqalnvfwxmfrnyjcuehq`, org "Loop",

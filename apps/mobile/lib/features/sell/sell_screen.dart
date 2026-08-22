@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/async_error_view.dart';
+import '../../core/widgets/loop_seal.dart';
 import 'item_actions.dart';
 import 'models/item.dart';
 import 'models/listing.dart';
@@ -110,71 +111,103 @@ class _ItemTile extends StatelessWidget {
       item.condition,
     ].whereType<String>().join(' · ');
 
+    // A private collection, not a marketplace listing — an image band
+    // (Loop Seal watermark until real photo upload exists) leads every
+    // tile, matching apps/web's Sell gallery.
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(item.name, style: theme.textTheme.bodyLarge),
-                        Text(
-                          details.isNotEmpty ? details : 'No details',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                        if (valuation != null) ...[
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            'Est. value ${MoneyUtils.formatCents(valuation!.estimatedValueCents)}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppColors.opportunityText(
-                                theme.brightness,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                Container(
+                  height: 120,
+                  width: double.infinity,
+                  color: AppColors.murexInk,
+                  alignment: Alignment.center,
+                  child: const LoopSeal(
+                    size: 56,
+                    keyPoint: false,
+                    opacity: 0.18,
                   ),
-                  Chip(
+                ),
+                Positioned(
+                  top: AppSpacing.sm,
+                  right: AppSpacing.sm,
+                  child: Chip(
                     label: Text(item.status.name),
                     backgroundColor: _statusColor(
                       item.status,
-                    ).withValues(alpha: 0.12),
+                    ).withValues(alpha: 0.16),
                     labelStyle: TextStyle(color: _statusColor(item.status)),
                     side: BorderSide.none,
+                    visualDensity: VisualDensity.compact,
                   ),
-                ],
-              ),
-              if (listings.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.xs),
-                for (final listing in listings)
-                  Text(
-                    'Listed on ${listing.marketplace}'
-                    '${listing.listPriceCents != null ? ' for ${MoneyUtils.formatCents(listing.listPriceCents)}' : ''}'
-                    ' · ${listing.status.name}',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-              ],
-              if (item.status != ItemStatus.sold) ...[
-                const SizedBox(height: AppSpacing.sm),
-                ItemActions(
-                  itemId: item.id,
-                  isListed: item.status == ItemStatus.listed,
-                  listingId: listings.isNotEmpty ? listings.first.id : null,
                 ),
               ],
-            ],
-          ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.name, style: theme.textTheme.bodyLarge),
+                  Text(
+                    details.isNotEmpty ? details : 'No details',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  if (valuation != null) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          'EST. VALUE',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: AppColors.textStructural,
+                            letterSpacing: 1,
+                            fontSize: 10,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          MoneyUtils.formatCents(
+                            valuation!.estimatedValueCents,
+                          ),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.opportunityText(theme.brightness),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (listings.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    for (final listing in listings)
+                      Text(
+                        'Listed on ${listing.marketplace}'
+                        '${listing.listPriceCents != null ? ' for ${MoneyUtils.formatCents(listing.listPriceCents)}' : ''}'
+                        ' · ${listing.status.name}',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                  ],
+                  if (item.status != ItemStatus.sold) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    ItemActions(
+                      itemId: item.id,
+                      isListed: item.status == ItemStatus.listed,
+                      listingId: listings.isNotEmpty ? listings.first.id : null,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

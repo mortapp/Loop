@@ -30,11 +30,12 @@ export function AppShell({
       {/* Desktop / tablet rail — md: icon-only, lg: full width with labels */}
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-16 flex-col border-r border-[var(--color-border-subtle)] bg-[var(--color-bg)] md:flex lg:w-52">
         <div className="flex flex-col items-center gap-1 px-3 py-5 lg:items-start">
-          <Link href="/today" className="flex items-center gap-2">
+          <Link href="/today" aria-label="LOOP — Today" className="flex items-center gap-2">
             <LoopSeal size={26} />
             <span
               className="hidden text-lg tracking-[0.15em] text-[var(--color-text-primary)] lg:inline"
               style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}
+              aria-hidden
             >
               LOOP
             </span>
@@ -42,6 +43,7 @@ export function AppShell({
           {activeAccountLabel ? (
             <Link
               href="/business"
+              aria-label={`Switch account — currently ${activeAccountLabel}`}
               title={`Switch account — currently ${activeAccountLabel}`}
               className="mt-3 w-full truncate rounded-[var(--radius-sm)] bg-[var(--color-surface)] px-2 py-1.5 text-center text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] lg:text-left"
             >
@@ -60,6 +62,7 @@ export function AppShell({
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
+                aria-label={item.label}
                 className={`relative flex items-center gap-3 rounded-[var(--radius-sm)] px-2.5 py-2.5 text-sm font-medium transition-colors lg:px-3 ${
                   active
                     ? "text-[var(--color-text-primary)]"
@@ -73,7 +76,9 @@ export function AppShell({
                   />
                 ) : null}
                 <Icon active={active} />
-                <span className="hidden lg:inline">{item.label}</span>
+                <span className="hidden lg:inline" aria-hidden>
+                  {item.label}
+                </span>
               </Link>
             );
           })}
@@ -83,12 +88,15 @@ export function AppShell({
           <form action={signOutAction}>
             <button
               type="submit"
+              aria-label="Sign out"
               className="w-full rounded-[var(--radius-sm)] px-2.5 py-2 text-center text-xs text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-primary)] lg:text-left"
             >
               <span className="lg:hidden" aria-hidden>
                 ⏻
               </span>
-              <span className="hidden lg:inline">Sign out</span>
+              <span className="hidden lg:inline" aria-hidden>
+                Sign out
+              </span>
             </button>
           </form>
         </div>
