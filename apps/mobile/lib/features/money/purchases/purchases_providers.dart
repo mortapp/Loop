@@ -5,6 +5,7 @@ import '../../../core/account/account_providers.dart';
 import '../../../core/supabase/supabase_providers.dart';
 import 'models/purchase.dart';
 import 'models/return_record.dart';
+import 'models/warranty.dart';
 
 /// A minimal item reference for the "link to an item" dropdown on the
 /// purchase form.
@@ -24,11 +25,13 @@ class PurchasesPageData {
     required this.purchases,
     required this.items,
     required this.returns,
+    required this.warranties,
   });
 
   final List<Purchase> purchases;
   final List<ItemRef> items;
   final List<ReturnRecord> returns;
+  final List<Warranty> warranties;
 
   /// The most recent return per purchase, mirroring `returnByPurchase` in
   /// `apps/web/src/app/(app)/money/purchases/page.tsx`.
@@ -36,6 +39,16 @@ class PurchasesPageData {
     final map = <String, ReturnRecord>{};
     for (final r in returns) {
       if (r.purchaseId != null) map[r.purchaseId!] = r;
+    }
+    return map;
+  }
+
+  /// All warranties for a given item, mirroring `warrantiesByItem` in
+  /// `apps/web/src/app/(app)/money/purchases/page.tsx`.
+  Map<String, List<Warranty>> get warrantiesByItem {
+    final map = <String, List<Warranty>>{};
+    for (final w in warranties) {
+      (map[w.itemId] ??= []).add(w);
     }
     return map;
   }
@@ -68,16 +81,22 @@ final purchasesPageProvider = FutureProvider.autoDispose<PurchasesPageData>((
         .from('returns')
         .select('id, purchase_id, item_id, status')
         .eq('account_id', accountId),
+    client
+        .from('warranties')
+        .select('id, item_id, provider, expires_at, claim_status')
+        .eq('account_id', accountId),
   ]);
 
   final purchases = (results[0]).map(Purchase.fromJson).toList();
   final items = (results[1]).map(ItemRef.fromJson).toList();
   final returns = (results[2]).map(ReturnRecord.fromJson).toList();
+  final warranties = (results[3]).map(Warranty.fromJson).toList();
 
   return PurchasesPageData(
     purchases: purchases,
     items: items,
     returns: returns,
+    warranties: warranties,
   );
 });
 
@@ -177,6 +196,32 @@ class PurchasesRepository {
     });
 
     await _client.from('items').update({'status': 'returned'}).eq('id', itemId);
+  }
+
+  Future<void> addWarranty({
+    required String accountId,
+    required String itemId,
+    String? provider,
+    String? expiresAt,
+  }) {
+    final userId = _client.auth.currentUser?.id;
+    return _client.from('warranties').insert({
+      'account_id': accountId,
+      'item_id': itemId,
+      'provider': provider,
+      'expires_at': expiresAt,
+      'created_by': userId,
+    });
+  }
+
+  Future<void> setWarrantyClaimStatus({
+    required String id,
+    required String claimStatus,
+  }) {
+    return _client
+        .from('warranties')
+        .update({'claim_status': claimStatus})
+        .eq('id', id);
   }
 }
 

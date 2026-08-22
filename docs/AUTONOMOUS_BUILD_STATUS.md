@@ -35,7 +35,8 @@ surface area.
     refunds, and MAKE (implicitly, once quotes convert) all post to the
     same Money ledger, verified live end-to-end.
 - **apps/mobile** (Flutter): feature parity with web for Today, Money
-  (+ Purchases/Returns, not yet Warranties), Sell, and Business/MAKE
+  (+ Purchases/Returns/Warranties — Warranties added 2026-08-22, closing
+  the last mobile/web PROTECT gap), Sell, and Business/MAKE
   (contacts/leads/opportunities/quotes). Same account-switcher, same
   five-tab shell. Quote creation is not yet on the transactional RPC
   web uses — see docs/KNOWN_ISSUES.md.

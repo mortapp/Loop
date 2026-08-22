@@ -8,8 +8,10 @@ import '../../../core/utils/money.dart';
 import '../../../core/widgets/async_error_view.dart';
 import 'models/purchase.dart';
 import 'models/return_record.dart';
+import 'models/warranty.dart';
 import 'purchases_providers.dart';
 import 'return_controls.dart';
+import 'warranty_controls.dart';
 
 /// Real "N days left" urgency, calculated from the actual deadline — not
 /// a fake countdown (matches `returnWindowBadge` in
@@ -104,6 +106,7 @@ class _PurchasesBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final returnByPurchase = data.returnByPurchase;
+    final warrantiesByItem = data.warrantiesByItem;
 
     return RefreshIndicator(
       onRefresh: () => ref.refresh(purchasesPageProvider.future),
@@ -125,6 +128,9 @@ class _PurchasesBody extends ConsumerWidget {
               _PurchaseTile(
                 purchase: purchase,
                 existingReturn: returnByPurchase[purchase.id],
+                warranties: purchase.itemId != null
+                    ? (warrantiesByItem[purchase.itemId!] ?? const [])
+                    : const [],
               ),
         ],
       ),
@@ -133,10 +139,15 @@ class _PurchasesBody extends ConsumerWidget {
 }
 
 class _PurchaseTile extends StatelessWidget {
-  const _PurchaseTile({required this.purchase, this.existingReturn});
+  const _PurchaseTile({
+    required this.purchase,
+    this.existingReturn,
+    this.warranties = const [],
+  });
 
   final Purchase purchase;
   final ReturnRecord? existingReturn;
+  final List<Warranty> warranties;
 
   @override
   Widget build(BuildContext context) {
@@ -185,6 +196,8 @@ class _PurchaseTile extends StatelessWidget {
                 itemId: purchase.itemId,
                 existingReturn: existingReturn,
               ),
+              const SizedBox(height: AppSpacing.xs),
+              WarrantyControls(itemId: purchase.itemId, warranties: warranties),
             ],
           ),
         ),
