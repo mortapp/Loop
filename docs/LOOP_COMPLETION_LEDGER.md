@@ -16,13 +16,13 @@ current. Read docs/DESIGN_SYSTEM.md for the full design history
 | POWER_LOSS_RECOVERY | PASS | Repo inspected fresh at the start of each of this session's continuations; source of truth is `git status`/`log`, never assumed. |
 | MUREX_NOIR | PASS | Full token replacement on both platforms, WCAG-computed (see docs/DESIGN_SYSTEM.md). Physically confirmed on the real Galaxy A14: near-black, not purple; Champagne rare; Royal Bone warm. |
 | DESIGN_PROPAGATION | PASS | Every screen migrated off raw Tailwind/old tokens (verified by grep — zero remaining zinc/emerald/amber/purple literals). Web nav is now a vertical rail; Money has the hero treatment; Sell is a real image gallery; Business's contacts/leads/opportunities (previously literally unthemed, not just wrong-themed) rebuilt; AI is "Ask LOOP". |
-| ACCOUNT_IDENTITY | FAIL | Not started this session — no account menu, profile, personalization, settings, or help surface exists on either platform yet. Real, scoped follow-up work (sections 8–14 of the continuation directive). |
-| ACCOUNT_MENU_WEB | FAIL | Not started. |
+| ACCOUNT_IDENTITY | IN_PROGRESS | Built and **live-verified end-to-end on web** this session (`e92dd9e`): account menu, Profile, Settings, Personalization (a real System/Dark/Light theme, not a stub), Help. Mobile equivalent not started — same-shaped follow-up, real work, not blocked on anything. |
+| ACCOUNT_MENU_WEB | PASS | `apps/web/src/components/account-menu.tsx`. **Live-verified**: opens/closes correctly, Escape closes and returns focus to the trigger, click-outside closes it, shows the real signed-in email and deterministic initials avatar (not a random color), all 6 items present and correctly routed (Switch account/Personalization/Profile/Settings/Help & Support/Sign out). No billing/plan rows — LOOP has no subscription tiers to justify them. |
 | ACCOUNT_MENU_MOBILE | FAIL | Not started. |
-| PROFILE | FAIL | Not started. |
-| PERSONALIZATION | FAIL | Not started. |
-| SETTINGS | FAIL | Not started. |
-| HELP | FAIL | Not started. |
+| PROFILE | PASS | `apps/web/src/app/(app)/profile`. **Live-verified**: real avatar/name/email render correctly, the accounts/memberships list shows the real active account. The editable-display-name Server Action was code-reviewed (identical authenticated-client + RLS pattern already proven live by `attachItemPhoto`/`createItem`) but not submitted live — unlike the disposable test item, this would have written to the account owner's real identity data without being asked, which crosses into "explicit permission required" territory this session didn't have. No username field: `profiles` has `display_name` but no `username`, and LOOP has no public profiles/mentions/cross-account search that would make one earn its schema complexity — a real decision, not an oversight (see the commit message for the full reasoning). |
+| PERSONALIZATION | PASS | `apps/web/src/app/(app)/settings/personalization`. **Live-verified all three states**: System (correctly matched the OS's dark preference), Light (clicked live — Royal Bone background, dark ink text, every page checked in this mode rendered correctly, not just the settings page itself), then reset back to System to leave the account as found. Real cookie-backed persistence (`apps/web/src/lib/theme.ts`), server-rendered `data-theme` so there's no flash of the wrong theme. |
+| SETTINGS | PASS | `apps/web/src/app/(app)/settings`. **Live-verified**: only real sections shown (Account, Appearance, About) — no dead Notifications/Data-Privacy placeholders. |
+| HELP | PASS | `apps/web/src/app/(app)/help`. **Live-verified**: real per-product-area guidance, and an honest line that Privacy Policy/Terms/a support inbox don't exist yet rather than dead links. |
 | SIGN_OUT | PASS | Pre-existing, unchanged this session; visible and reachable in the live nav rail during this session's authenticated desktop QA (not clicked — no reason to end the session mid-QA). |
 | ACCOUNT_SWITCHING | PASS | Pre-existing, RLS-enforced via `has_account_access()`. The "Personal" account chip rendered correctly in every live authenticated screenshot this session. |
 | AUTH | PASS | Email/password real on both platforms; unchanged this session. |
@@ -50,7 +50,7 @@ current. Read docs/DESIGN_SYSTEM.md for the full design history
 | FLUTTER_TESTS | PASS | 5/5 passing, reverified after every change this session. Coverage is shallow (one widget-boot test, a redirect test, 2 money-formatting unit tests) — real but not comprehensive. |
 | DATABASE_TESTS | NOT_RUN | pgTAP suite (20/20 per an earlier session) exists and `supabase-ci.yml` runs it on every push, but Docker Desktop isn't running in this environment so it couldn't be re-executed locally after this session's 3 new migrations. The new migrations are simple additive DDL (bucket+policy insert, policy replace with an equivalent expression, `create index if not exists`) with no plausible interaction with the existing pgTAP assertions, but that's reasoning, not a rerun — CI will be the first real confirmation on next push. |
 | CI | PASS | Reviewed all 3 workflows this session (`.github/workflows/*.yml`): each runs real commands with no `continue-on-error`/skip — `mobile-ci` does `flutter pub get`+format+analyze+test, `web-ci` does lint+typecheck+build, `supabase-ci` does a full `supabase db reset` (replays every migration from empty) + `supabase test db`. Not modified this session; already correctly configured. |
-| ACCESSIBILITY | IN_PROGRESS | Color contrast fully WCAG-computed (docs/DESIGN_SYSTEM.md). This session additionally found and fixed a real gap while building the new nav rail: several icon-only controls (nav items, wordmark link, account chip, sign-out) had no accessible name below the `lg` breakpoint — added explicit `aria-label`s. Not done: keyboard-nav walkthrough, focus-trap/Escape handling on menus/dialogs, full screen-reader pass, touch-target audit. |
+| ACCESSIBILITY | IN_PROGRESS | Color contrast fully WCAG-computed (docs/DESIGN_SYSTEM.md). This session found and fixed a real gap while building the nav rail: several icon-only controls had no accessible name below the `lg` breakpoint — added explicit `aria-label`s. The new account menu has real Escape/outside-click/focus-return handling, live-verified, not just coded (see ACCOUNT_MENU_WEB). Not done: a full keyboard-only walkthrough of every page, a screen-reader pass, and a touch-target audit. |
 | RESPONSIVE_WEB | IN_PROGRESS | Public pages (`/sign-in`, `/sign-up`) visually verified at 1522px and 390px this session, real browser, no overflow. Authenticated pages verified live at desktop width (Today/Money/Sell/Business/Contacts/AI, all correct, zero console errors). Mobile-width verification of the *authenticated* app attempted twice this session (resizing an existing tab, and pre-sizing a fresh tab before navigating) — both times the browser tool's `resize_window` reported success but the rendered viewport stayed desktop-sized; reads as a genuine tool limitation specific to this app shell (the public sign-in page resized correctly earlier in the same session), not something fixable in the app. |
 | ANDROID_BUILD | PASS | `flutter build apk --debug` succeeded twice this session (once after the Murex Noir/Warranties changes, once after the photo-upload/image_picker changes) — real APK, not just static analysis. One environment quirk hit and resolved: a stale `build/app/intermediates/assets/debug/...` directory (OneDrive file-lock pattern, same class of issue as the documented `npm install` one) blocked the first attempt; `rm -rf build` (safe — gitignored) fixed it. |
 | GALAXY_A14_CONNECTION | PASS | Wireless ADB reconnected this session — see the resolved entry in docs/KNOWN_ISSUES.md for the exact `adb connect`/`MSYS_NO_PATHCONV` fixes needed. |
@@ -64,16 +64,17 @@ current. Read docs/DESIGN_SYSTEM.md for the full design history
 | SECRET_SCAN | PASS | Grepped this session's diff + new files for API-key/token/private-key patterns — clean. |
 | VERCEL | PASS | Every push this session auto-deployed and reached `READY` on `production` (confirmed via `list_deployments`/`get_deployment`) — `3c2a911` then `3af51c2`, both green, both correctly aliased to `loop-teal-rho.vercel.app`. |
 | PRODUCTION_WEB | PASS | Live-verified this session, authenticated, real browser: Today/Money/Sell/Business/Contacts/AI all correct, zero console errors, and a real create→upload→remove→delete round trip completed successfully against the live production Storage bucket and database. |
-| GITHUB | PASS | All of this session's work pushed to `origin/main`, fast-forward only, verified via `git ls-remote` after each push (`5858424`→`c5ecd1e`→`1fe3aef`→`81454cc`→`3c2a911`→`3af51c2`). |
+| GITHUB | PASS | All of this session's work pushed to `origin/main`, fast-forward only, verified via `git ls-remote` after each push (`5858424`→`c5ecd1e`→`1fe3aef`→`81454cc`→`3c2a911`→`3af51c2`→`0974f13`→`e92dd9e`). |
 | DOCUMENTATION | PASS | This file, KNOWN_ISSUES.md, and AUTONOMOUS_BUILD_STATUS.md all rewritten/updated this session to match live, verified reality. |
 | EXTERNAL_BLOCKERS | — | See below. |
 
 ## LOOP_FINAL_STATE=NOT_READY
 
 Not a failure — a real, honest snapshot, same discipline as the
-directive itself demands. The single largest remaining body of work
-(account identity: menu/profile/personalization/settings/help, on both
-platforms) hasn't been started yet.
+directive itself demands. Web's account identity (menu/profile/
+personalization/settings/help) is now built and live-verified; the
+same surface still needs building on mobile, and a handful of other
+real, scoped items remain below.
 
 **Owner-only / external (cannot be done by an agent):**
 - `ANTHROPIC_API_KEY` — AI chat cannot be live-verified without it.
@@ -90,9 +91,10 @@ platforms) hasn't been started yet.
 
 **Genuine remaining engineering (not started or partially started, not
 blocked on anything external):**
-- Account identity: menu, profile, personalization, settings, help —
-  entirely unbuilt on both platforms (sections 8–14 of the
-  continuation directive).
+- Account identity on mobile — web is done and live-verified (menu,
+  Profile, Settings, Personalization, Help); Flutter needs the same
+  surface (a bottom-sheet/panel equivalent of the menu, since mobile's
+  `RootShell` currently has no account-identity entry point at all).
 - Today automation (idempotent action generation from real deadlines).
 - Money integrity tests (prove no double-counting, not just "the UI
   reads from one ledger").
