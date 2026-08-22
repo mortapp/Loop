@@ -1,5 +1,88 @@
 # Known Issues
 
+## ~~Android release builds had no INTERNET permission~~ — resolved 2026-08-22, found during iOS parity audit
+
+Was a real, serious bug, not cosmetic: `android.permission.INTERNET` was
+only declared in `android/app/src/debug/AndroidManifest.xml` and
+`.../profile/AndroidManifest.xml` — the stock Flutter template default,
+added there only so the Flutter dev tools can reach the running app for
+hot reload. `main/AndroidManifest.xml` (the only one a **release**
+build merges) never declared it. Every debug-build QA session this
+whole project has run — including every Galaxy A14 test — worked
+because debug builds always carry the permission; a real release APK
+would have silently failed every network call (Supabase auth, all
+data reads/writes, Storage, the Ask LOOP backend) with no build-time
+warning.
+
+Found while auditing `apps/mobile/ios/Runner/Info.plist` against
+`AndroidManifest.xml` for source parity (iOS needs no equivalent
+declaration — Apple doesn't gate outbound network access behind a
+manifest permission). Fixed by adding the permission to
+`main/AndroidManifest.xml`. Verified: `flutter build apk --release`
+now succeeds (it failed to merge on the first fix attempt too — an
+unrelated self-inflicted bug, an XML comment containing a literal `--`,
+invalid inside an XML comment body; fixed in the same edit), the
+merged manifest
+(`build/app/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml`)
+contains the permission, and the release APK installs and launches
+cleanly on the physical Galaxy A14 with no crash in logcat.
+
+## iOS source parity audit — 2026-08-22, PASS (static/config only, no real build possible on Windows)
+
+Compared `apps/mobile/ios/Runner/Info.plist` and
+`Runner.xcodeproj/project.pbxproj` against
+`android/app/src/main/AndroidManifest.xml` and `build.gradle.kts`.
+Findings:
+
+- **Bundle identifiers intentionally differ in format**:
+  `com.loop.app.loopMobile` (iOS) vs `com.loop.app.loop_mobile`
+  (Android) — normal per-platform convention, not a bug. The OAuth
+  redirect URL scheme (`com.loop.app.loop_mobile`) is deliberately the
+  *same literal string* on both platforms regardless of bundle id, so
+  the Dart-side `redirectTo` never has to branch by platform (see
+  `auth_screen.dart` and the Info.plist's own comment).
+- **OAuth/deep-link redirect**: Android's intent-filter matches
+  `scheme + host` (`com.loop.app.loop_mobile://login-callback`)
+  exactly; iOS's `CFBundleURLTypes` only needs the bare scheme
+  registered (iOS routes all URLs with that scheme to the app; host/
+  path parsing happens in app code) — both correctly wired, not a gap.
+  `SceneDelegate.swift` subclasses `FlutterSceneDelegate` (stock,
+  correct for the UIScene-based `Main.storyboard` lifecycle this
+  project uses per `Info.plist`'s `UIApplicationSceneManifest`) — no
+  manual `scene(_:openURLContexts:)` override needed; Flutter's plugin
+  registry forwards it automatically.
+- **Photo library permission**: `NSPhotoLibraryUsageDescription`
+  present on iOS; the app only ever calls `ImagePicker().pickImage(source:
+  ImageSource.gallery)` (never camera) on either platform, so neither
+  `NSCameraUsageDescription` nor Android's camera permission are needed
+  — correctly absent from both.
+- **App Transport Security**: no ATS exception declared, correctly —
+  the app only talks to Supabase and the Vercel deployment, both HTTPS.
+- **Google auth**: goes entirely through Supabase's hosted OAuth
+  broker (`signInWithOAuth`, a browser redirect), not the native
+  `google_sign_in` SDK (not a pubspec dependency) — no
+  `GoogleService-Info.plist` or extra URL scheme needed on either
+  platform beyond the shared custom scheme above.
+- **Deployment target**: `IPHONEOS_DEPLOYMENT_TARGET = 13.0` (Flutter's
+  own template default) — every plugin in use (supabase_flutter,
+  flutter_riverpod, go_router, google_fonts, image_picker,
+  shared_preferences, http, cupertino_icons) supports iOS 13+ with no
+  known minimum-version conflict.
+- **Launch screen**: both platforms are equally un-branded (Android's
+  `launch_background.xml` is still the stock white background; iOS's
+  `LaunchScreen.storyboard` was not inspected further since Android is
+  already the same stock state) — real parity, just not yet Murex Noir.
+  Cosmetic, low priority, tracked here rather than fixed silently:
+  branding the native splash screen on both platforms is real,
+  scoped follow-up work, not a parity bug.
+- **No `Podfile`**: expected — CocoaPods generates it from
+  `ios/Flutter/*.xcconfig` on first real build; cannot be produced
+  without macOS/Xcode and isn't meant to be committed ahead of time.
+
+`IOS_SOURCE_PARITY=PASS` on this basis. `IOS_REAL_BUILD` remains
+`EXTERNAL_BLOCKER_MACOS_XCODE` — nothing here substitutes for an actual
+`pod install` + Xcode build, which this Windows environment cannot run.
+
 ## ~~Galaxy A14 physical QA blocked~~ — resolved 2026-08-22, device connected
 
 Was stale: Wireless ADB reconnected (`adb devices -l` now shows the real

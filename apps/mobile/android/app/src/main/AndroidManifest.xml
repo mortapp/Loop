@@ -1,4 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Real network access for release builds: Supabase auth/data/storage
+         calls, the Ask LOOP AI backend, item-photo upload. debug/profile
+         manifests already carry this (stock Flutter template default,
+         added there only for the dev-tools hot-reload channel), but a
+         release build only merges main/AndroidManifest.xml, so without
+         this here a real release APK would silently fail every network
+         call. Found during the iOS parity audit: iOS needs no equivalent
+         declaration, since Apple doesn't gate outbound network access
+         behind a manifest-style permission the way Android does. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="loop_mobile"
         android:name="${applicationName}"
