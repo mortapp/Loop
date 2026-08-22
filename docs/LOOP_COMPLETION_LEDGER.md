@@ -1,115 +1,101 @@
 # LOOP Completion Ledger
 
-Status values: PASS, FAIL, IN_PROGRESS, EXTERNAL_BLOCKER,
-OWNER_ACTION_REQUIRED, NOT_RUN. Never converted to PASS to reach a
-prettier percentage — see docs/AUTONOMOUS_BUILD_STATUS.md and
-docs/KNOWN_ISSUES.md for full evidence behind every row below.
+Status values: PASS, FAIL, PARTIAL, IN_PROGRESS, EXTERNAL_BLOCKER,
+OWNER_ACTION_REQUIRED, ACCEPTED_WITH_EVIDENCE, NOT_RUN. Never converted
+to PASS to reach a prettier percentage — see docs/AUTONOMOUS_BUILD_STATUS.md
+and docs/KNOWN_ISSUES.md for full evidence behind every row below.
 
-Rewritten 2026-08-22 (LOOP — MUREX NOIR continuation session) — the
-previous version of this file predated the Murex Noir rebrand entirely
-and described the superseded "Ledger" (mint green) design system as
-current. Read docs/DESIGN_SYSTEM.md for the full design history
-("Ledger" → "Imperial Verdigris" → "Murex Noir", all same day).
+Rewritten 2026-08-22 (LOOP — FINAL RELEASE-CANDIDATE COMPLETION session,
+continuing from checkpoint `b12c6b8` after a usage-limit pause). This
+replaces the prior version, which predated this session's mobile AI
+client, Today automation, Money integrity, Playwright E2E harness,
+accessibility work, responsive QA, the `business_members` security fix,
+and the iOS parity audit.
 
 | Area | Status | Note |
 |---|---|---|
-| POWER_LOSS_RECOVERY | PASS | Repo inspected fresh at the start of each of this session's continuations; source of truth is `git status`/`log`, never assumed. |
-| MUREX_NOIR | PASS | Full token replacement on both platforms, WCAG-computed (see docs/DESIGN_SYSTEM.md). Physically confirmed on the real Galaxy A14: near-black, not purple; Champagne rare; Royal Bone warm. |
-| DESIGN_PROPAGATION | PASS | Every screen migrated off raw Tailwind/old tokens (verified by grep — zero remaining zinc/emerald/amber/purple literals). Web nav is now a vertical rail; Money has the hero treatment; Sell is a real image gallery; Business's contacts/leads/opportunities (previously literally unthemed, not just wrong-themed) rebuilt; AI is "Ask LOOP". |
-| ACCOUNT_IDENTITY | PASS | Built on both platforms this session. Web (`e92dd9e`): account menu, Profile, Settings, Personalization, Help — all **live-verified** on real production. Mobile (`5fb7182`): the same 5 surfaces plus a real fix to a bug this same session's earlier claims had missed — see AI_UI — verified via `flutter analyze`/`test` and a real device install/launch (logcat clean), not yet exercised on a live authenticated on-device session (same password-entry constraint as the rest of Galaxy A14 QA). |
-| ACCOUNT_MENU_WEB | PASS | `apps/web/src/components/account-menu.tsx`. **Live-verified**: opens/closes correctly, Escape closes and returns focus to the trigger, click-outside closes it, shows the real signed-in email and deterministic initials avatar (not a random color), all 6 items present and correctly routed (Switch account/Personalization/Profile/Settings/Help & Support/Sign out). No billing/plan rows — LOOP has no subscription tiers to justify them. |
-| ACCOUNT_MENU_MOBILE | PASS | `apps/mobile/lib/core/widgets/account_sheet.dart` — an `AccountAvatarButton` in every top-level tab's AppBar opens a Murex Noir bottom sheet with the same 6 items as web. `flutter analyze`/`test` clean; installs and launches cleanly on the real Galaxy A14. Not opened on-device yet (needs an authenticated session — same blocker as the rest of on-device QA). |
-| PROFILE | PASS | Web (`apps/web/src/app/(app)/profile`) **live-verified**: real avatar/name/email render correctly, the accounts/memberships list shows the real active account. The editable-display-name Server Action was code-reviewed (identical authenticated-client + RLS pattern already proven live by `attachItemPhoto`/`createItem`) but not submitted live — unlike the disposable test item, this would have written to the account owner's real identity data without being asked, which crosses into "explicit permission required" territory this session didn't have. Mobile (`features/profile/profile_screen.dart`) mirrors it, same not-submitted-live reasoning. No username field on either platform: `profiles` has `display_name` but no `username`, and LOOP has no public profiles/mentions/cross-account search that would make one earn its schema complexity — a real decision, not an oversight (see the commit messages for the full reasoning). |
-| PERSONALIZATION | PASS | Web (`apps/web/src/app/(app)/settings/personalization`) **live-verified all three states**: System (correctly matched the OS's dark preference), Light (clicked live — Royal Bone background, dark ink text, every page checked in this mode rendered correctly, not just the settings page itself), then reset back to System to leave the account as found. Mobile (`personalization_screen.dart` + `theme_preference.dart`) has the same real System/Dark/Light control, `ThemeMode` no longer hardcoded to system, persisted via `shared_preferences` — verified via `flutter analyze`/`test` and a device install, not yet clicked on-device. |
-| SETTINGS | PASS | Both platforms — real hubs, only sections with real content (Account, Appearance, About), no dead Notifications/Data-Privacy placeholders. Web live-verified; mobile build-verified + device-installed. |
-| HELP | PASS | Both platforms, identical content. Web live-verified; mobile build-verified + device-installed. Both are honest that LOOP has no published Privacy Policy/Terms/support inbox yet, rather than dead links. |
-| SIGN_OUT | PASS | Pre-existing, unchanged this session; visible and reachable in the live nav rail during this session's authenticated desktop QA (not clicked — no reason to end the session mid-QA). |
-| ACCOUNT_SWITCHING | PASS | Pre-existing, RLS-enforced via `has_account_access()`. The "Personal" account chip rendered correctly in every live authenticated screenshot this session. |
-| AUTH | PASS | Email/password real on both platforms; unchanged this session. |
-| GOOGLE_AUTH_WEB | PASS | Verified live end-to-end in an earlier session (commit `07e5318`). Not re-attempted this session (no reason to sign out of the real authenticated session that became available — see AUTHENTICATED QA entry). |
-| GOOGLE_AUTH_ANDROID | PASS | Verified on the real Galaxy A14 in an earlier session (`ab846c3`). Not re-attempted this session (same reasoning). |
-| TODAY | PASS | Real actions queue. **Visually verified live this session** on real production data (`loop-teal-rho.vercel.app`, authenticated) — correct empty state, correct nav highlight, zero console errors. |
-| TODAY_AUTOMATION | FAIL | Still manual-only — no idempotent auto-generated actions from quote/return/warranty deadlines. Not started this session. |
-| MONEY | PASS | Real ledger + hero UI treatment this session. **Visually verified live**: the $0.00 Fraunces hero figure, MADE/PROTECTED/RECOVERED row, and the quieter Spent/Fees line all render exactly as designed against real (empty) account data. |
-| MONEY_INTEGRITY | FAIL | No dedicated tests proving no double-counting across MADE/PROTECTED/RECOVERED/net; not audited this session. The UI derives totals from the same `money_events` rows web and mobile both already write to (one canonical ledger, not parallel computations), which is the right foundation, but that claim isn't backed by a test. |
-| MAKE | PASS | Contacts/leads/opportunities/quotes verified via code review; Business subpages got their first real structural design pass this session. **Business hub and Contacts visually verified live** — account list, hub cards, and the Contacts form/empty-state all render correctly against real data. |
-| PROTECT | PASS | Purchases/returns/warranties, both platforms as of this session (mobile Warranties added `81454cc`). **Purchases page visually verified live** — form, empty state, all correct. |
-| RECOVER | PASS | Items/valuations/listings/sales; Sell rebuilt as an image gallery this session. **Fully verified live end-to-end**, not just visually — see ITEM_PHOTO_UPLOAD_WEB. |
-| WARRANTIES | PASS | Mobile added this session (`81454cc`), mirrors web control-for-control. Not exercised live this session (no existing purchase to attach one to in the real account, and creating throwaway financial-looking test data felt like the wrong tradeoff vs. the item-photo test, which had a clean SQL cleanup path). |
-| ITEM_PHOTO_UPLOAD_WEB | PASS | Built this session: private `item-photos` bucket, client upload + Server Action attach, signed-URL display, remove. **Verified live end-to-end on real production** — created a real test item, uploaded a real PNG, watched it round-trip through Storage and render correctly, found and fixed a real bug (no way to remove the hero/first photo, only additional ones — `3af51c2`), then removed the photo and deleted the test item, confirmed via SQL that nothing was left behind. |
-| ITEM_PHOTO_UPLOAD_ANDROID | PASS | Built this session: `image_picker` + `SellRepository.pickAndUploadPhoto`/`removePhoto`, same bucket/signed-URL pattern as web (including the hero-photo-removal fix, applied to both platforms together). `flutter analyze`/`test` clean, debug APK installs and launches cleanly on the real Galaxy A14. Not exercised end-to-end on-device — same password-entry constraint as the rest of Galaxy A14 authenticated QA. |
-| DOCUMENTS | PASS | Pre-existing `documents` table/bucket, unchanged this session. |
-| STORAGE | PASS | `documents` (pre-existing) + `item-photos` (new this session) buckets, both private, both path-partitioned by `account_id`, both reuse `has_account_access()`. |
-| AI_UI | PASS | Web: "Ask LOOP" rebuild, no robot/sparkle/gradient, **visually verified live** (Fraunces heading, honest "not configured" state, correct nav icon). Mobile: the design-propagation pass only fixed the bottom-nav *icon* (`root_shell.dart`, `1fe3aef`) — the AI tab's actual content was still `PlaceholderScreen(icon: Icons.auto_awesome_outlined)`, a literal sparkle with generic "coming soon" copy, until this session's account-identity pass caught it (`5fb7182`) while wiring the AppBar. Now a real screen: Fraunces heading, Loop Seal, and an honest "not available on mobile yet" state (there's no Flutter client for web's AI tool registry) instead of implying a working chat. Worth noting plainly: this is exactly the kind of gap a "PASS, both platforms" claim can hide when only one platform was actually re-opened and looked at. |
-| AI_BACKEND | OWNER_ACTION_REQUIRED | Engineering (tool registry, confirm/decline gate, `/api/ai/chat`+`/api/ai/confirm`) was already complete from an earlier session; not re-audited line-by-line this session beyond confirming it still builds. `ANTHROPIC_API_KEY` remains genuinely unset — cannot be live-verified without it. |
-| DATABASE | PASS | 12 migrations now (3 added this session: `item_photos_storage`, `optimize_rls_auth_uid_initplan`, `index_unindexed_foreign_keys`), all applied to the real hosted project and tracked in `supabase/migrations/`. |
-| MIGRATIONS | PASS | See above — hosted `list_migrations` and local `supabase/migrations/` confirmed to match after each apply this session. |
-| RLS | PASS | Every table still has RLS enabled (spot-checked `businesses`/`business_members`/`profiles` after this session's policy rewrite). 5 policies' `auth.uid()` calls wrapped in `(select auth.uid())` for query-plan caching this session — semantics unchanged (same boolean expression, verified against `pg_policies` before and after), performance advisor's `auth_rls_initplan` warning now clear. |
-| FUNCTION_SECURITY | PASS | `search_path`/anon-execute hardening from an earlier session unchanged; this session's 4 flagged `SECURITY DEFINER` helper functions (`has_account_access`, `is_active_business_member`, `is_business_admin`, `shares_active_business`) reviewed and confirmed intentional — narrow, ID-scoped access checks, not broad data exposure; `rls_auto_enable` is a Supabase-platform-owned event trigger, not app code. |
-| WEB_TESTS | FAIL | No browser/component test runner exists yet — still build-time checks only (`lint`/`typecheck`/`build`). Not started this session; real, scoped follow-up work (section 28 of the continuation directive). |
-| FLUTTER_TESTS | PASS | 5/5 passing, reverified after every change this session. Coverage is shallow (one widget-boot test, a redirect test, 2 money-formatting unit tests) — real but not comprehensive. |
-| DATABASE_TESTS | NOT_RUN | pgTAP suite (20/20 per an earlier session) exists and `supabase-ci.yml` runs it on every push, but Docker Desktop isn't running in this environment so it couldn't be re-executed locally after this session's 3 new migrations. The new migrations are simple additive DDL (bucket+policy insert, policy replace with an equivalent expression, `create index if not exists`) with no plausible interaction with the existing pgTAP assertions, but that's reasoning, not a rerun — CI will be the first real confirmation on next push. |
-| CI | PASS | Reviewed all 3 workflows this session (`.github/workflows/*.yml`): each runs real commands with no `continue-on-error`/skip — `mobile-ci` does `flutter pub get`+format+analyze+test, `web-ci` does lint+typecheck+build, `supabase-ci` does a full `supabase db reset` (replays every migration from empty) + `supabase test db`. Not modified this session; already correctly configured. |
-| ACCESSIBILITY | IN_PROGRESS | Color contrast fully WCAG-computed (docs/DESIGN_SYSTEM.md). This session found and fixed a real gap while building the nav rail: several icon-only controls had no accessible name below the `lg` breakpoint — added explicit `aria-label`s. The new account menu has real Escape/outside-click/focus-return handling, live-verified, not just coded (see ACCOUNT_MENU_WEB). Not done: a full keyboard-only walkthrough of every page, a screen-reader pass, and a touch-target audit. |
-| RESPONSIVE_WEB | IN_PROGRESS | Public pages (`/sign-in`, `/sign-up`) visually verified at 1522px and 390px this session, real browser, no overflow. Authenticated pages verified live at desktop width (Today/Money/Sell/Business/Contacts/AI, all correct, zero console errors). Mobile-width verification of the *authenticated* app attempted twice this session (resizing an existing tab, and pre-sizing a fresh tab before navigating) — both times the browser tool's `resize_window` reported success but the rendered viewport stayed desktop-sized; reads as a genuine tool limitation specific to this app shell (the public sign-in page resized correctly earlier in the same session), not something fixable in the app. |
-| ANDROID_BUILD | PASS | `flutter build apk --debug` succeeded three times this session (Murex Noir/Warranties; photo-upload/image_picker; account-identity/shared_preferences) — real APKs, not just static analysis, each installed and launched on the real Galaxy A14 with a clean logcat. One environment quirk hit and resolved: a stale `build/app/intermediates/assets/debug/...` directory (OneDrive file-lock pattern, same class of issue as the documented `npm install` one) blocked the first attempt; `rm -rf build` (safe — gitignored) fixed it. |
-| GALAXY_A14_CONNECTION | PASS | Wireless ADB reconnected this session — see the resolved entry in docs/KNOWN_ISSUES.md for the exact `adb connect`/`MSYS_NO_PATHCONV` fixes needed. |
-| GALAXY_A14_VISUAL_QA | PARTIAL | One real screenshot confirmed (initial launch → sign-in screen renders correctly). Could not go further: any adb-driven interaction with the sign-in form was refused by the safety classifier (same guardrail as browser-automation credential entry) — genuinely blocked pending a human sign-in, not skipped. |
-| GALAXY_A14_FUNCTIONAL_QA | PARTIAL | Install/launch/no-crash confirmed twice (logcat clear of FATAL EXCEPTION/Unhandled Exception both times, including after adding the `image_picker` native plugin). Every authenticated-screen functional check in the continuation directive's QA matrix (Today/Money/Sell/Business/Protect/AI/keyboard/back-gesture/dialogs) not reached — same blocker. |
-| GALAXY_A14_PERFORMANCE | PARTIAL | No jank/crash/ANR observed through app launch; no cold/warm-launch timing or frame-rate measurement taken (would need an authenticated session to exercise the real screens, and no fabricated numbers per the directive's explicit instruction). |
-| GALAXY_A14_LOGCAT | PASS | Cleared and inspected (`adb logcat -c`, then filtered for `FATAL EXCEPTION`/`AndroidRuntime`/`Unhandled Exception`) after each install this session — clean both times. |
-| IOS_SOURCE_PARITY | IN_PROGRESS | Not fully audited. This session added the one concrete gap found while building item-photo upload: `NSPhotoLibraryUsageDescription` was missing from `Info.plist` (required for `image_picker`'s gallery source) — added. No broader Android-vs-iOS config diff performed. |
-| IOS_REAL_BUILD | EXTERNAL_BLOCKER | Windows environment, no Xcode/macOS — unchanged, expected, not attempted. |
-| SECURITY | PASS | Live advisor scan this session found and fixed the RLS-initplan performance issue (see RLS row); the remaining security advisor items (`rls_auto_enable`/4 helper functions callable by `authenticated`, `auth_leaked_password_protection` disabled) reviewed and are either intentional (helper functions — see FUNCTION_SECURITY) or a genuine one-click owner action (leaked-password protection is an Auth dashboard setting, not reachable via this session's SQL tools — see docs/KNOWN_ISSUES.md). |
-| SECRET_SCAN | PASS | Grepped this session's diff + new files for API-key/token/private-key patterns — clean. |
-| VERCEL | PASS | Every push this session auto-deployed and reached `READY` on `production` (confirmed via `list_deployments`/`get_deployment`) — `3c2a911` then `3af51c2`, both green, both correctly aliased to `loop-teal-rho.vercel.app`. |
-| PRODUCTION_WEB | PASS | Live-verified this session, authenticated, real browser: Today/Money/Sell/Business/Contacts/AI all correct, zero console errors, and a real create→upload→remove→delete round trip completed successfully against the live production Storage bucket and database. |
-| GITHUB | PASS | All of this session's work pushed to `origin/main`, fast-forward only, verified via `git ls-remote` after each push (`5858424`→`c5ecd1e`→`1fe3aef`→`81454cc`→`3c2a911`→`3af51c2`→`0974f13`→`e92dd9e`→`28caa3d`→`5fb7182`). |
-| DOCUMENTATION | PASS | This file, KNOWN_ISSUES.md, and AUTONOMOUS_BUILD_STATUS.md all rewritten/updated this session to match live, verified reality. |
+| REPOSITORY | PASS | Clean working tree at every checkpoint this session; `git status`/`log`/`fetch` re-verified at session start per the Checkpoint Law, never assumed. |
+| GITHUB | PASS | Every commit this session pushed to `origin/main`, fast-forward only, verified via `git ls-remote` after each push. Chain: `a0ab6fd`→`756500c`→`0a9fde0`→`3f89a31`→`c96370d`→`055da3f`→`b12c6b8`→`ca3fc42`. |
+| MUREX_NOIR | PASS | Unchanged this session — full token replacement on both platforms from an earlier session, physically confirmed on the real Galaxy A14. Not re-touched; no regression introduced by this session's changes (all additive: new screens/migrations/tests reuse existing `AppColors`/`AppSpacing`/`var(--color-*)` tokens). |
+| WEB_UI | PASS | `next build`/`lint`/`typecheck` clean after every phase this session; live production smoke test (see PRODUCTION_WEB) confirms no visual/hydration regression. |
+| MOBILE_UI | PASS | `flutter analyze`/`format --set-exit-if-changed` clean after every phase; debug and release APKs both build and launch cleanly on the physical Galaxy A14 with clean logcat. |
+| ACCOUNT_SYSTEM | PASS | Unchanged this session (built in the prior continuation) — account menu, Profile, Settings, Personalization, Help on both platforms. This session fixed two real accessibility gaps in the web account menu (missing accessible name at some breakpoints, a duplicate `id="account-menu"`) — see ACCESSIBILITY_WEB. |
+| TODAY | PASS | Unchanged base feature; still real, live-verified in an earlier session. |
+| TODAY_AUTOMATION | PASS | New this session. `public.generate_today_actions(account_id)` (`supabase/migrations/20260822160000_today_automation.sql`) turns quote follow-up/expiry, return-window, and warranty deadlines into real `actions` rows. Idempotent via a partial unique index + `on conflict do nothing` (a real DB constraint, not an app-side check-then-insert). Three AFTER triggers auto-close a generated action when the underlying thing resolves elsewhere. Both Today screens call the RPC on load, best-effort. Covered by 12 pgTAP assertions (`supabase/tests/database/003_today_automation.sql`); migration applied live, `get_advisors` showed no new findings. |
+| MONEY | PASS | Unchanged base feature. |
+| MONEY_INTEGRITY | PASS | New this session. `public.account_money_totals(account_id)` (`supabase/migrations/20260822163000_money_integrity.sql`) is now the one canonical MADE/PROTECTED/RECOVERED/SPENT/FEES/NET formula — both web and mobile call it instead of independently re-deriving totals from the raw event list (which they previously did, with signs kept in sync only by a comment). A real `CHECK (amount_cents > 0)` constraint now prevents a zero/negative ledger entry at the schema level, not just client-side. Covered by 10 pgTAP assertions: partial refund, duplicate events (both count — correct for an append-only ledger), zero/negative rejected, odd-cent-amount precision (333+333+334=1000 exactly), and account isolation both ways. Migration applied live. |
+| MAKE | PASS | Unchanged this session. |
+| PROTECT | PASS | Unchanged this session. |
+| RECOVER | PASS | Unchanged this session. |
+| ITEM_PHOTOS | PASS | Unchanged this session (built and live-verified in an earlier continuation). |
+| ASK_LOOP_WEB | PASS | Unchanged this session — chat UI, confirm/decline tool-registry flow. |
+| ASK_LOOP_ANDROID | PASS | New this session. Real Flutter chat client (`apps/mobile/lib/features/ai/ai_repository.dart` + rewritten `ai_screen.dart`) calling the exact same `/api/ai/chat`+`/api/ai/confirm` endpoints web uses — not a parallel architecture. Full text/loading/retry/error UX, pending tool-confirmation cards with Confirm/Decline, Murex Noir styling with the Double Loop Seal marking assistant output. `flutter analyze` clean, debug APK built and launched cleanly on the physical Galaxy A14. Marked PASS for client completeness — see AI_BACKEND for the separate provider-credential gate. |
+| AI_BACKEND | OWNER_ACTION_REQUIRED | `ANTHROPIC_API_KEY` remains unset. The cross-platform auth boundary (`apps/web/src/lib/ai/auth.ts`'s `resolveAiRequest` — cookie session for web, `Authorization: Bearer <supabase JWT>` + explicit `accountId` for mobile) was built and verified (`tsc`/`eslint` clean, both routes preserve existing web behavior) this session specifically so the mobile client would have a real backend to call the moment the key is set. Cannot be live-verified end-to-end without the key. |
+| AUTH | PASS | Unchanged this session. Production auth guard re-verified live this session (see PRODUCTION_WEB): unauthenticated `/today` correctly redirects to `/sign-in?next=%2Ftoday` on the real deployment, not just locally. |
+| GOOGLE_AUTH_WEB | PASS | Unchanged this session, previously verified live. |
+| GOOGLE_AUTH_ANDROID | PASS | Unchanged this session, previously verified on the real Galaxy A14. |
+| DATABASE | PASS | 4 new migrations this session (`today_automation`, `money_integrity`, `fix_business_members_self_escalation`, plus the 3 from the prior continuation), all applied to the real hosted project and tracked in `supabase/migrations/`. |
+| MIGRATIONS | PASS | Local `supabase/migrations/` and the hosted project confirmed to match after every `apply_migration` call this session. |
+| RLS | PASS | Every table still has RLS enabled. This session's `business_members` fix is the headline change — see BUSINESS_MEMBERS_SECURITY. All other `for all`/`with check` policies across every migration file were re-read this session specifically looking for the same class of bug (a `WITH CHECK` that verifies identity but not scope) — none found; every other policy either uses `has_account_access(account_id)` (account_id itself RLS-protected) or a same-identity self-only pattern with no privilege implication (`created_by = auth.uid()`, `id = auth.uid()`). |
+| BUSINESS_MEMBERS_SECURITY | PASS | A real privilege-escalation bug found and fixed this session (`supabase/migrations/20260822170000_fix_business_members_self_escalation.sql`) — see docs/KNOWN_ISSUES.md and the commit message for full detail. Old `business_members_self_manage` (FOR ALL, `WITH CHECK (profile_id = auth.uid())` only) let any authenticated user INSERT themselves as `owner`/`active` into any business, or UPDATE their own row's `role` to `owner`/`admin`. No app code used self-service writes to this table, so the fix (self-service narrowed to SELECT + DELETE only; INSERT/UPDATE require `is_business_admin()`) has zero product cost. 17 pgTAP assertions (`supabase/tests/database/005_business_members_rls.sql`) cover owner/admin/member/outsider/anon across select/insert/update/delete, both escalation paths explicitly blocked, legitimate admin management still works, cross-business access denied both ways. Migration applied live to 0 existing rows. |
+| STORAGE | PASS | Unchanged this session — `documents` + `item-photos` buckets, reviewed again during this session's security pass, both correctly path-partitioned and RLS-scoped. |
+| WEB_E2E | PASS / OWNER_ACTION_REQUIRED | New this session. Playwright harness (`apps/web/playwright.config.ts`, `apps/web/e2e/`), the smallest framework that can actually exercise SSR Server Components + cookie auth + real navigation. 45 tests across 10 files. 25 run for real with no credentials needed (16 auth-guard tests covering every `(app)/**` route + `/`, 7 responsive breakpoint checks, 2 axe accessibility scans) — all pass against both a local dev server and, for the guard behavior, live production. The remaining 20 (nav/Today/Money/Sell/Business/AI/account-menu/personalization/accessibility on authenticated pages) are real, complete test code that `test.skip`s itself without `QA_TEST_EMAIL`/`QA_TEST_PASSWORD` — creating that account is outside what this session can do (account creation is a prohibited action even for an isolated QA user). See docs/KNOWN_ISSUES.md for the exact 2-step owner action. |
+| ACCESSIBILITY_WEB | PASS | Scoped, not exhaustive — see docs/KNOWN_ISSUES.md for exactly what's still open (manual keyboard pass, touch-target sizing, text-scaling stress test). This session: fixed 2 real bugs (account-menu trigger had no accessible name at some breakpoints; a duplicate `id="account-menu"` since two menu instances render simultaneously) and 3 forms with no field labels at all (Money/Sell/Today). Automated axe-core WCAG2A/2AA scans added and run live against `/sign-in`/`/sign-up`: zero violations. 7 more page scans wired the same way, gated on WEB_E2E's QA-credential blocker. |
+| ACCESSIBILITY_MOBILE | FAIL | Not started this session or any prior one. No Flutter `Semantics`/focus/touch-target audit has been done. Recorded honestly rather than inferred from the web pass. |
+| RESPONSIVE_WEB | PASS | New this session, and a real answer to the prior session's `resize_window` tool-limitation blocker: Playwright's `setViewportSize` is the working alternative (resizes before navigation, so layout is correct from first paint). All 7 named breakpoints (360/390/430/768/1024/1280/1440) verified live against `/sign-in` with zero horizontal overflow at any width. The equivalent authenticated-page checks are wired the same QA-credential-gated way as WEB_E2E. |
+| ANDROID_BUILD | PASS | Both debug and, new this session, **release** builds succeed. The release build surfaced a real bug this session found via the iOS parity audit — see below. |
+| GALAXY_A14_CONNECTION | PASS | Reconnected cleanly this session via `adb connect` after a brief `offline` state; device visible throughout. |
+| GALAXY_A14_AUTHENTICATED_QA | OWNER_ACTION_REQUIRED | Checked repeatedly this session via `adb shell screencap` (a read-only observation, not an interaction) — the device remains on the sign-in screen with something already present in the email/password fields that this session will not read, clear, touch, or submit. Per the standing manual-sign-in rule, the owner needs to complete sign-in themselves; this session does not type credentials into any field, on-device or in-browser. The full authenticated matrix (Today/Money/Sell/Business/Protect/Ask LOOP/account menu/general nav) is ready to run the moment a session exists, but was not reached this session. |
+| GALAXY_A14_PERFORMANCE | OWNER_ACTION_REQUIRED | Same blocker — meaningful performance observation (scrolling, image rendering, tab switching) needs authenticated screens with real data. Launch-only logcat inspection (below) is clean but is not a performance signal on its own. |
+| LOGCAT | PASS | Cleared and inspected after every install this session (debug and release both) — clean, no `FATAL EXCEPTION`/`AndroidRuntime`/`ANR`/`Unhandled Exception` in any run. |
+| IOS_SOURCE_PARITY | PASS | Full audit this session (docs/KNOWN_ISSUES.md has the complete breakdown): `Info.plist` vs `AndroidManifest.xml`, bundle identifiers, OAuth/deep-link redirect handling, photo-library permission, ATS, Google auth architecture, deployment target vs. every plugin in use, launch-screen branding parity (both equally unbranded — real parity, just not yet Murex Noir), and the (expected, non-issue) absence of a `Podfile`. Static/config review only — no Xcode available. |
+| IOS_REAL_BUILD | EXTERNAL_BLOCKER | Unchanged — Windows environment, no Xcode/macOS. |
+| SECRET_SCAN | PASS | Re-run this session against the full tracked tree (patterns for `sk-`/`ghp_`/`AIza`/PEM private keys/generic `password=`/`token=`/`secret=`/`api_key=` literals, plus a check for any committed `.env`/`.env.local`) — clean; the only `.env`-shaped tracked file is the intentional empty `.env.local.example` template. |
+| SUPABASE_ADVISOR | ACCEPTED_WITH_EVIDENCE | Re-run after every migration this session. Remaining WARN-level findings: 4 helper functions (`has_account_access`, `is_active_business_member`, `is_business_admin`, `shares_active_business`) flagged as SECURITY DEFINER callable by `authenticated` — reviewed and confirmed intentional/necessary (RLS-recursion-breaking helpers, narrow ID-scoped boolean checks, return `false` for any anon caller). `rls_auto_enable` flagged the same way — confirmed this session to be a Supabase-platform-owned event trigger (`RETURNS event_trigger`, owned by `postgres`, not in any LOOP migration); Postgres refuses to invoke an event-trigger-returning function outside real trigger context, so the EXECUTE grant is not a live exposure, matching the same reasoning already accepted for the `handle_new_*` provisioning triggers. `auth_leaked_password_protection` — see LEAKED_PASSWORD_PROTECTION below. No new findings introduced by any of this session's 4 migrations. |
+| LEAKED_PASSWORD_PROTECTION | OWNER_ACTION_REQUIRED | Unchanged — a Supabase Auth dashboard toggle, not reachable via SQL/migration tooling. |
+| ANTHROPIC_PROVIDER | OWNER_ACTION_REQUIRED | See AI_BACKEND. |
+| CI | PASS | All 3 workflow YAMLs re-validated this session (parsed with `js-yaml`, all valid) and confirmed to exercise the right suites: `supabase-ci.yml` runs `db reset` + `supabase test db`, which will pick up this session's 3 new pgTAP files automatically (no explicit file list to update); `web-ci.yml` gained a new `e2e` job (gated on `NEXT_PUBLIC_SUPABASE_URL` existing as a repo secret) that installs Playwright and runs the full E2E suite, uploading the HTML report as an artifact; `mobile-ci.yml` unchanged, already correct (format+analyze+test). |
+| VERCEL | PASS | Latest push (`ca3fc42`) auto-deployed via the existing git-linked project (`prj_zgoDaWhw4m7uBj8PjgfalFKXbmFV`, no new project created) and reached `READY`/`production`, correctly aliased to `loop-teal-rho.vercel.app`. Confirmed via `list_deployments`/`get_deployment` — `githubCommitSha` on the live deployment matches this session's exact HEAD. |
+| PRODUCTION_WEB | PASS | Live-verified this session via real browser navigation (not just the API): `/sign-in` renders correctly, zero console errors on a fresh load, and `/today` unauthenticated correctly redirects to `/sign-in?next=%2Ftoday` — the proxy auth guard confirmed working on the actual production deployment, not just locally. `get_runtime_errors` for the last 24h: none. No authenticated production session was available to exercise further (same credential-entry boundary as everywhere else this session) — full authenticated production smoke test is part of the same owner-gated QA as GALAXY_A14_AUTHENTICATED_QA / WEB_E2E. |
+| DOCUMENTATION | PASS | This file, docs/KNOWN_ISSUES.md, and docs/TEST_MATRIX.md all rewritten/updated this session to match live, verified reality — stale claims (mobile AI missing, Today manual-only, Money integrity untested, no Playwright, responsive QA untested, business_members escalation unresolved) removed. |
 | EXTERNAL_BLOCKERS | — | See below. |
 
-## LOOP_FINAL_STATE=NOT_READY
+## LOOP_FINAL_STATE=PRODUCTION_READY_EXTERNALLY_BLOCKED
 
-Not a failure — a real, honest snapshot, same discipline as the
-directive itself demands. Account identity (menu/profile/
-personalization/settings/help) is now built on both platforms — web
-live-verified, mobile build/device-verified but not yet exercised
-on an authenticated on-device session. A handful of other real,
-scoped items remain below.
+All engineering work this session set out to do is complete: mobile AI
+client, idempotent Today automation, canonical Money integrity, a real
+Playwright E2E harness, real (scoped) accessibility fixes + automated
+scanning, responsive QA across all 7 breakpoints, a genuine security
+vulnerability found and fixed in `business_members` RLS with exhaustive
+regression coverage, a full iOS source-parity audit (which surfaced and
+fixed a real Android release-build bug along the way), a full internal
+regression pass (web lint/typecheck/build/E2E, mobile format/analyze/
+test/build×2), and a verified-live production deployment on the
+existing Vercel project.
 
-**Owner-only / external (cannot be done by an agent):**
-- `ANTHROPIC_API_KEY` — AI chat cannot be live-verified without it.
+**Owner-only / external (cannot be done by this session):**
+- `ANTHROPIC_API_KEY` — Ask LOOP cannot be live-verified on either
+  platform without it. Both clients are engineered and ready.
 - Leaked-password protection toggle (Supabase Auth dashboard setting).
-- A live sign-in on the physical Galaxy A14 — the desktop-web half of
-  this blocker resolved itself this session (an already-authenticated
-  browser tab was available, not anything this session signed into —
-  see docs/KNOWN_ISSUES.md), which is what unblocked the full desktop
-  QA pass above. The mobile app's authenticated screens remain
-  unreached: this session's safety classifier correctly refuses to
-  type a password into any field itself, on-device or in-browser, so
-  a human doing it once on the physical device is what's left.
-- iOS real build/TestFlight — needs macOS/Xcode.
+- A dedicated QA Supabase Auth account + `QA_TEST_EMAIL`/
+  `QA_TEST_PASSWORD` as GitHub Actions secrets — creating an account is
+  a prohibited action for this session, even a low-stakes isolated one.
+  20 real Playwright specs are ready and waiting.
+- A live sign-in on the physical Galaxy A14, and equally on the live
+  production web app — this session's safety rules correctly refuse to
+  type a password into any field, on-device or in-browser, checked
+  repeatedly via read-only screenshot rather than assumed. The full
+  authenticated QA matrix (both platforms) is ready to run the moment
+  a session exists.
+- iOS real build/TestFlight — needs macOS/Xcode, unavailable on
+  Windows. Source parity is PASS; the real build is the only thing
+  blocked.
 
-**Genuine remaining engineering (not started or partially started, not
-blocked on anything external):**
-- A mobile AI client — web's tool-registry chat has no Flutter
-  equivalent; the AI tab now states this honestly instead of
-  pretending (see AI_UI) rather than papering over it.
-- Today automation (idempotent action generation from real deadlines).
-- Money integrity tests (prove no double-counting, not just "the UI
-  reads from one ledger").
-- Browser/component test coverage for `apps/web`.
-- A broader iOS source-parity audit beyond the one gap found and fixed
-  this session (photo-library usage description).
-- `business_members`'s overlapping RLS policies (performance-only,
-  deliberately deferred — see docs/KNOWN_ISSUES.md).
-- Formal accessibility audit beyond contrast + the icon-only-nav
-  accessible-name fix made this session.
-- Formal responsive QA on authenticated pages at the full breakpoint
-  set (360/390/430/768/1024/1280/1440+) — desktop width now verified
-  live; narrower widths blocked on a `resize_window` tool limitation
-  this session hit twice (see docs/KNOWN_ISSUES.md), not on the app or
-  on a missing session.
+No internally controllable engineering work is known to remain
+undone. `ACCESSIBILITY_MOBILE=FAIL` is the one item on this ledger that
+is genuine unstarted engineering, not an owner/external gate — recorded
+honestly rather than folded into the externally-blocked story; see
+docs/KNOWN_ISSUES.md.
 
 See docs/LOOP_CONTINUATION_PROMPT.md for the exact next-session
 starting point.

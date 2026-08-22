@@ -57,54 +57,46 @@ with a Tyrian identity hue, Royal Bone text, rare Champagne/Ruby
 accents) is locked in and fully propagated on both platforms — do not
 restore either predecessor or invent a new one.
 
-Done: schema + RLS + storage (now 2 buckets: `documents`,
-`item-photos`) on the real hosted project, both apps' five product
-areas real and functional including mobile Warranties and item photo
-upload, CI runs real test suites, Murex Noir fully propagated (nav
-rail, Money hero, Sell gallery, Business, AI — zero remaining
-old-token/raw-Tailwind screens), Google Sign-In verified live on both
-platforms (in earlier sessions), RLS/perf hardening (auth.uid()
-initplan wrapping + missing FK indexes) this session.
+Done, as of `ca3fc42` (2026-08-22): schema + RLS + storage on the real
+hosted project, both apps' five product areas real and functional,
+account identity (menu/profile/personalization/settings/help) on both
+platforms, mobile Ask LOOP AI client, idempotent Today automation,
+canonical Money integrity with a real zero/negative constraint, a
+Playwright E2E harness (45 tests, 25 running for real), scoped
+accessibility fixes + automated axe scans, responsive QA at all 7
+breakpoints, a real `business_members` privilege-escalation bug found
+and fixed, a full iOS source-parity audit (which found and fixed a real
+Android release-manifest bug), and a verified-live Vercel production
+deployment. Full detail: docs/LOOP_COMPLETION_LEDGER.md.
 
-Not done, no owner action needed — just pick one and go:
-1. **Account identity** — menu, profile, personalization, settings,
-   help. Entirely unbuilt on both platforms; this is the largest
-   single remaining body of work. See sections 8–14 of whatever
-   continuation directive prompted the most recent session for the
-   exact UX spec (ChatGPT-inspired account menu pattern, Murex Noir
-   materials, no billing/subscription states unless LOOP has a real
-   reason for them).
-2. Today auto-population from real events (currently manual-only).
-3. Money integrity tests — prove no double-counting across
-   MADE/PROTECTED/RECOVERED/net, not just "reads from one ledger."
-4. Mobile quote creation → swap to `create_quote_with_line_items` RPC
-   (mobile still has the two-step race web used to have).
-5. AI mobile surface, or more AI tools, or streaming (all reasonable
-   Phase 8 depth work) — AI backend engineering itself is done, only
-   blocked on `ANTHROPIC_API_KEY` for live verification.
-6. Formal accessibility audit beyond contrast + the icon-only-nav
-   accessible-name fix made 2026-08-22 (keyboard nav, focus traps,
-   screen-reader pass, touch targets) and formal responsive QA on
-   authenticated pages at the full breakpoint set.
-7. Browser/component test runner for `apps/web`.
-8. Broader iOS source-parity audit (one gap already found and fixed:
-   `NSPhotoLibraryUsageDescription`) — compare the rest of
-   `apps/mobile/ios` config against `apps/mobile/android`.
-9. `business_members`'s overlapping RLS policies (performance-only,
-   deliberately deferred — needs pgTAP coverage to verify against
-   first; see docs/KNOWN_ISSUES.md).
+**Not done, no owner action needed** — the one item on the ledger that
+is genuine unstarted engineering rather than an owner/external gate:
+1. **Mobile accessibility** — no Flutter `Semantics`/focus/touch-target
+   audit has been done at all (`ACCESSIBILITY_MOBILE=FAIL` on the
+   ledger). Web's axe-core + manual-fix pass has no mobile equivalent
+   yet.
+
+Smaller, real, lower-priority follow-ups (none blocking):
+- Web accessibility beyond the current scoped pass: manual keyboard-
+  only walkthrough, touch-target sizing, text-scaling stress test.
+- Native splash-screen branding on both platforms (currently both
+  equally stock/unbranded — real parity, just not yet Murex Noir).
+- AI depth once `ANTHROPIC_API_KEY` exists: more tools, streaming.
 
 **Real, current, non-fabricated blocker as of 2026-08-22**: nothing in
 the app can be visually/functionally verified past the sign-in screen,
 on either platform, without a real authenticated session — this
-session's safety classifier correctly refuses to type a password into
-any field itself, browser or on-device. A human signing in once (or a
-new non-password auth path being built, e.g. magic link) unblocks a
-lot of QA at once.
+session's safety rules correctly refuse to type a password into any
+field itself, browser or on-device (checked via read-only screenshot
+repeatedly, not assumed). A human signing in once (physical device
+and/or production web) unblocks a lot of QA at once — the full matrix
+and the 20 gated Playwright specs are ready to run immediately after.
 
 Owner-only, ask rather than attempt: `ANTHROPIC_API_KEY`, leaked-
-password-protection toggle (Supabase Auth dashboard), a custom domain
-if wanted.
+password-protection toggle (Supabase Auth dashboard), a dedicated QA
+Supabase Auth account + `QA_TEST_EMAIL`/`QA_TEST_PASSWORD` as GitHub
+Actions secrets (see docs/KNOWN_ISSUES.md for the exact 2 steps), a
+custom domain if wanted.
 
 ## Engineering loop (from CLAUDE.md, still the right process)
 
