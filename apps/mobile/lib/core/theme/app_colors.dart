@@ -83,6 +83,11 @@ class AppColors {
   static const Color infoTextLight = Color(0xFF1E5BC4); // 6.00:1
   static const Color dangerTextLight = Color(0xFFB8362E); // 5.57:1
 
+  // In dark mode the solid accent already clears AA on the dark
+  // backgrounds above, so only light mode needs the darkened variant.
+  static Color opportunityText(Brightness brightness) =>
+      brightness == Brightness.light ? opportunityTextLight : opportunity;
+
   // Engine accents (MAKE / PROTECT / RECOVER) — used sparingly as accents,
   // never as full-surface colors, to keep the app feeling unified.
   static const Color makeAccent = opportunity;

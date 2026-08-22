@@ -127,13 +127,21 @@ class _ItemTile extends StatelessWidget {
                       children: [
                         Text(item.name, style: theme.textTheme.bodyLarge),
                         Text(
-                          [
-                            if (details.isNotEmpty) details else 'No details',
-                            if (valuation != null)
-                              'Valued at ${MoneyUtils.formatCents(valuation!.estimatedValueCents)}',
-                          ].join(' · '),
+                          details.isNotEmpty ? details : 'No details',
                           style: theme.textTheme.bodyMedium,
                         ),
+                        if (valuation != null) ...[
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Est. value ${MoneyUtils.formatCents(valuation!.estimatedValueCents)}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.opportunityText(
+                                theme.brightness,
+                              ),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

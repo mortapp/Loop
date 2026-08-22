@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/account/account_providers.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/async_error_view.dart';
@@ -9,6 +10,64 @@ import 'models/purchase.dart';
 import 'models/return_record.dart';
 import 'purchases_providers.dart';
 import 'return_controls.dart';
+
+/// Real "N days left" urgency, calculated from the actual deadline — not
+/// a fake countdown (matches `returnWindowBadge` in
+/// apps/web/src/app/(app)/money/purchases/page.tsx).
+class _ReturnWindowBadge extends StatelessWidget {
+  const _ReturnWindowBadge({required this.expiresAt});
+
+  final DateTime expiresAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final days = expiresAt.difference(DateTime.now()).inHours / 24;
+    final String label;
+    final Color color;
+    if (days < 0) {
+      label = 'Window closed';
+      color = AppColors.textMuted;
+    } else if (days.floor() == 0) {
+      label = 'Return today';
+      color = AppColors.danger;
+    } else if (days.ceil() <= 3) {
+      final d = days.ceil();
+      label = '$d day${d == 1 ? '' : 's'} left';
+      color = AppColors.danger;
+    } else if (days.ceil() <= 14) {
+      label = '${days.ceil()} days left';
+      color = AppColors.opportunity;
+    } else {
+      label = 'Return by ${_formatShortDate(expiresAt)}';
+      color = AppColors.textMuted;
+    }
+    return Chip(
+      label: Text(label),
+      backgroundColor: color.withValues(alpha: 0.12),
+      labelStyle: TextStyle(color: color, fontWeight: FontWeight.w600),
+      side: BorderSide.none,
+      visualDensity: VisualDensity.compact,
+    );
+  }
+}
+
+const _monthAbbrs = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+String _formatShortDate(DateTime date) =>
+    '${_monthAbbrs[date.month - 1]} ${date.day}';
 
 /// PROTECT / ReturnGuard: record what you bought, then start a return or
 /// claim a warranty before the window closes.
@@ -85,11 +144,10 @@ class _PurchaseTile extends StatelessWidget {
     final title = purchase.itemName ?? purchase.vendorName ?? 'Purchase';
     final details = <String>[
       purchase.vendorName ?? 'Unknown vendor',
-      if (purchase.returnWindowExpiresAt != null)
-        'Return by ${purchase.returnWindowExpiresAt}',
       if (purchase.warrantyExpiresAt != null)
         'Warranty until ${purchase.warrantyExpiresAt}',
     ].join(' · ');
+    final returnWindow = purchase.returnWindowExpiresAt;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -99,12 +157,28 @@ class _PurchaseTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '$title · ${MoneyUtils.formatCents(purchase.priceCents)}',
-                style: theme.textTheme.bodyLarge,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$title · ${MoneyUtils.formatCents(purchase.priceCents)}',
+                          style: theme.textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(details, style: theme.textTheme.bodyMedium),
+                      ],
+                    ),
+                  ),
+                  if (returnWindow != null) ...[
+                    const SizedBox(width: AppSpacing.sm),
+                    _ReturnWindowBadge(expiresAt: DateTime.parse(returnWindow)),
+                  ],
+                ],
               ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(details, style: theme.textTheme.bodyMedium),
               const SizedBox(height: AppSpacing.sm),
               ReturnControls(
                 purchaseId: purchase.id,

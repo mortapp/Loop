@@ -13,6 +13,17 @@ import '../opportunities/opportunities_providers.dart';
 import 'models/quote.dart';
 import 'quotes_providers.dart';
 
+/// The single natural next step for a quote in this status — this is the
+/// one action rendered prominently. Terminal statuses (accepted/declined/
+/// expired) have none; every other transition is still reachable via
+/// "Other…", just not shown with equal visual weight (matches
+/// `NEXT_STATUS` in apps/web/src/app/(app)/business/quotes/page.tsx).
+const _nextStatus = <QuoteStatus, (QuoteStatus, String)>{
+  QuoteStatus.draft: (QuoteStatus.sent, 'Mark sent'),
+  QuoteStatus.sent: (QuoteStatus.viewed, 'Mark viewed'),
+  QuoteStatus.viewed: (QuoteStatus.accepted, 'Mark accepted'),
+};
+
 Color _statusColor(QuoteStatus status) {
   switch (status) {
     case QuoteStatus.draft:
@@ -132,6 +143,22 @@ class _QuoteTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
+    Future<void> setStatus(QuoteStatus status) async {
+      try {
+        await ref
+            .read(quotesRepositoryProvider)
+            .setStatus(id: quote.id, status: status);
+        ref.invalidate(quotesProvider);
+      } catch (e) {
+        if (context.mounted) showErrorSnackBar(context, 'Failed: $e');
+      }
+    }
+
+    final next = _nextStatus[quote.status];
+    final otherStatuses = quoteStatusOptions.where(
+      (s) => s != quote.status && s != next?.$1,
+    );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Card(
@@ -163,23 +190,32 @@ class _QuoteTile extends ConsumerWidget {
                     labelStyle: TextStyle(color: _statusColor(quote.status)),
                     side: BorderSide.none,
                   ),
-                  for (final status in quoteStatusOptions.where(
-                    (s) => s != quote.status,
-                  ))
+                  if (next != null)
                     TextButton(
-                      onPressed: () async {
-                        try {
-                          await ref
-                              .read(quotesRepositoryProvider)
-                              .setStatus(id: quote.id, status: status);
-                          ref.invalidate(quotesProvider);
-                        } catch (e) {
-                          if (context.mounted) {
-                            showErrorSnackBar(context, 'Failed: $e');
-                          }
-                        }
-                      },
-                      child: Text(status.name),
+                      onPressed: () => setStatus(next.$1),
+                      child: Text(next.$2),
+                    ),
+                  if (otherStatuses.isNotEmpty)
+                    PopupMenuButton<QuoteStatus>(
+                      tooltip: 'Other…',
+                      onSelected: setStatus,
+                      itemBuilder: (context) => [
+                        for (final status in otherStatuses)
+                          PopupMenuItem(
+                            value: status,
+                            child: Text('Mark ${status.name}'),
+                          ),
+                      ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xs,
+                          vertical: AppSpacing.xs,
+                        ),
+                        child: Text(
+                          'Other…',
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
                     ),
                 ],
               ),
