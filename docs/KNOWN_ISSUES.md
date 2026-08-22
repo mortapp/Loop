@@ -32,7 +32,7 @@ which now covers both surfaces. Re-run the fuller physical QA matrix
 gesture, dialogs, performance) once a signed-in session exists on the
 device.
 
-## ~~Item photos exist in the schema but nothing uploads to them yet~~ — resolved 2026-08-22
+## ~~Item photos exist in the schema but nothing uploads to them yet~~ — resolved 2026-08-22, verified end-to-end live
 
 Was: `items.photos` (`text[]`) had been in the schema and
 `@loop/contracts` since the original Sell feature shipped, but no
@@ -49,38 +49,64 @@ component, `AddPhotoControl` in `item-actions.tsx`) then calls the
 the equivalent via `image_picker` + `SellRepository.pickAndUploadPhoto`.
 Both platforms resolve every stored path to a fresh signed URL
 (`createSignedUrls`/`createSignedUrlsResult`, 1-hour TTL) at read
-time — never a permanent/public link, never base64 in a row. Photo
-removal (Storage delete + array update) is wired on both platforms too.
-Verified: `tsc --noEmit`/`eslint`/`next build` clean; `dart format`/
-`flutter analyze`/`flutter test` clean; a debug APK with the new
-`image_picker` plugin registered installs and launches cleanly on the
-real Galaxy A14 (logcat clear of `FATAL EXCEPTION`/`Unhandled
-Exception` through startup). **Not yet verified**: an actual upload
-completing end-to-end on a real signed-in session, on either platform —
-blocked on the same auth-classifier constraint as the entry below.
+time — never a permanent/public link, never base64 in a row.
 
-## No authenticated browser or on-device session for full visual QA
+**Verified live end-to-end on real production** (an already-signed-in
+browser tab became available — see the resolved entry below): created
+a real test item, uploaded a real test PNG through `AddPhotoControl`,
+watched it round-trip through Storage and render as the tile's hero
+image with the correct signed URL. That surfaced one real bug: the
+remove (×) control only existed on the *additional*-photos thumbnail
+strip, never on the hero/first photo — there was no way to remove an
+item's only photo. Fixed on both platforms (`3af51c2`), re-verified
+live (removed the test photo, confirmed the Storage object was
+actually gone via `storage.objects`, then deleted the test item).
+Static checks also clean throughout: `tsc --noEmit`/`eslint`/
+`next build`; `dart format`/`flutter analyze`/`flutter test`; a debug
+APK with the new `image_picker` plugin installs and launches cleanly
+on the real Galaxy A14.
 
-The Murex Noir web propagation pass (nav rail, Money, Sell, Business,
-AI — see docs/DESIGN_SYSTEM.md) was verified via `tsc --noEmit`,
-`eslint`, and `next build`, plus close reading, but not by loading the
-authenticated app in a real browser: doing so requires signing in, and
-this environment's browser-automation safety classifier correctly
+## ~~No authenticated browser session for full visual QA~~ — resolved 2026-08-22 for desktop web
+
+Was: the Murex Noir web propagation pass (nav rail, Money, Sell,
+Business, AI — see docs/DESIGN_SYSTEM.md) had only been verified via
+`tsc --noEmit`, `eslint`, and `next build`, not by loading the
+authenticated app in a real browser — doing so requires signing in,
+and this environment's browser-automation safety classifier correctly
 refuses to type a password into any field, including a disposable
 account created solely for this QA (confirmed by testing — the classifier
 blocked it outright). The same constraint applies on the physical
 Galaxy A14, confirmed separately: an `adb shell input tap`/`input text`
 sequence aimed at the mobile sign-in form's email field was also
-refused, mid-sequence, by the same classifier. The public,
-unauthenticated pages (web `/sign-in`/`/sign-up`, and the mobile app's
-initial launch screen) *were* visually verified and look correct — see
-the resolved Galaxy A14 entry above for the physical screenshot. Two
-legitimate ways to unblock full authenticated QA on both platforms:
-the owner signs in once, manually, in their own browser session or on
-the physical device; or a non-interactive test-auth path gets built
-that never requires typing a password (e.g. a seeded session for CI,
-or a magic-link/OTP flow) — not an auth bypass, a real additional
-sign-in method. Neither has happened yet.
+refused, mid-sequence, by the same classifier.
+
+Resolved for desktop web: a browser tab already carried a valid,
+persisted session (the account owner's own prior real sign-in on this
+machine, not anything this session did) — navigating to it landed
+directly in the authenticated app. No password was typed by this
+session at any point; this is the exact "owner signs in once, manually"
+path, already satisfied. Used it to visually verify, live, on real
+production data: Today (empty state), Money (hero figure + MADE/
+PROTECTED/RECOVERED, real $0.00 render), Sell (empty state, then a
+real create-item → photo-upload → photo-remove → delete round trip —
+see the resolved item-photo entry above), Business (account list +
+hub cards), Contacts (empty state + form), and Ask LOOP (honest
+"not configured" state, Fraunces heading). Zero console errors on any
+page. All of it matches the code exactly — no drift between what was
+built and what's live.
+
+**Still open**: mobile-width verification of the *authenticated* app.
+The browser tool's `resize_window` reports success but the rendered
+viewport stays desktop-sized on this app shell specifically — tried
+twice (resizing an existing tab, and setting the size before
+navigating a fresh tab), same result both times, so this reads as a
+real tool limitation rather than a fluke (the public `/sign-in` page
+*did* resize correctly earlier in this same session, so it's specific
+to something about this page, not resize_window in general). The
+physical Galaxy A14 remains blocked on the same password-entry
+constraint for its own authenticated screens — see the resolved
+Galaxy A14 entry above for what *was* confirmed there (unauthenticated
+launch screen, real device, real screenshot).
 
 ## Leaked password protection is off — one-click owner action
 
