@@ -206,15 +206,56 @@ can always see what they just created. Keep this in mind for any future
 table where a trigger provisions the very access that table's own SELECT
 policy depends on.
 
-## No browser/component test coverage for apps/web yet
+## ~~No browser/component test coverage for apps/web yet~~ — resolved 2026-08-22, real E2E harness added
 
-Only build-time checks (lint, typecheck, `next build`) and a few
-unauthenticated-route curl checks have been run against `apps/web` (see
-docs/TEST_MATRIX.md). The actual sign-up → sign-in → authenticated-app
-click-through has not been exercised in a real browser. No JS/TS test
-runner is configured. Add one (and Playwright or similar for the auth
-flow) before treating apps/web as more than a verified-to-compile
-scaffold.
+Was: only build-time checks (lint, typecheck, `next build`) had been
+run against `apps/web`. No JS/TS test runner was configured.
+
+Fixed: Playwright (`apps/web/playwright.config.ts`, specs in
+`apps/web/e2e/`) — the smallest framework that can exercise real SSR
+Server Component pages, cookie-based auth, and actual browser
+navigation, none of which a jsdom/RTL setup handles well for this
+app's App Router shape. 33 tests across 9 files: `auth-guards.spec.ts`
+(every `(app)/**` route + `/` redirects to `/sign-in` when
+unauthenticated — no storage state, no credentials, always runs),
+`navigation.spec.ts`, `today.spec.ts`, `money.spec.ts`, `sell.spec.ts`,
+`business.spec.ts`, `ai.spec.ts`, `account-menu.spec.ts` (every
+expected item present, no billing/plan/upgrade UI, Escape closes and
+restores focus), `personalization.spec.ts` (theme choice persists
+across reload).
+
+Auth is a real sign-in through `/sign-in` (`e2e/auth.setup.ts`), never
+a bypass — see the entry below for why the authenticated specs are
+currently `test.skip`ped in this environment. Verified live: all 16
+auth-guard tests pass against a real local dev server; the other 17
+correctly self-skip without QA credentials; `tsc`/`eslint`/`next build`
+stay clean with the new files included.
+
+## Authenticated E2E specs need a dedicated QA Supabase account — OWNER_ACTION_REQUIRED
+
+The 17 authenticated Playwright specs (Today/Money/Sell/Business/
+Protect/AI/account menu/personalization — see the resolved entry
+above) are real, complete test code, not stubs. They `test.skip`
+themselves whenever `QA_TEST_EMAIL`/`QA_TEST_PASSWORD` are unset
+(`apps/web/playwright.config.ts`), which is true in every environment
+right now, including CI.
+
+This is deliberately not something this session can complete alone:
+creating a Supabase Auth account is in this environment's own
+prohibited-actions list (no account creation, no credential entry) even
+for a low-stakes, isolated QA account. **Owner action required:**
+1. Create a dedicated Supabase Auth user in the LOOP project (email +
+   password, not Google OAuth, so Playwright can drive the real
+   `/sign-in` form) — ideally with an obviously-QA email like
+   `qa+e2e@<domain>`, seeded with nothing sensitive.
+2. Add `QA_TEST_EMAIL`, `QA_TEST_PASSWORD` as GitHub Actions repo
+   secrets, alongside `NEXT_PUBLIC_SUPABASE_URL` /
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY` if not already present (the `e2e`
+   job in `.github/workflows/web-ci.yml` is gated on the Supabase URL
+   secret existing at all, and scales up automatically once the QA
+   credentials are added too).
+
+Once those exist, the specs run themselves — no code changes needed.
 
 ## `npm install` can silently corrupt packages inside a OneDrive-synced repo
 

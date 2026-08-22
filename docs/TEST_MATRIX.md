@@ -18,6 +18,8 @@
 | apps/web runtime | `next dev`, unauthenticated `GET /`, `/today`, `/business` | 307 redirect to `/sign-in` (proxy.ts gating) | Pass | Manual curl against local dev server 2026-08-17 |
 | apps/web runtime | `GET /sign-in` | 200, renders "LOOP" / "Sign in" | Pass | Manual curl 2026-08-17 |
 | apps/mobile | `flutter analyze` / `dart format --set-exit-if-changed` / `flutter test` | All clean | Pass | Run 2026-08-17 |
+| apps/web E2E | `npx playwright test` — 16 auth-guard specs (every `(app)/**` route + `/`, unauthenticated) | All redirect to `/sign-in`, no storage state used | Pass | Real run against local dev server, 2026-08-22 |
+| apps/web E2E | `npx playwright test` — 17 authenticated specs (nav, Today, Money, Sell, Business, Protect, AI, account menu, personalization) | Self-skip cleanly without failing the run | Pass (skipped) | Real run, 2026-08-22 — needs `QA_TEST_EMAIL`/`QA_TEST_PASSWORD`, see docs/KNOWN_ISSUES.md (`OWNER_ACTION_REQUIRED`) |
 
 Method: local Supabase stack (`supabase/config.toml`, ports 55321-55329)
 driven via raw `curl` against `/auth/v1` and `/rest/v1` with two
@@ -26,12 +28,10 @@ REST responses alone couldn't distinguish the root cause — now also
 codified as an automated pgTAP suite (`supabase/tests/database/`) so it
 runs as regression coverage, not just a one-off session.
 
-Not yet covered: end-to-end browser testing of the sign-up → sign-in →
-authenticated-app flow (only unauthenticated redirect behavior and raw
-HTML of `/sign-in` were checked via curl; no interactive browser session
-was available in this session to click through the actual form
-submission). No JS/TS unit or component test runner is configured for
-apps/web yet. See docs/KNOWN_ISSUES.md.
+**2026-08-22**: real E2E coverage added (`apps/web/playwright.config.ts`,
+`apps/web/e2e/`) — see docs/KNOWN_ISSUES.md for the full breakdown and
+the OWNER_ACTION_REQUIRED gate on the authenticated specs (need a real
+QA Supabase account this session cannot create itself).
 
 **2026-08-21 CI gap found and fixed**: `.github/workflows/supabase-ci.yml`
 ran `supabase db reset` (applies migrations + seed) but never actually

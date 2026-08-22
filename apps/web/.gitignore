@@ -40,3 +40,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright -- e2e/.auth holds a real signed-in QA session (storageState),
+# never committed even though the QA account itself is isolated/low-value.
+/e2e/.auth/
+/test-results/
+/playwright-report/
+/blob-report/
