@@ -119,6 +119,20 @@ export default async function SellPage() {
                   <div className="absolute right-2 top-2">
                     <StatusBadge label={item.status} tone={STATUS_TONE[item.status]} />
                   </div>
+                  {heroUrl && item.status !== "sold" ? (
+                    <form
+                      action={removeItemPhoto.bind(null, item.id, photoPaths[0])}
+                      className="absolute left-2 top-2"
+                    >
+                      <button
+                        type="submit"
+                        aria-label="Remove photo"
+                        className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-danger)]/90 text-xs text-[var(--color-on-accent)] transition-opacity hover:opacity-90"
+                      >
+                        ×
+                      </button>
+                    </form>
+                  ) : null}
                 </div>
 
                 {photoPaths.length > 1 ? (

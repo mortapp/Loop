@@ -166,6 +166,36 @@ class _ItemTile extends ConsumerWidget {
                     visualDensity: VisualDensity.compact,
                   ),
                 ),
+                if (heroUrl != null && item.status != ItemStatus.sold)
+                  Positioned(
+                    top: AppSpacing.sm,
+                    left: AppSpacing.sm,
+                    child: GestureDetector(
+                      onTap: () async {
+                        await ref
+                            .read(sellRepositoryProvider)
+                            .removePhoto(
+                              itemId: item.id,
+                              objectPath: item.photos.first,
+                            );
+                        ref.invalidate(sellPageProvider);
+                      },
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: AppColors.danger.withValues(alpha: 0.9),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.close,
+                          size: 14,
+                          color: AppColors.onAccentFill,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
             if (item.photos.length > 1)
