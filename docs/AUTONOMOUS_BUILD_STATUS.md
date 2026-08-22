@@ -5,10 +5,15 @@
 Phases 1-8 all have real, verified implementations in both `apps/web`
 and `apps/mobile`. Phase 8 (AI) is functionally complete but has never
 made a live model call — no `ANTHROPIC_API_KEY` exists in this
-environment (human step). Remaining work is depth (warranties on
-mobile, streaming AI responses, more AI tools) and polish (a real
-shared design system, browser/component test coverage), not missing
-surface area.
+environment (human step). The "Murex Noir" design system (see
+docs/DESIGN_SYSTEM.md) is fully propagated on both platforms as of
+2026-08-22, mobile Warranties closed the last PROTECT gap, and item
+photo upload (Storage bucket + signed URLs, both platforms) closed a
+real product gap the same day. See docs/LOOP_COMPLETION_LEDGER.md for
+the full current status matrix. Remaining work is now mostly account
+identity (menu/profile/personalization/settings/help — entirely
+unbuilt), Today automation, Money integrity tests, and test coverage,
+not missing product surface area.
 
 ## Completed
 

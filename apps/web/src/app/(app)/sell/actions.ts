@@ -44,6 +44,43 @@ export async function createItem(_prev: FormState, formData: FormData): Promise<
   return null;
 }
 
+/**
+ * Records a photo that was already uploaded client-side (the upload itself
+ * happens directly against Supabase Storage from the browser -- see
+ * `AddPhotoControl` in `item-actions.tsx` -- because streaming a file
+ * through a Server Action isn't the right tool for that; this just appends
+ * the resulting object path to `items.photos` under RLS). `objectPath` is
+ * always `<accountId>/<itemId>/<uuid>.<ext>`, written by the same account
+ * member the storage policy already authorized for that upload.
+ */
+export async function attachItemPhoto(itemId: string, objectPath: string): Promise<FormState> {
+  const supabase = await createClient();
+  const { data: item, error: fetchError } = await supabase
+    .from("items")
+    .select("photos")
+    .eq("id", itemId)
+    .single();
+  if (fetchError) return { error: fetchError.message };
+
+  const photos = [...((item?.photos as string[] | null) ?? []), objectPath];
+  const { error } = await supabase.from("items").update({ photos }).eq("id", itemId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/sell");
+  return null;
+}
+
+export async function removeItemPhoto(itemId: string, objectPath: string) {
+  const supabase = await createClient();
+  const { data: item } = await supabase.from("items").select("photos").eq("id", itemId).single();
+  const photos = ((item?.photos as string[] | null) ?? []).filter((p) => p !== objectPath);
+
+  await supabase.from("items").update({ photos }).eq("id", itemId);
+  await supabase.storage.from("item-photos").remove([objectPath]);
+
+  revalidatePath("/sell");
+}
+
 export async function addValuation(_prev: FormState, formData: FormData): Promise<FormState> {
   const itemId = String(formData.get("itemId") ?? "").trim();
   const value = String(formData.get("value") ?? "").trim();

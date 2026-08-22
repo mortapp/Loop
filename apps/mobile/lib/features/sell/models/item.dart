@@ -20,6 +20,7 @@ class Item {
     this.purchasePriceCents,
     required this.status,
     required this.createdAt,
+    this.photos = const [],
   });
 
   factory Item.fromJson(Map<String, dynamic> json) {
@@ -32,6 +33,7 @@ class Item {
       purchasePriceCents: (json['purchase_price_cents'] as num?)?.toInt(),
       status: itemStatusFromString(json['status'] as String),
       createdAt: DateTime.parse(json['created_at'] as String),
+      photos: (json['photos'] as List<dynamic>?)?.cast<String>() ?? const [],
     );
   }
 
@@ -43,4 +45,10 @@ class Item {
   final int? purchasePriceCents;
   final ItemStatus status;
   final DateTime createdAt;
+
+  /// Object paths in the `item-photos` Storage bucket
+  /// (`<accountId>/<itemId>/<uuid>.<ext>`), not URLs — resolved to signed
+  /// URLs at read time since the bucket is private. See
+  /// `SellPageData.signedPhotoUrl`.
+  final List<String> photos;
 }

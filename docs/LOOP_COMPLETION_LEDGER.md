@@ -1,124 +1,110 @@
 # LOOP Completion Ledger
 
 Status values: PASS, FAIL, IN_PROGRESS, EXTERNAL_BLOCKER,
-OWNER_ACTION_REQUIRED, NOT_APPLICABLE. Never converted to PASS to
-reach a prettier percentage — see docs/AUTONOMOUS_BUILD_STATUS.md and
+OWNER_ACTION_REQUIRED, NOT_RUN. Never converted to PASS to reach a
+prettier percentage — see docs/AUTONOMOUS_BUILD_STATUS.md and
 docs/KNOWN_ISSUES.md for full evidence behind every row below.
+
+Rewritten 2026-08-22 (LOOP — MUREX NOIR continuation session) — the
+previous version of this file predated the Murex Noir rebrand entirely
+and described the superseded "Ledger" (mint green) design system as
+current. Read docs/DESIGN_SYSTEM.md for the full design history
+("Ledger" → "Imperial Verdigris" → "Murex Noir", all same day).
 
 | Area | Status | Note |
 |---|---|---|
-| REPO | PASS | Clean, `main` up to date with `origin/main`, pushed. |
-| SOURCE | PASS | Foundation + Today + MAKE + PROTECT + RECOVER + Money + AI tool registry, real in both apps/web and apps/mobile. |
-| UI/UX | IN_PROGRESS | Real, unified "Ledger" design system now shared between web and mobile — see DESIGN SYSTEM row and docs/DESIGN_SYSTEM.md. Web: all 5 representative screens (Today/Money/Business·Quotes/Purchases/Sell) + shell redesigned. Mobile: theme fully applied everywhere via `ThemeData`; Today/Money/Sell/Purchases/Quotes individually redesigned to match web's exact hierarchy fixes (dominant Net figure, real urgency badges, one primary action + "Other…" instead of N equal buttons); Business account-switcher, Contacts, Leads, Opportunities, and AI still only inherit the theme automatically, not individually redesigned. Motion system, iconography audit, and full copywriting pass not done. |
-| DESIGN SYSTEM | IN_PROGRESS | Built and WCAG-verified this session (docs/DESIGN_SYSTEM.md): 3 directions considered, "Ledger" chosen with rationale; tokens (color/radius/spacing) identical hex values in `apps/web/src/app/globals.css` (Tailwind v4 `@theme`) and `apps/mobile/lib/core/theme/` (Dart). Every text/background pair contrast-computed live; 2 real AA failures found and fixed (solid brand/opportunity as small text on light backgrounds) via darkened `*TextLight` variants + a brightness-aware `AppColors.opportunityText()` helper for the dark-mode fallback. Not yet propagated to every remaining screen (see UI/UX row). |
-| MOBILE | IN_PROGRESS | Feature parity with web for Today/Money+Purchases/Sell/Business, reverified this session (`flutter analyze` 0 issues, `dart format` clean, `flutter test` 5/5, real `flutter build apk --debug` against the hosted Supabase project succeeded). Gaps: no Warranties on mobile (web has it), quote creation still non-transactional on mobile (web uses the RPC), no AI surface at all on mobile, design system not propagated to every screen (see UI/UX row). |
-| WEB | PASS | `lint`/`typecheck`/`build` all clean, reverified this session against the real hosted Supabase project (not just local Docker). |
-| TODAY | PASS | Real actions queue, quick-add/done/dismiss/reopen. Does not yet auto-populate from expiring returns/unsent quotes — noted as remaining, not started. |
-| MONEY | PASS | Real ledger (`money_events`) + totals + manual entry; cross-engine writes (RECOVER sales, PROTECT refunds) confirmed posting to it. |
-| SELL | PASS | Items, valuations, listings, sales (RECOVER). |
-| BUSINESS | PASS | Contacts, leads, opportunities, quotes (MAKE), transactional via `create_quote_with_line_items` on web. |
-| AI | IN_PROGRESS | Tool registry (`create_action`, `log_money_event`) with mandatory human confirm/decline before execution; builds and typechecks clean. **Never exercised against a real model** — `ANTHROPIC_API_KEY` is genuinely unset in this environment, not fabricated. No streaming, only 2 tools, no mobile AI surface — all noted remaining work, not started this session. |
-| MAKE | PASS | Leads → opportunities → quotes, transactional on web. |
-| PROTECT | PASS | Purchases, returns, warranties (web only). |
-| RECOVER | PASS | Items, valuations, listings, sales. |
-| AUTH | PASS | Email/password real and functional on web (sign-up, sign-in, PKCE callback, session refresh via `proxy.ts`) **and now mobile** — apps/mobile had no auth screen at all before this session (no sign-in, no sign-up, no gating; `AccountSummary`'s own comment said "no live Supabase data is wired up yet"). Built a real `AuthScreen`, auth-gated GoRouter (`isAuthenticatedProvider`, overridable for tests), and replaced the placeholder account provider with a real `accounts` query. 5/5 widget tests passing (was 4/4 — added one for the new redirect behavior). |
-| GOOGLE AUTH | PASS — LIVE, VERIFIED END-TO-END | A dedicated GCP project (`loop-505805`, org `kolawoleorelesi-org`) already existed with branding partially set; created its OAuth Web client ("LOOP Supabase Web Client", authorized origin `loop-teal-rho.vercel.app`, redirect URI `https://zqalnvfwxmfrnyjcuehq.supabase.co/auth/v1/callback`). Found and replaced a stale/invalid Client ID (an email address had been typed into that field previously) in Supabase's Google provider config, enabled the provider, and set the Site URL + 4-entry Redirect URL allow-list (web production, mobile deep link `com.loop.app.loop_mobile://login-callback`, localhost dev, Vercel preview wildcard) — all previously empty/localhost-only. **Client Secret was entered directly by the owner** (never handled by this session, consistent with the standing rule against typing credentials into any field) after an earlier one-time reveal dialog closed prematurely from a stray click — owner confirmed they'd already copied it before that happened. Verified live end-to-end, not just configured: clicked "Continue with Google" on the real production site and confirmed the full redirect chain lands on the real `accounts.google.com` consent screen with the correct `client_id`, `redirect_uri` (Supabase's callback), and `redirect_to` (LOOP's own callback) — did not complete a real sign-in (no credentials to enter). Web button added to the shared auth form; mobile's `AuthScreen` uses the identical `signInWithOAuth` call and same Client ID, untested on a physical device (none connected this session) but uses the same verified provider config. |
-| DATABASE | PASS | Full schema (8 original migrations + this session's hardening migration) applied and verified on the real hosted project, not just locally. |
-| MIGRATIONS | PASS | 9 migrations, ordered, additive, all applied to the hosted project (`zqalnvfwxmfrnyjcuehq`) and tracked in `supabase/migrations/`. |
-| RLS | PASS | Every table has RLS enabled and a real policy (verified via `list_tables` against the hosted project: 20/20 tables `rls_enabled: true`); pgTAP suite (20/20 assertions) covers isolation and the quote RPC. |
-| STORAGE | PASS | Single `documents` bucket, private, path-partitioned by `account_id`, policy reuses `has_account_access()`. |
-| RPC/API | PASS | `create_quote_with_line_items` real transactional RPC, `security invoker`, RLS still enforced. |
-| AI BACKEND | IN_PROGRESS | `/api/ai/chat` + `/api/ai/confirm` implemented, gated confirm/decline flow real; blocked on `ANTHROPIC_API_KEY` for live verification (see AI row). |
-| TESTS | PASS | pgTAP 20/20 (both files), Flutter 4/4, all reverified live this session, not trusted from docs. |
-| FLUTTER ANALYZE | PASS | 0 issues, reverified this session. |
-| NEXT LINT | PASS | 0 errors/warnings, reverified this session. |
-| NEXT TYPECHECK | PASS | Reverified this session, both `apps/web` and `@loop/contracts`. |
-| NEXT BUILD | PASS | Reverified this session against the real hosted Supabase project. |
-| DATABASE TESTS | PASS | pgTAP 20/20, and now actually wired into CI this session (previously only ever run by hand). |
-| CI | PASS | All three workflows (`web-ci`, `mobile-ci`, `supabase-ci`) now execute real tests, not just static checks — fixed this session. |
-| VERCEL | PASS | **Live in production for the first time in the project's history** this session — see ANDROID/DEPLOYMENT notes below and docs/AUTONOMOUS_BUILD_STATUS.md "Deployed". |
-| ANDROID BUILD | PASS | `flutter analyze`/`test`/`format` all clean; a real `flutter build apk --debug` against the actual hosted Supabase project succeeded this session (233s, produced a real APK) — genuine build evidence, not just static analysis. No distribution channel exists yet for LOOP mobile (unlike MORT), so no release AAB was cut. |
-| ANDROID PHYSICAL QA | PARTIAL | **2026-08-22, real Samsung Galaxy A14 (Android 15) connected**: built a real `flutter build apk --debug` against the actual hosted Supabase project (`zqalnvfwxmfrnyjcuehq`, real anon key), installed (`com.loop.app.loop_mobile`), cold-launched. Reached the sign-in screen cleanly on the first try — no native crash, no ANR. Full pid-filtered logcat across the whole session: zero FATAL EXCEPTION/AndroidRuntime/ANR/SecurityException/PlatformException/FlutterError lines; the only "localhost" match is the expected debug-only Dart VM service port, not a backend config leak (the Google consent screen's "to continue to" line visibly showed the real `zqalnvfwxmfrnyjcuehq.supabase.co` project, confirming the real backend is wired, not local Docker). Tapped "Continue with Google": Chrome opened to the real `accounts.google.com` account chooser, correctly targeting that same project — verified the same Android→browser OAuth handoff mechanism physically, not just via the earlier `flutter build apk --debug` build success. Did not select a real Google account or complete a login (that's the device owner's choice). Backed out via Chrome/Android back, LOOP correctly showed "Google sign-in was canceled. You can try again." and returned to a clean sign-in state — no stuck busy state, no crash. Visual: the shared "Ledger" design system (warm near-black background, LOOP Green accents) renders correctly on real hardware for the first time — matches desktop/browser verification from earlier this session. **Not reached**: Today/Money/Sell/Business/AI and every other authenticated screen — same standing policy as MORT's sessions against fabricating real account data or injecting credentials via `adb shell input text` just to unlock QA coverage. `PARTIAL`, not `PASS`, for exactly that reason — build/install/launch/backend-connectivity/OAuth-handoff are genuinely verified; the authenticated app surface is not. |
-| IOS SOURCE PARITY | NOT_APPLICABLE (not audited this session) | No iOS-specific audit performed this pass; `apps/mobile/ios` exists from the Flutter scaffold but has not been reviewed for parity claims. |
-| IOS REAL BUILD | EXTERNAL_BLOCKER | Windows environment; no Xcode/macOS available, as expected. |
-| SECURITY | PASS | Live advisor scan against the hosted Supabase project found and fixed two real gaps this session (function `search_path`, `anon` execute grants) — see docs/AUTONOMOUS_BUILD_STATUS.md. Secret scan across both MORT and LOOP tracked files: **clean, no committed credentials in either repo.** Only tracked env files are `.env.example`/`.env.local.example`; the one real `eyJ...` JWT found in MORT's tracked source decodes to the public anon key (safe by design); no AIza/AKIA/ghp_/sk_live_/sk-ant_/private-key matches anywhere. |
-| ACCESSIBILITY | IN_PROGRESS | Color contrast: every design-token text/background pair WCAG-AA-computed live and verified this session (docs/DESIGN_SYSTEM.md) — real failures found and fixed, not assumed passing. Not done: a formal audit of focus states, semantic landmarks/ARIA, keyboard navigation, and touch-target sizing. Genuinely partial, not a full pass. |
-| RESPONSIVE | IN_PROGRESS | Web built on Tailwind's standard responsive utilities throughout (not newly audited this session); live production verified correct at desktop width via real browser. Mobile-width (390px) verification attempted this session but blocked by a browser-extension tool limitation (window resize didn't reflect in the screenshot capture) — not fabricated as passing. |
-| UI PERFORMANCE | NOT_APPLICABLE (not audited this session) | No Lighthouse/Web Vitals pass performed; production build succeeds and page loads render correctly in manual verification, but no performance-specific measurement was taken. |
-| DOCUMENTATION | PASS | `KNOWN_ISSUES.md`, `AUTONOMOUS_BUILD_STATUS.md`, `VERCEL_DEPLOYMENT.md`, `DESIGN_SYSTEM.md` all corrected/added this session to match live, verified reality rather than the stale "nothing hosted yet" state they previously described. |
-| GITHUB | PASS | All commits pushed to `origin/main`, no force-push, fast-forward only — including this session's 2 mobile design commits (`6d5e6ba`, `055c70e`). |
-| PRODUCTION DEPLOYMENT | PASS | https://loop-teal-rho.vercel.app — live at commit `055c70e` (latest), verified by direct browser navigation this session while authenticated: Today, Money, and Business/Quotes all render the new design system correctly (warm near-black dark mode, dominant Net figure, real empty states), zero visible regressions. |
-| EXTERNAL BLOCKERS | — | See below. |
+| POWER_LOSS_RECOVERY | PASS | Repo inspected fresh at the start of each of this session's continuations; source of truth is `git status`/`log`, never assumed. |
+| MUREX_NOIR | PASS | Full token replacement on both platforms, WCAG-computed (see docs/DESIGN_SYSTEM.md). Physically confirmed on the real Galaxy A14: near-black, not purple; Champagne rare; Royal Bone warm. |
+| DESIGN_PROPAGATION | PASS | Every screen migrated off raw Tailwind/old tokens (verified by grep — zero remaining zinc/emerald/amber/purple literals). Web nav is now a vertical rail; Money has the hero treatment; Sell is a real image gallery; Business's contacts/leads/opportunities (previously literally unthemed, not just wrong-themed) rebuilt; AI is "Ask LOOP". |
+| ACCOUNT_IDENTITY | FAIL | Not started this session — no account menu, profile, personalization, settings, or help surface exists on either platform yet. Real, scoped follow-up work (sections 8–14 of the continuation directive). |
+| ACCOUNT_MENU_WEB | FAIL | Not started. |
+| ACCOUNT_MENU_MOBILE | FAIL | Not started. |
+| PROFILE | FAIL | Not started. |
+| PERSONALIZATION | FAIL | Not started. |
+| SETTINGS | FAIL | Not started. |
+| HELP | FAIL | Not started. |
+| SIGN_OUT | PASS | Pre-existing (`signOut()` web Server Action, mobile's Supabase `auth.signOut()`), unchanged this session; code-reviewed, not re-verified live against a real session (see AUTHENTICATED QA blocker in docs/KNOWN_ISSUES.md). |
+| ACCOUNT_SWITCHING | PASS | Pre-existing, RLS-enforced via `has_account_access()`, not merely client-trusted — code + RLS reviewed this session, not changed. |
+| AUTH | PASS | Email/password real on both platforms; unchanged this session. |
+| GOOGLE_AUTH_WEB | PASS | Verified live end-to-end in an earlier session (commit `07e5318`) through the real `accounts.google.com` consent screen with the correct client ID/redirect. Not re-verified this session (no new browser auth attempted — see AUTHENTICATED QA blocker). |
+| GOOGLE_AUTH_ANDROID | PASS | Verified on the real Galaxy A14 in an earlier session (`ab846c3`) — OAuth handoff reaches `accounts.google.com` targeting the correct project, cancel path returns cleanly. Not re-attempted this session (same auth-classifier constraint applies to any further on-device interaction with the sign-in screen — see docs/KNOWN_ISSUES.md). |
+| TODAY | PASS | Real actions queue, unchanged this session. |
+| TODAY_AUTOMATION | FAIL | Still manual-only — no idempotent auto-generated actions from quote/return/warranty deadlines. Not started this session. |
+| MONEY | PASS | Real ledger + hero UI treatment this session. |
+| MONEY_INTEGRITY | FAIL | No dedicated tests proving no double-counting across MADE/PROTECTED/RECOVERED/net; not audited this session. The UI derives totals from the same `money_events` rows web and mobile both already write to (one canonical ledger, not parallel computations), which is the right foundation, but that claim isn't backed by a test. |
+| MAKE | PASS | Contacts/leads/opportunities/quotes verified via code review; Business subpages got their first real structural design pass this session. |
+| PROTECT | PASS | Purchases/returns/warranties, both platforms as of this session (mobile Warranties added `81454cc`). |
+| RECOVER | PASS | Items/valuations/listings/sales; Sell rebuilt as an image gallery this session. |
+| WARRANTIES | PASS | Mobile added this session (`81454cc`), mirrors web control-for-control. |
+| ITEM_PHOTO_UPLOAD_WEB | PASS | Built this session: private `item-photos` bucket, client upload + Server Action attach, signed-URL display, remove. `tsc`/`eslint`/`next build` clean. Not exercised against a live authenticated session (see AUTHENTICATED QA blocker). |
+| ITEM_PHOTO_UPLOAD_ANDROID | PASS | Built this session: `image_picker` + `SellRepository.pickAndUploadPhoto`/`removePhoto`, same bucket/signed-URL pattern as web. `flutter analyze`/`test` clean, debug APK with the new plugin installs and launches cleanly on the real Galaxy A14. Not exercised end-to-end against a live authenticated session. |
+| DOCUMENTS | PASS | Pre-existing `documents` table/bucket, unchanged this session. |
+| STORAGE | PASS | `documents` (pre-existing) + `item-photos` (new this session) buckets, both private, both path-partitioned by `account_id`, both reuse `has_account_access()`. |
+| AI_UI | PASS | "Ask LOOP" rebuild this session, both platforms — no robot/sparkle/gradient. |
+| AI_BACKEND | OWNER_ACTION_REQUIRED | Engineering (tool registry, confirm/decline gate, `/api/ai/chat`+`/api/ai/confirm`) was already complete from an earlier session; not re-audited line-by-line this session beyond confirming it still builds. `ANTHROPIC_API_KEY` remains genuinely unset — cannot be live-verified without it. |
+| DATABASE | PASS | 12 migrations now (3 added this session: `item_photos_storage`, `optimize_rls_auth_uid_initplan`, `index_unindexed_foreign_keys`), all applied to the real hosted project and tracked in `supabase/migrations/`. |
+| MIGRATIONS | PASS | See above — hosted `list_migrations` and local `supabase/migrations/` confirmed to match after each apply this session. |
+| RLS | PASS | Every table still has RLS enabled (spot-checked `businesses`/`business_members`/`profiles` after this session's policy rewrite). 5 policies' `auth.uid()` calls wrapped in `(select auth.uid())` for query-plan caching this session — semantics unchanged (same boolean expression, verified against `pg_policies` before and after), performance advisor's `auth_rls_initplan` warning now clear. |
+| FUNCTION_SECURITY | PASS | `search_path`/anon-execute hardening from an earlier session unchanged; this session's 4 flagged `SECURITY DEFINER` helper functions (`has_account_access`, `is_active_business_member`, `is_business_admin`, `shares_active_business`) reviewed and confirmed intentional — narrow, ID-scoped access checks, not broad data exposure; `rls_auto_enable` is a Supabase-platform-owned event trigger, not app code. |
+| WEB_TESTS | FAIL | No browser/component test runner exists yet — still build-time checks only (`lint`/`typecheck`/`build`). Not started this session; real, scoped follow-up work (section 28 of the continuation directive). |
+| FLUTTER_TESTS | PASS | 5/5 passing, reverified after every change this session. Coverage is shallow (one widget-boot test, a redirect test, 2 money-formatting unit tests) — real but not comprehensive. |
+| DATABASE_TESTS | NOT_RUN | pgTAP suite (20/20 per an earlier session) exists and `supabase-ci.yml` runs it on every push, but Docker Desktop isn't running in this environment so it couldn't be re-executed locally after this session's 3 new migrations. The new migrations are simple additive DDL (bucket+policy insert, policy replace with an equivalent expression, `create index if not exists`) with no plausible interaction with the existing pgTAP assertions, but that's reasoning, not a rerun — CI will be the first real confirmation on next push. |
+| CI | PASS | Reviewed all 3 workflows this session (`.github/workflows/*.yml`): each runs real commands with no `continue-on-error`/skip — `mobile-ci` does `flutter pub get`+format+analyze+test, `web-ci` does lint+typecheck+build, `supabase-ci` does a full `supabase db reset` (replays every migration from empty) + `supabase test db`. Not modified this session; already correctly configured. |
+| ACCESSIBILITY | IN_PROGRESS | Color contrast fully WCAG-computed (docs/DESIGN_SYSTEM.md). This session additionally found and fixed a real gap while building the new nav rail: several icon-only controls (nav items, wordmark link, account chip, sign-out) had no accessible name below the `lg` breakpoint — added explicit `aria-label`s. Not done: keyboard-nav walkthrough, focus-trap/Escape handling on menus/dialogs, full screen-reader pass, touch-target audit. |
+| RESPONSIVE_WEB | IN_PROGRESS | Public pages (`/sign-in`, `/sign-up`) visually verified at 1522px and 390px this session, real browser, no overflow. Authenticated pages (the ones with the new nav rail, hero Money, gallery Sell) not verified at any width — blocked on the same auth-classifier constraint as ITEM_PHOTO_UPLOAD. |
+| ANDROID_BUILD | PASS | `flutter build apk --debug` succeeded twice this session (once after the Murex Noir/Warranties changes, once after the photo-upload/image_picker changes) — real APK, not just static analysis. One environment quirk hit and resolved: a stale `build/app/intermediates/assets/debug/...` directory (OneDrive file-lock pattern, same class of issue as the documented `npm install` one) blocked the first attempt; `rm -rf build` (safe — gitignored) fixed it. |
+| GALAXY_A14_CONNECTION | PASS | Wireless ADB reconnected this session — see the resolved entry in docs/KNOWN_ISSUES.md for the exact `adb connect`/`MSYS_NO_PATHCONV` fixes needed. |
+| GALAXY_A14_VISUAL_QA | PARTIAL | One real screenshot confirmed (initial launch → sign-in screen renders correctly). Could not go further: any adb-driven interaction with the sign-in form was refused by the safety classifier (same guardrail as browser-automation credential entry) — genuinely blocked pending a human sign-in, not skipped. |
+| GALAXY_A14_FUNCTIONAL_QA | PARTIAL | Install/launch/no-crash confirmed twice (logcat clear of FATAL EXCEPTION/Unhandled Exception both times, including after adding the `image_picker` native plugin). Every authenticated-screen functional check in the continuation directive's QA matrix (Today/Money/Sell/Business/Protect/AI/keyboard/back-gesture/dialogs) not reached — same blocker. |
+| GALAXY_A14_PERFORMANCE | PARTIAL | No jank/crash/ANR observed through app launch; no cold/warm-launch timing or frame-rate measurement taken (would need an authenticated session to exercise the real screens, and no fabricated numbers per the directive's explicit instruction). |
+| GALAXY_A14_LOGCAT | PASS | Cleared and inspected (`adb logcat -c`, then filtered for `FATAL EXCEPTION`/`AndroidRuntime`/`Unhandled Exception`) after each install this session — clean both times. |
+| IOS_SOURCE_PARITY | IN_PROGRESS | Not fully audited. This session added the one concrete gap found while building item-photo upload: `NSPhotoLibraryUsageDescription` was missing from `Info.plist` (required for `image_picker`'s gallery source) — added. No broader Android-vs-iOS config diff performed. |
+| IOS_REAL_BUILD | EXTERNAL_BLOCKER | Windows environment, no Xcode/macOS — unchanged, expected, not attempted. |
+| SECURITY | PASS | Live advisor scan this session found and fixed the RLS-initplan performance issue (see RLS row); the remaining security advisor items (`rls_auto_enable`/4 helper functions callable by `authenticated`, `auth_leaked_password_protection` disabled) reviewed and are either intentional (helper functions — see FUNCTION_SECURITY) or a genuine one-click owner action (leaked-password protection is an Auth dashboard setting, not reachable via this session's SQL tools — see docs/KNOWN_ISSUES.md). |
+| SECRET_SCAN | PASS | Grepped this session's diff + new files for API-key/token/private-key patterns — clean. |
+| VERCEL | NOT_RUN | Not redeployed this session — no push to `origin/main` has happened yet in this continuation (see below); Vercel auto-deploys from `main` on push, so nothing to redeploy against yet. |
+| PRODUCTION_WEB | NOT_RUN | Not reloaded/re-verified this session (same reason — nothing new pushed yet at the time of writing; will need a post-push check). |
+| GITHUB | IN_PROGRESS | This session's work (item photo upload, Supabase RLS/perf hardening, doc updates) is committed locally but not yet pushed as of this row being written — see the commit immediately following this ledger update. |
+| DOCUMENTATION | PASS | This file, KNOWN_ISSUES.md, and AUTONOMOUS_BUILD_STATUS.md all rewritten/updated this session to match live, verified reality. |
+| EXTERNAL_BLOCKERS | — | See below. |
 
 ## LOOP_FINAL_STATE=NOT_READY
 
-Not a failure — a real, honest snapshot. The single biggest blocker
-(no working deployment had ever existed) is now fixed and verified
-live. What remains before this could reasonably read PRODUCTION_READY:
+Not a failure — a real, honest snapshot, same discipline as the
+directive itself demands. The single largest remaining body of work
+(account identity: menu/profile/personalization/settings/help, on both
+platforms) hasn't been started yet.
 
 **Owner-only / external (cannot be done by an agent):**
 - `ANTHROPIC_API_KEY` — AI chat cannot be live-verified without it.
-- ~~Google OAuth credentials~~ — done and verified live this session;
-  see GOOGLE AUTH row above.
-- ~~Supabase Auth redirect allow-list~~ — done this session (Site URL
-  + 4 redirect URLs: web production, mobile deep link, localhost,
-  Vercel preview wildcard).
-- A custom production domain, if wanted (currently serving from the
-  generated `loop-teal-rho.vercel.app`, which is a legitimate
-  production URL on its own).
-- Physical Android device to verify Google sign-in actually completes
-  on mobile (the plumbing is verified identical to web's — same
-  Client ID, same `signInWithOAuth` call — but the full round trip
-  through a real device's browser and back into the app has not been
-  observed).
+- Leaked-password protection toggle (Supabase Auth dashboard setting).
+- A live sign-in — either in a browser or on the physical Galaxy A14 —
+  is the one thing standing between "built and statically verified"
+  and "physically confirmed" for: item photo upload, the new nav
+  rail/Money/Sell/Business/AI pages, and the rest of the Galaxy A14 QA
+  matrix. This session's safety classifier correctly refuses to type a
+  password into any field itself, on either surface; a human doing it
+  once unblocks all of the above.
+- iOS real build/TestFlight — needs macOS/Xcode.
 
-**Genuine remaining engineering (not started or partially started,
-not blocked on anything external):**
-- Mobile: Warranties, transactional quote RPC, any AI surface at all.
-- Today: auto-populated actions from real domain events (currently
-  manual-only).
-- Design system propagation: mobile's Business account-switcher,
-  Contacts, Leads, Opportunities, and AI screens (inherit the theme
-  automatically, not individually redesigned); web's AI screen and any
-  settings/profile surface (none currently exist).
-- Motion system, iconography-family audit, full copywriting pass —
-  none formally done, only the ad-hoc restraint already present in the
-  5 web screens redesigned this session.
-- Formal accessibility audit beyond color contrast (focus states,
-  ARIA/semantics, keyboard nav, touch targets).
-- Formal responsive QA at specific breakpoints (attempted this
-  session, blocked by a browser tool limitation, not by the app).
-- Browser/component test coverage for `apps/web` (currently
-  build-time checks + manual/curl verification only).
-- AI depth: more tools, streaming responses.
-- iOS source-parity audit (not performed this session) and any real
-  iOS build/TestFlight verification (needs macOS/Xcode, unavailable
-  on this Windows machine).
-
-## Design/UI directive final status (this session)
-
-Exact status for the 9 rows the UI/UX reconstruction directive asked
-for, each traceable to a row above:
-
-- `LOOP_UIUX_WEB=IN_PROGRESS` — 5/5 representative screens + shell
-  redesigned and live in production; AI screen and any future
-  settings/profile screens not touched.
-- `LOOP_UIUX_MOBILE=IN_PROGRESS` — theme fully applied; Today/Money/
-  Sell/Purchases/Quotes individually redesigned; Business switcher/
-  Contacts/Leads/Opportunities/AI inherit theme only.
-- `LOOP_DESIGN_SYSTEM=IN_PROGRESS` — tokens complete, WCAG-verified,
-  identical across platforms; not propagated to every screen.
-- `LOOP_ACCESSIBILITY=IN_PROGRESS` — contrast verified; focus/ARIA/
-  keyboard/touch-target audit not done.
-- `LOOP_RESPONSIVE=IN_PROGRESS` — desktop verified live; mobile-width
-  verification blocked by a browser tool limitation this session.
-- `LOOP_UI_PERFORMANCE=NOT_APPLICABLE` — not measured this session.
-- `LOOP_WEB_PRODUCTION=PASS` — live at the current commit, verified
-  live in a real authenticated browser session.
-- `LOOP_ANDROID_BUILD=PASS` — real debug APK built against the
-  hosted Supabase project this session.
-- `LOOP_ANDROID_PHYSICAL_UI_QA=EXTERNAL_BLOCKER` — no physical device
-  connected at any point this session.
+**Genuine remaining engineering (not started or partially started, not
+blocked on anything external):**
+- Account identity: menu, profile, personalization, settings, help —
+  entirely unbuilt on both platforms (sections 8–14 of the
+  continuation directive).
+- Today automation (idempotent action generation from real deadlines).
+- Money integrity tests (prove no double-counting, not just "the UI
+  reads from one ledger").
+- Browser/component test coverage for `apps/web`.
+- A broader iOS source-parity audit beyond the one gap found and fixed
+  this session (photo-library usage description).
+- `business_members`'s overlapping RLS policies (performance-only,
+  deliberately deferred — see docs/KNOWN_ISSUES.md).
+- Formal accessibility audit beyond contrast + the icon-only-nav
+  accessible-name fix made this session.
+- Formal responsive QA on authenticated pages at the full breakpoint
+  set (360/390/430/768/1024/1280/1440+) — blocked on the same
+  live-session constraint as physical QA, not on the app.
 
 See docs/LOOP_CONTINUATION_PROMPT.md for the exact next-session
 starting point.

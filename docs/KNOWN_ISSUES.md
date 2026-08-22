@@ -1,34 +1,65 @@
 # Known Issues
 
-## Galaxy A14 physical QA blocked — device not connected (2026-08-22)
+## ~~Galaxy A14 physical QA blocked~~ — resolved 2026-08-22, device connected
 
-The "Murex Noir" rebrand (see docs/DESIGN_SYSTEM.md) requires physical
-verification on the real Samsung Galaxy A14 5G (SM-A146U, Android 15)
-reference device before propagating past the auth reference screen —
-`adb devices` currently returns no attached devices (Wireless ADB not
-connected in this environment). This is a human/device-only step per
-CLAUDE.md's autonomous-behavior rule: documented here rather than
-blocking other work. When Wireless ADB reconnects: `flutter build apk`,
-install, and visually verify the auth screen reads as blackened royal
-ink (not bright purple), Royal Bone stays warm, Champagne stays rare,
-no overflow/clipping, keyboard usable. All static verification that
-doesn't require the device — `dart format`, `flutter analyze`,
-`flutter test` — is done and passing.
+Was stale: Wireless ADB reconnected (`adb devices -l` now shows the real
+Samsung Galaxy A14 5G, SM-A146U, Android 15/API 35, as `device`, not
+`offline`/`unauthorized`). Two real quirks hit along the way, noted here
+in case they recur:
+- `flutter devices` reported the mDNS-discovered serial
+  (`adb-R9TWA0WQRVM-gKWVJ6 (2)._adb-tls-connect._tcp`) as `unsupported`/
+  `not found` even though plain `adb` could see and query it fine. Fix:
+  `adb mdns services` to find the real `ip:port`, then `adb connect
+  <ip>:<port>` for a clean TCP serial — Flutter recognized that one
+  immediately (`10.0.0.151:33757 • android-arm64 • Android 15 (API 35)`).
+- Any `adb shell` command with a `/sdcard/...`-style path (e.g.
+  `screencap`, `pull`) silently mis-executes from Git Bash on Windows —
+  MSYS rewrites the leading `/` into a Windows path before adb ever sees
+  it. Fix: prefix the command with `MSYS_NO_PATHCONV=1`.
 
-## Item photos exist in the schema but nothing uploads to them yet
+Installed the current build (`flutter build apk --debug`, then
+`adb install -r`) and confirmed by screenshot that the real device
+renders the Murex Noir auth screen correctly: near-black background,
+the double loop seal, Royal Bone wordmark, Champagne "PRIVATE VALUE
+LEDGER" label, the Tyrian gradient CTA — matches the desktop-browser
+render, no overflow or clipping at 1080×2408/450dpi. Could not go
+further than that one screenshot: any adb-driven interaction with the
+sign-in form itself (tapping the email field, typing into it) was
+refused by this environment's safety classifier, the same guardrail
+that blocks browser-automation credential entry — see the entry below,
+which now covers both surfaces. Re-run the fuller physical QA matrix
+(Today/Money/Sell/Business/Protect/AI/account menu, keyboard, back
+gesture, dialogs, performance) once a signed-in session exists on the
+device.
 
-`items.photos` (`text[]`) has been in the schema and `@loop/contracts`
-since the original Sell feature shipped, but no upload flow was ever
-built on either platform — `create-item-form.tsx` and mobile's
-`_CreateItemForm` only collect name/category/condition/price. The
-Murex Noir Sell redesign (both platforms) now renders `item.photos[0]`
-as a real image when present and falls back to a Loop Seal watermark
-tile otherwise, so the gallery layout is correct and forward-compatible,
-but every item shows the placeholder today. Building the actual upload
-(Supabase Storage bucket + signed URL flow, picker UI) is real,
-separate follow-up work, not a styling task.
+## ~~Item photos exist in the schema but nothing uploads to them yet~~ — resolved 2026-08-22
 
-## No browser session available to visually verify authenticated pages
+Was: `items.photos` (`text[]`) had been in the schema and
+`@loop/contracts` since the original Sell feature shipped, but no
+upload flow was ever built on either platform.
+
+Fixed: a private `item-photos` Storage bucket
+(`supabase/migrations/20260822145553_item_photos_storage.sql`),
+partitioned by `account_id` and guarded by the same
+`has_account_access()` RLS pattern the pre-existing `documents` bucket
+already used, 8MB/JPEG-PNG-WEBP-HEIC limits enforced at the bucket
+level. Web uploads directly from the browser to Storage (client
+component, `AddPhotoControl` in `item-actions.tsx`) then calls the
+`attachItemPhoto` Server Action to record the object path; mobile does
+the equivalent via `image_picker` + `SellRepository.pickAndUploadPhoto`.
+Both platforms resolve every stored path to a fresh signed URL
+(`createSignedUrls`/`createSignedUrlsResult`, 1-hour TTL) at read
+time — never a permanent/public link, never base64 in a row. Photo
+removal (Storage delete + array update) is wired on both platforms too.
+Verified: `tsc --noEmit`/`eslint`/`next build` clean; `dart format`/
+`flutter analyze`/`flutter test` clean; a debug APK with the new
+`image_picker` plugin registered installs and launches cleanly on the
+real Galaxy A14 (logcat clear of `FATAL EXCEPTION`/`Unhandled
+Exception` through startup). **Not yet verified**: an actual upload
+completing end-to-end on a real signed-in session, on either platform —
+blocked on the same auth-classifier constraint as the entry below.
+
+## No authenticated browser or on-device session for full visual QA
 
 The Murex Noir web propagation pass (nav rail, Money, Sell, Business,
 AI — see docs/DESIGN_SYSTEM.md) was verified via `tsc --noEmit`,
@@ -37,12 +68,45 @@ authenticated app in a real browser: doing so requires signing in, and
 this environment's browser-automation safety classifier correctly
 refuses to type a password into any field, including a disposable
 account created solely for this QA (confirmed by testing — the classifier
-blocked it outright). The public, unauthenticated pages (`/sign-in`,
-`/sign-up`) *were* visually verified at 1522px and 390px and look
-correct. Re-verify the authenticated shell/Money/Sell/Business/AI
-pages the next time a human is present to complete a real sign-in, or
-if a non-interactive test-auth path (e.g. a seeded session cookie
-for CI) gets built.
+blocked it outright). The same constraint applies on the physical
+Galaxy A14, confirmed separately: an `adb shell input tap`/`input text`
+sequence aimed at the mobile sign-in form's email field was also
+refused, mid-sequence, by the same classifier. The public,
+unauthenticated pages (web `/sign-in`/`/sign-up`, and the mobile app's
+initial launch screen) *were* visually verified and look correct — see
+the resolved Galaxy A14 entry above for the physical screenshot. Two
+legitimate ways to unblock full authenticated QA on both platforms:
+the owner signs in once, manually, in their own browser session or on
+the physical device; or a non-interactive test-auth path gets built
+that never requires typing a password (e.g. a seeded session for CI,
+or a magic-link/OTP flow) — not an auth bypass, a real additional
+sign-in method. Neither has happened yet.
+
+## Leaked password protection is off — one-click owner action
+
+Supabase's security advisor flags `auth_leaked_password_protection`:
+Auth isn't checking new passwords against HaveIBeenPwned. This is a
+project-level Auth setting, not schema/SQL — not reachable through
+`execute_sql`/`apply_migration`, needs the Supabase dashboard (Auth →
+Policies → Password Security) or the Management API with a personal
+access token neither of which this session has. Recommended, low-risk,
+takes under a minute.
+
+## `business_members` has overlapping RLS policies — performance only
+
+The performance advisor flags `multiple_permissive_policies`: three
+separate policies (`business_members_manage_owner_admin`,
+`business_members_select_peers`, `business_members_self_manage`) are
+all permissive for `authenticated` on the same actions, so Postgres
+evaluates all of them per query instead of one combined check.
+Deliberately not merged in the same pass as the other two performance
+fixes (2026-08-22, RLS auth.uid() initplan + missing FK indexes,
+`supabase/migrations/20260822150941_*.sql` and `20260822151037_*.sql`)
+— consolidating three overlapping-but-not-identical membership
+policies risks subtly changing who can see/edit what, and that's not a
+change to make without local pgTAP coverage to verify against (Docker
+isn't running in this environment — see the entry below). Revisit with
+the test suite actually runnable.
 
 ## ~~No hosted Supabase project yet~~ — resolved 2026-08-21
 

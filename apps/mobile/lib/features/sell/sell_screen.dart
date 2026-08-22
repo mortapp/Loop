@@ -85,6 +85,7 @@ class _SellBody extends ConsumerWidget {
                 item: item,
                 valuation: data.latestValuationByItem[item.id],
                 listings: data.listingsByItem[item.id] ?? const [],
+                signedUrlByPath: data.signedUrlByPath,
               ),
         ],
       ),
@@ -92,24 +93,29 @@ class _SellBody extends ConsumerWidget {
   }
 }
 
-class _ItemTile extends StatelessWidget {
+class _ItemTile extends ConsumerWidget {
   const _ItemTile({
     required this.item,
     required this.valuation,
     required this.listings,
+    required this.signedUrlByPath,
   });
 
   final Item item;
   final ValuationRow? valuation;
   final List<ListingRow> listings;
+  final Map<String, String> signedUrlByPath;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final details = [
       item.category,
       item.condition,
     ].whereType<String>().join(' · ');
+    final heroUrl = item.photos.isNotEmpty
+        ? signedUrlByPath[item.photos.first]
+        : null;
 
     // A private collection, not a marketplace listing — an image band
     // (Loop Seal watermark until real photo upload exists) leads every
@@ -128,11 +134,24 @@ class _ItemTile extends StatelessWidget {
                   width: double.infinity,
                   color: AppColors.murexInk,
                   alignment: Alignment.center,
-                  child: const LoopSeal(
-                    size: 56,
-                    keyPoint: false,
-                    opacity: 0.18,
-                  ),
+                  child: heroUrl != null
+                      ? Image.network(
+                          heroUrl,
+                          height: 120,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const LoopSeal(
+                                size: 56,
+                                keyPoint: false,
+                                opacity: 0.18,
+                              ),
+                        )
+                      : const LoopSeal(
+                          size: 56,
+                          keyPoint: false,
+                          opacity: 0.18,
+                        ),
                 ),
                 Positioned(
                   top: AppSpacing.sm,
@@ -149,6 +168,75 @@ class _ItemTile extends StatelessWidget {
                 ),
               ],
             ),
+            if (item.photos.length > 1)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                  AppSpacing.md,
+                  0,
+                ),
+                child: SizedBox(
+                  height: 44,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      for (final path in item.photos.skip(1))
+                        if (signedUrlByPath[path] != null)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              right: AppSpacing.xs,
+                            ),
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.radiusSm,
+                                  ),
+                                  child: Image.network(
+                                    signedUrlByPath[path]!,
+                                    width: 44,
+                                    height: 44,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                if (item.status != ItemStatus.sold)
+                                  Positioned(
+                                    right: -4,
+                                    top: -4,
+                                    child: GestureDetector(
+                                      onTap: () async {
+                                        await ref
+                                            .read(sellRepositoryProvider)
+                                            .removePhoto(
+                                              itemId: item.id,
+                                              objectPath: path,
+                                            );
+                                        ref.invalidate(sellPageProvider);
+                                      },
+                                      child: Container(
+                                        width: 16,
+                                        height: 16,
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.danger,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: const Icon(
+                                          Icons.close,
+                                          size: 11,
+                                          color: AppColors.onAccentFill,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                    ],
+                  ),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
@@ -198,10 +286,35 @@ class _ItemTile extends StatelessWidget {
                   ],
                   if (item.status != ItemStatus.sold) ...[
                     const SizedBox(height: AppSpacing.sm),
-                    ItemActions(
-                      itemId: item.id,
-                      isListed: item.status == ItemStatus.listed,
-                      listingId: listings.isNotEmpty ? listings.first.id : null,
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.xs,
+                      children: [
+                        TextButton(
+                          onPressed: () async {
+                            final error = await ref
+                                .read(sellRepositoryProvider)
+                                .pickAndUploadPhoto(
+                                  accountId: item.accountId,
+                                  itemId: item.id,
+                                );
+                            if (error != null && context.mounted) {
+                              showErrorSnackBar(context, error);
+                            } else {
+                              ref.invalidate(sellPageProvider);
+                            }
+                          },
+                          child: const Text('+ Photo'),
+                        ),
+                        ItemActions(
+                          itemId: item.id,
+                          isListed: item.status == ItemStatus.listed,
+                          listingId: listings.isNotEmpty
+                              ? listings.first.id
+                              : null,
+                        ),
+                      ],
                     ),
                   ],
                 ],

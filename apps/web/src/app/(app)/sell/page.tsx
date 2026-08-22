@@ -7,7 +7,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { LoopSeal } from "@/components/ui/loop-seal";
 import { CreateItemForm } from "./create-item-form";
-import { ValuationForm, ListingForm, SaleForm } from "./item-actions";
+import { ValuationForm, ListingForm, SaleForm, AddPhotoControl } from "./item-actions";
+import { removeItemPhoto } from "./actions";
+
+const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hour -- regenerated on every render
 
 type ValuationRow = { item_id: string; estimated_value_cents: number; valued_at: string };
 type ListingRow = {
@@ -68,6 +71,19 @@ export default async function SellPage() {
     listingsByItem.set(l.item_id, [...(listingsByItem.get(l.item_id) ?? []), l]);
   }
 
+  // The bucket is private -- every photo path becomes a short-lived signed
+  // URL at render time rather than a public/permanent one.
+  const allPhotoPaths = (items ?? []).flatMap((item) => item.photos ?? []);
+  const signedUrlByPath = new Map<string, string>();
+  if (allPhotoPaths.length > 0) {
+    const { data: signed } = await supabase.storage
+      .from("item-photos")
+      .createSignedUrls(allPhotoPaths, SIGNED_URL_TTL_SECONDS);
+    for (const entry of signed ?? []) {
+      if (entry.signedUrl) signedUrlByPath.set(entry.path ?? "", entry.signedUrl);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Sell</h1>
@@ -89,13 +105,14 @@ export default async function SellPage() {
           {(items ?? []).map((item) => {
             const valuation = latestValuationByItem.get(item.id);
             const itemListings = listingsByItem.get(item.id) ?? [];
-            const photo = item.photos?.[0];
+            const photoPaths = item.photos ?? [];
+            const heroUrl = photoPaths[0] ? signedUrlByPath.get(photoPaths[0]) : undefined;
             return (
               <Card key={item.id} className="flex flex-col gap-3 overflow-hidden p-0">
                 <div className="relative flex aspect-[4/3] items-center justify-center bg-[var(--color-bg-secondary)]">
-                  {photo ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- item photos are user-uploaded Storage URLs, not build-time assets
-                    <img src={photo} alt={item.name} className="h-full w-full object-cover" />
+                  {heroUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- item photos are signed Storage URLs (expire hourly), not build-time assets next/image can cache
+                    <img src={heroUrl} alt={item.name} className="h-full w-full object-cover" />
                   ) : (
                     <LoopSeal size={44} className="opacity-20" />
                   )}
@@ -103,6 +120,39 @@ export default async function SellPage() {
                     <StatusBadge label={item.status} tone={STATUS_TONE[item.status]} />
                   </div>
                 </div>
+
+                {photoPaths.length > 1 ? (
+                  <div className="flex gap-1.5 overflow-x-auto px-4">
+                    {photoPaths.slice(1).map((path) => {
+                      const url = signedUrlByPath.get(path);
+                      if (!url) return null;
+                      return (
+                        <div key={path} className="group relative h-12 w-12 shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element -- signed Storage URL thumbnail */}
+                          <img
+                            src={url}
+                            alt=""
+                            className="h-full w-full rounded-[var(--radius-sm)] object-cover"
+                          />
+                          {item.status !== "sold" ? (
+                            <form
+                              action={removeItemPhoto.bind(null, item.id, path)}
+                              className="absolute -right-1 -top-1"
+                            >
+                              <button
+                                type="submit"
+                                aria-label="Remove photo"
+                                className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-danger)] text-[9px] text-[var(--color-on-accent)] opacity-0 transition-opacity group-hover:opacity-100"
+                              >
+                                ×
+                              </button>
+                            </form>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
 
                 <div className="flex flex-1 flex-col gap-3 px-4 pb-4">
                   <div>
@@ -139,6 +189,7 @@ export default async function SellPage() {
 
                   {item.status !== "sold" ? (
                     <div className="mt-auto flex flex-wrap items-center gap-4 border-t border-[var(--color-border-subtle)] pt-3">
+                      <AddPhotoControl itemId={item.id} accountId={item.account_id} />
                       <ValuationForm itemId={item.id} />
                       {item.status !== "listed" ? <ListingForm itemId={item.id} /> : null}
                       <SaleForm itemId={item.id} listingId={itemListings[0]?.id} />
