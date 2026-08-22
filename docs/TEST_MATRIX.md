@@ -20,6 +20,8 @@
 | apps/mobile | `flutter analyze` / `dart format --set-exit-if-changed` / `flutter test` | All clean | Pass | Run 2026-08-17 |
 | apps/web E2E | `npx playwright test` — 16 auth-guard specs (every `(app)/**` route + `/`, unauthenticated) | All redirect to `/sign-in`, no storage state used | Pass | Real run against local dev server, 2026-08-22 |
 | apps/web E2E | `npx playwright test` — 17 authenticated specs (nav, Today, Money, Sell, Business, Protect, AI, account menu, personalization) | Self-skip cleanly without failing the run | Pass (skipped) | Real run, 2026-08-22 — needs `QA_TEST_EMAIL`/`QA_TEST_PASSWORD`, see docs/KNOWN_ISSUES.md (`OWNER_ACTION_REQUIRED`) |
+| apps/web accessibility | `accessibility.spec.ts` — axe-core WCAG2A/2AA on `/sign-in`, `/sign-up` | Zero violations | Pass | Real run against local dev server, 2026-08-22 |
+| apps/web responsive | `responsive.spec.ts` — `/sign-in` at 360/390/430/768/1024/1280/1440px | No horizontal overflow at any width | Pass — 7/7 | Real run against local dev server, 2026-08-22 (Playwright `setViewportSize`, the working alternative to the broken Chrome `resize_window` tool) |
 
 Method: local Supabase stack (`supabase/config.toml`, ports 55321-55329)
 driven via raw `curl` against `/auth/v1` and `/rest/v1` with two
