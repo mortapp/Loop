@@ -85,25 +85,37 @@ class _MoneyBody extends ConsumerWidget {
       net += moneyEventKindSign(event.kind) * event.amountCents;
     }
 
+    // One dominant Net figure, not six equally-weighted boxes — Net is
+    // what answers "how am I doing," everything else is supporting
+    // detail (matches the same hierarchy fix on apps/web's Money page).
     return RefreshIndicator(
       onRefresh: () => ref.refresh(moneyEventsProvider.future),
       child: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
+          Text(
+            'Net through LOOP',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            MoneyUtils.formatCents(net),
+            style: theme.textTheme.headlineLarge?.copyWith(
+              color: net >= 0 ? AppColors.success : AppColors.danger,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
             children: [
-              _StatCard(
-                label: 'Net',
-                value: MoneyUtils.formatCents(net),
-                color: net >= 0 ? AppColors.success : AppColors.danger,
-              ),
               for (final kind in _kinds)
-                _StatCard(
-                  label: kind.name,
-                  value: MoneyUtils.formatCents(totals[kind] ?? 0),
-                  color: _kindColor(context, kind),
+                Expanded(
+                  child: _KindTotal(
+                    label: kind.name,
+                    value: MoneyUtils.formatCents(totals[kind] ?? 0),
+                  ),
                 ),
             ],
           ),
@@ -113,7 +125,7 @@ class _MoneyBody extends ConsumerWidget {
           const _LogEventForm(),
           const SizedBox(height: AppSpacing.lg),
           if (events.isEmpty)
-            const Text('No money events yet.')
+            const Text('No recorded value yet.')
           else
             ...events.map((event) => _MoneyEventTile(event: event)),
         ],
@@ -122,39 +134,28 @@ class _MoneyBody extends ConsumerWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
+class _KindTotal extends StatelessWidget {
+  const _KindTotal({required this.label, required this.value});
 
   final String label;
   final String value;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return SizedBox(
-      width: 104,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.sm),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label, style: theme.textTheme.bodyMedium),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                value,
-                style: theme.textTheme.titleMedium?.copyWith(color: color),
-              ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: theme.textTheme.bodyMedium?.copyWith(fontSize: 11)),
+        Text(
+          value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/account/account_providers.dart';
 import '../../core/supabase/supabase_providers.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/async_error_view.dart';
 import 'models/action_item.dart';
@@ -197,16 +198,13 @@ class _ActionTile extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(action.title, style: theme.textTheme.bodyLarge),
-                    if (action.dueAt != null)
-                      Text(
-                        'Due ${_formatDate(action.dueAt!)}',
-                        style: theme.textTheme.bodyMedium,
-                      ),
+                    if (action.dueAt != null) _DueLabel(dueAt: action.dueAt!),
                   ],
                 ),
               ),
               TextButton(
                 onPressed: () => setStatus(ActionStatus.done),
+                style: TextButton.styleFrom(foregroundColor: AppColors.brand),
                 child: const Text('Done'),
               ),
               TextButton(
@@ -261,6 +259,46 @@ class _DoneActionTile extends ConsumerWidget {
   }
 }
 
+/// Real overdue detection computed from the actual due date — not a
+/// fake urgency indicator (matches the same treatment on
+/// apps/web/src/app/(app)/today/page.tsx).
+class _DueLabel extends StatelessWidget {
+  const _DueLabel({required this.dueAt});
+
+  final DateTime dueAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final overdue = dueAt.isBefore(DateTime.now());
+    return Text(
+      '${overdue ? 'Overdue · ' : 'Due '}${_formatDate(dueAt)}',
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: overdue ? AppColors.danger : null,
+        fontWeight: overdue ? FontWeight.w600 : null,
+      ),
+    );
+  }
+}
+
 String _formatDate(DateTime date) {
-  return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  final now = DateTime.now();
+  if (date.year == now.year && date.month == now.month && date.day == now.day) {
+    return 'Today';
+  }
+  return '${months[date.month - 1]} ${date.day}';
 }
