@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { createQuote, type CreateQuoteState } from "./actions";
 
 type Line = { description: string; quantity: string; unitPrice: string };
@@ -30,7 +31,7 @@ export function CreateQuoteForm({
   );
 
   const inputClass =
-    "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
+    "rounded-[var(--radius-sm)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-brand)]";
 
   const total = lines.reduce((sum, line) => {
     const qty = Number(line.quantity) || 0;
@@ -66,7 +67,7 @@ export function CreateQuoteForm({
       </div>
 
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Line items</p>
+        <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Line items</p>
         {lines.map((line, i) => (
           <div key={i} className="grid grid-cols-[1fr_5rem_6rem] items-center gap-2">
             <input
@@ -100,28 +101,22 @@ export function CreateQuoteForm({
         <button
           type="button"
           onClick={() => setLines((prev) => [...prev, { ...EMPTY_LINE }])}
-          className="self-start text-xs font-medium text-zinc-500 underline hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+          className="self-start text-xs font-medium text-[var(--color-brand-text)] hover:underline"
         >
           + Add line
         </button>
       </div>
 
-      <div className="flex items-center justify-between border-t border-zinc-200 pt-3 dark:border-zinc-800">
-        <p className="text-sm font-medium text-zinc-950 dark:text-zinc-50">
+      <div className="flex items-center justify-between border-t border-[var(--color-border-subtle)] pt-3">
+        <p className="text-sm font-medium text-[var(--color-text-primary)]">
           Total: {total.toLocaleString(undefined, { style: "currency", currency: "USD" })}
         </p>
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={pending || contacts.length === 0}
-            className="rounded-lg bg-zinc-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200"
-          >
-            {pending ? "Creating…" : "Create quote"}
-          </button>
-        </div>
+        <Button type="submit" loading={pending} disabled={contacts.length === 0}>
+          {pending ? "Creating" : "Create quote"}
+        </Button>
       </div>
       {state?.error ? (
-        <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+        <p className="text-sm text-[var(--color-danger-text)]" role="alert">
           {state.error}
         </p>
       ) : null}

@@ -1,8 +1,23 @@
 import type { Action } from "@loop/contracts";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { QuickAddForm } from "./quick-add-form";
 import { setActionStatus } from "./actions";
+
+function isOverdue(dueAt: string | null): boolean {
+  if (!dueAt) return false;
+  return new Date(dueAt).getTime() < Date.now();
+}
+
+function formatDue(dueAt: string): string {
+  const date = new Date(dueAt);
+  const today = new Date();
+  const sameDay = date.toDateString() === today.toDateString();
+  if (sameDay) return "Today";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 export default async function TodayPage() {
   const accountId = await getActiveAccountId();
@@ -25,70 +40,73 @@ export default async function TodayPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-zinc-950 dark:text-zinc-50">Today</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Your unified queue. Once MAKE/PROTECT/RECOVER workflows exist, quotes to send, returns
-          nearing their window, and warranties about to expire will show up here automatically —
-          for now, this is a plain shared task list backed by the same <code>actions</code> table.
-        </p>
-      </div>
+      <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Today</h1>
 
       <QuickAddForm />
 
       <div className="flex flex-col gap-2">
         {open.length === 0 ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Nothing open. Add something above.</p>
+          <EmptyState
+            title="Nothing needs attention"
+            description="Quotes to follow up, return deadlines, and resell opportunities will show up here as they come due."
+          />
         ) : (
-          open.map((action) => (
-            <div
-              key={action.id}
-              className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950"
-            >
-              <div>
-                <p className="text-sm font-medium text-zinc-950 dark:text-zinc-50">{action.title}</p>
-                {action.due_at ? (
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Due {new Date(action.due_at).toLocaleDateString()}
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex gap-3">
-                <form action={setActionStatus.bind(null, action.id, "done")}>
-                  <button
-                    type="submit"
-                    className="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
-                  >
-                    Done
-                  </button>
-                </form>
-                <form action={setActionStatus.bind(null, action.id, "dismissed")}>
-                  <button
-                    type="submit"
-                    className="text-xs font-medium text-zinc-400 hover:underline dark:text-zinc-500"
-                  >
-                    Dismiss
-                  </button>
-                </form>
-              </div>
-            </div>
-          ))
+          open.map((action) => {
+            const overdue = isOverdue(action.due_at);
+            return (
+              <Card key={action.id} className="flex items-center justify-between px-4 py-3">
+                <div className="flex flex-col gap-0.5">
+                  <p className="text-sm font-medium text-[var(--color-text-primary)]">{action.title}</p>
+                  {action.due_at ? (
+                    <p
+                      className={`text-xs ${
+                        overdue ? "font-medium text-[var(--color-danger-text)]" : "text-[var(--color-text-tertiary)]"
+                      }`}
+                    >
+                      {overdue ? "Overdue · " : "Due "}
+                      {formatDue(action.due_at)}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-3">
+                  <form action={setActionStatus.bind(null, action.id, "done")}>
+                    <button
+                      type="submit"
+                      className="text-xs font-medium text-[var(--color-brand-text)] transition-opacity hover:opacity-70"
+                    >
+                      Done
+                    </button>
+                  </form>
+                  <form action={setActionStatus.bind(null, action.id, "dismissed")}>
+                    <button
+                      type="submit"
+                      className="text-xs text-[var(--color-text-tertiary)] transition-opacity hover:opacity-70"
+                    >
+                      Dismiss
+                    </button>
+                  </form>
+                </div>
+              </Card>
+            );
+          })
         )}
       </div>
 
       {done.length > 0 ? (
         <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Recently done</h2>
+          <h2 className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-tertiary)]">
+            Recently done
+          </h2>
           {done.map((action) => (
             <div
               key={action.id}
-              className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-2 dark:border-zinc-900 dark:bg-zinc-950/50"
+              className="flex items-center justify-between rounded-[var(--radius-md)] px-4 py-2"
             >
-              <p className="text-sm text-zinc-400 line-through dark:text-zinc-600">{action.title}</p>
+              <p className="text-sm text-[var(--color-text-tertiary)] line-through">{action.title}</p>
               <form action={setActionStatus.bind(null, action.id, "open")}>
                 <button
                   type="submit"
-                  className="text-xs font-medium text-zinc-400 hover:underline dark:text-zinc-500"
+                  className="text-xs text-[var(--color-text-tertiary)] transition-opacity hover:opacity-70"
                 >
                   Reopen
                 </button>

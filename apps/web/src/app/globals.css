@@ -1,26 +1,140 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * LOOP design tokens — "Ledger" direction. See docs/DESIGN_SYSTEM.md for
+ * the full rationale, the three directions considered, and the WCAG
+ * contrast computations behind every pair below (two real failures were
+ * found and fixed before this shipped: solid brand/opportunity green
+ * as small text on light backgrounds, and porcelain text on the brand
+ * button fill — both now use a dark foreground / darker text variant
+ * instead).
+ *
+ * Dark is the default (a financial utility people check often benefits
+ * from a calmer, lower-glare default); light is a fully-designed second
+ * mode, not an afterthought.
+ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  /* Neutrals — light mode */
+  --color-bg: #fafaf8;
+  --color-bg-secondary: #f2f1ed;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f5f4f0;
+  --color-border-subtle: #e5e4df;
+  --color-border-strong: #d3d2cb;
+  --color-text-primary: #14141a;
+  --color-text-secondary: #55555d;
+  --color-text-tertiary: #8a8a90;
+
+  /* Brand + semantic accents (same hues both modes; text-on-light-bg
+     variants are darker so small colored text still clears WCAG AA —
+     see docs/DESIGN_SYSTEM.md contrast table) */
+  --color-brand: #2fae7a;
+  --color-brand-hover: #279467;
+  --color-brand-pressed: #1f7a55;
+  --color-brand-soft: #e8f5ee;
+  --color-brand-text: #1f7a55;
+
+  --color-info: #3d7eeb;
+  --color-info-soft: #eaf1fe;
+  --color-info-text: #1e5bc4;
+
+  --color-opportunity: #d98a3d;
+  --color-opportunity-soft: #fbf0e2;
+  --color-opportunity-text: #8a5119;
+
+  --color-success: #2fae7a;
+  --color-warning: #d9a73d;
+  --color-danger: #e0473f;
+  --color-danger-soft: #fdeae8;
+  --color-danger-text: #b8362e;
+
+  /* Foreground for text/icons placed ON a solid accent fill (buttons,
+     filled badges) — dark, not white; see contrast table. */
+  --color-on-accent: #0a0a0c;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-bg: #0a0a0c;
+    --color-bg-secondary: #101013;
+    --color-surface: #17171b;
+    --color-surface-hover: #1e1e23;
+    --color-border-subtle: #242429;
+    --color-border-strong: #35353c;
+    --color-text-primary: #f5f5f2;
+    --color-text-secondary: #a8a8ad;
+    --color-text-tertiary: #6e6e74;
+
+    --color-brand-soft: #12261c;
+    --color-brand-text: #2fae7a;
+
+    --color-info-soft: #101b2e;
+    --color-info-text: #3d7eeb;
+
+    --color-opportunity-soft: #2a1e10;
+    --color-opportunity-text: #d98a3d;
+
+    --color-danger-soft: #2e1210;
+    --color-danger-text: #e0473f;
   }
 }
 
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-bg-secondary: var(--color-bg-secondary);
+  --color-surface: var(--color-surface);
+  --color-surface-hover: var(--color-surface-hover);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border-strong: var(--color-border-strong);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+
+  --color-brand: var(--color-brand);
+  --color-brand-hover: var(--color-brand-hover);
+  --color-brand-pressed: var(--color-brand-pressed);
+  --color-brand-soft: var(--color-brand-soft);
+  --color-brand-text: var(--color-brand-text);
+
+  --color-info: var(--color-info);
+  --color-info-soft: var(--color-info-soft);
+  --color-info-text: var(--color-info-text);
+
+  --color-opportunity: var(--color-opportunity);
+  --color-opportunity-soft: var(--color-opportunity-soft);
+  --color-opportunity-text: var(--color-opportunity-text);
+
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
+  --color-danger-soft: var(--color-danger-soft);
+  --color-danger-text: var(--color-danger-text);
+
+  --color-on-accent: var(--color-on-accent);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+/* Real tabular figures for every monetary/numeric value in the product —
+   Geist Mono ships genuine tabular numerals, not just monospace digits,
+   so columns of amounts actually align. See components/ui/amount.tsx. */
+.tabular-nums-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }

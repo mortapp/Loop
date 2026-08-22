@@ -2,6 +2,10 @@ import Link from "next/link";
 import type { ReturnStatus } from "@loop/contracts";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { Amount } from "@/components/ui/amount";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { CreatePurchaseForm } from "./create-purchase-form";
 import { ReturnControls } from "./return-controls";
 import { WarrantyControls } from "./warranty-controls";
@@ -26,9 +30,16 @@ type WarrantyRow = {
   claim_status: string | null;
 };
 
-function formatCents(cents: number | null): string {
-  if (cents === null) return "—";
-  return (cents / 100).toLocaleString(undefined, { style: "currency", currency: "USD" });
+/** Real "N days left" urgency, calculated from the actual deadline — not
+    a fake countdown. Part 11 of the design brief: clear urgency without
+    fake scarcity. */
+function returnWindowBadge(expiresAt: string) {
+  const days = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86_400_000);
+  if (days < 0) return <StatusBadge label="Window closed" tone="neutral" />;
+  if (days === 0) return <StatusBadge label="Return today" tone="danger" />;
+  if (days <= 3) return <StatusBadge label={`${days} day${days === 1 ? "" : "s"} left`} tone="danger" />;
+  if (days <= 14) return <StatusBadge label={`${days} days left`} tone="opportunity" />;
+  return <StatusBadge label={`Return by ${new Date(expiresAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`} tone="neutral" />;
 }
 
 export default async function PurchasesPage() {
@@ -74,44 +85,44 @@ export default async function PurchasesPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/money" className="text-xs text-zinc-500 hover:underline dark:text-zinc-400">
+        <Link href="/money" className="text-xs text-[var(--color-text-tertiary)] hover:underline">
           ← Money
         </Link>
-        <h1 className="mt-1 text-xl font-semibold text-zinc-950 dark:text-zinc-50">Purchases</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          PROTECT / ReturnGuard. Record what you bought, then start a return or claim a warranty
-          before the window closes.
-        </p>
+        <h1 className="mt-1 text-xl font-semibold text-[var(--color-text-primary)]">Purchases</h1>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+      <Card className="p-4">
         <CreatePurchaseForm items={items ?? []} />
-      </div>
+      </Card>
 
-      <ul className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
         {(purchases ?? []).length === 0 ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">No purchases yet.</p>
+          <EmptyState
+            title="No purchases tracked yet"
+            description="Record what you buy to track return windows and warranties before they expire."
+          />
         ) : (
           (purchases ?? []).map((purchase) => (
-            <li
-              key={purchase.id}
-              className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950"
-            >
-              <div className="flex items-center justify-between">
+            <Card key={purchase.id} className="flex flex-col gap-3 px-4 py-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm font-medium text-zinc-950 dark:text-zinc-50">
-                    {purchase.items?.name ?? purchase.vendor_name ?? "Purchase"} · {formatCents(purchase.price_cents)}
+                  <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                    {purchase.items?.name ?? purchase.vendor_name ?? "Purchase"}
                   </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="text-xs text-[var(--color-text-tertiary)]">
                     {purchase.vendor_name ?? "Unknown vendor"}
-                    {purchase.return_window_expires_at
-                      ? ` · Return by ${new Date(purchase.return_window_expires_at).toLocaleDateString()}`
-                      : ""}
+                    {purchase.price_cents !== null ? (
+                      <>
+                        {" · "}
+                        <Amount cents={purchase.price_cents} className="text-xs" />
+                      </>
+                    ) : null}
                     {purchase.warranty_expires_at
                       ? ` · Warranty until ${new Date(purchase.warranty_expires_at).toLocaleDateString()}`
                       : ""}
                   </p>
                 </div>
+                {purchase.return_window_expires_at ? returnWindowBadge(purchase.return_window_expires_at) : null}
               </div>
               <ReturnControls
                 purchaseId={purchase.id}
@@ -122,10 +133,10 @@ export default async function PurchasesPage() {
                 itemId={purchase.item_id}
                 warranties={purchase.item_id ? (warrantiesByItem.get(purchase.item_id) ?? []) : []}
               />
-            </li>
+            </Card>
           ))
         )}
-      </ul>
+      </div>
     </div>
   );
 }

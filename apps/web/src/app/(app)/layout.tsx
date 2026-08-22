@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountSummary } from "@/lib/active-account";
-import { NAV_ITEMS } from "@/lib/nav";
+import { NavLinks } from "@/lib/nav-links";
 import { signOut } from "../(auth)/actions";
 
 /**
@@ -25,17 +25,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const activeAccount = await getActiveAccountSummary();
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-black">
-      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="flex min-h-full flex-1 flex-col bg-[var(--color-bg)]">
+      <header className="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)]">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <span className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+            <span className="text-lg font-semibold tracking-tight text-[var(--color-text-primary)]">
               LOOP
             </span>
             {activeAccount ? (
               <Link
                 href="/business"
-                className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="rounded-full bg-[var(--color-surface)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)]"
                 title="Switch account"
               >
                 {activeAccount.label}
@@ -45,23 +45,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <form action={signOut}>
             <button
               type="submit"
-              className="text-sm text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+              className="text-sm text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-primary)]"
             >
               Sign out
             </button>
           </form>
         </div>
-        <nav className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4 pb-2">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <NavLinks />
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
     </div>

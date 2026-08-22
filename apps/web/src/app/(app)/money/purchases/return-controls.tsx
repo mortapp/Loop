@@ -1,20 +1,21 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { startReturn, setReturnStatus, refundReturn, type FormState } from "./actions";
 import type { ReturnStatus } from "@loop/contracts";
 
 const inputClass =
-  "w-32 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs text-zinc-950 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
+  "w-32 rounded-[var(--radius-sm)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2 py-1.5 text-xs text-[var(--color-text-primary)] outline-none focus:border-[var(--color-brand)]";
 const buttonClass =
-  "rounded-lg bg-zinc-950 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200";
+  "rounded-[var(--radius-sm)] bg-[var(--color-brand)] px-3 py-1.5 text-xs font-medium text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-brand-hover)] disabled:opacity-50";
 
-const STATUS_STYLES: Record<ReturnStatus, string> = {
-  initiated: "bg-zinc-100 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400",
-  shipped: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400",
-  received: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400",
-  refunded: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
-  denied: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400",
+const STATUS_TONE: Record<ReturnStatus, "neutral" | "info" | "brand" | "danger"> = {
+  initiated: "neutral",
+  shipped: "info",
+  received: "info",
+  refunded: "brand",
+  denied: "danger",
 };
 
 function StartReturnForm({ purchaseId, itemId }: { purchaseId: string; itemId: string | null }) {
@@ -27,12 +28,12 @@ function StartReturnForm({ purchaseId, itemId }: { purchaseId: string; itemId: s
   }, null);
 
   if (!itemId) {
-    return <p className="text-xs text-zinc-400 dark:text-zinc-600">No item linked — can&apos;t start a return.</p>;
+    return <p className="text-xs text-[var(--color-text-tertiary)]">No item linked — can&apos;t start a return.</p>;
   }
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="text-xs text-zinc-400 hover:underline dark:text-zinc-500">
+      <button onClick={() => setOpen(true)} className="text-xs text-[var(--color-text-tertiary)] hover:underline">
         + Start return
       </button>
     );
@@ -46,7 +47,7 @@ function StartReturnForm({ purchaseId, itemId }: { purchaseId: string; itemId: s
       <button type="submit" disabled={pending} className={buttonClass}>
         Start
       </button>
-      {state?.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state?.error ? <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span> : null}
     </form>
   );
 }
@@ -62,7 +63,7 @@ function RefundForm({ returnId, itemId }: { returnId: string; itemId: string }) 
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="text-xs text-emerald-600 hover:underline dark:text-emerald-400">
+      <button onClick={() => setOpen(true)} className="text-xs text-[var(--color-brand-text)] hover:underline">
         Refund
       </button>
     );
@@ -76,7 +77,7 @@ function RefundForm({ returnId, itemId }: { returnId: string; itemId: string }) 
       <button type="submit" disabled={pending} className={buttonClass}>
         Confirm
       </button>
-      {state?.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state?.error ? <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span> : null}
     </form>
   );
 }
@@ -104,22 +105,20 @@ export function ReturnControls({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[existingReturn.status]}`}>
-        return: {existingReturn.status}
-      </span>
+      <StatusBadge label={`Return: ${existingReturn.status}`} tone={STATUS_TONE[existingReturn.status]} />
       {existingReturn.status !== "refunded" && existingReturn.status !== "denied" ? (
         <>
           {nextSimpleStatuses
             .filter((s) => s !== "denied")
             .map((status) => (
               <form key={status} action={setReturnStatus.bind(null, existingReturn.id, status)}>
-                <button type="submit" className="text-xs text-zinc-400 hover:underline dark:text-zinc-500">
+                <button type="submit" className="text-xs text-[var(--color-text-tertiary)] hover:underline">
                   {status}
                 </button>
               </form>
             ))}
           <form action={setReturnStatus.bind(null, existingReturn.id, "denied")}>
-            <button type="submit" className="text-xs text-red-500 hover:underline dark:text-red-400">
+            <button type="submit" className="text-xs text-[var(--color-danger-text)] hover:underline">
               deny
             </button>
           </form>

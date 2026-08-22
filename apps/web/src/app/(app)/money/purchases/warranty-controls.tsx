@@ -1,12 +1,13 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { addWarranty, setWarrantyClaimStatus, type FormState } from "./actions";
 
 const inputClass =
-  "w-32 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs text-zinc-950 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
+  "w-32 rounded-[var(--radius-sm)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2 py-1.5 text-xs text-[var(--color-text-primary)] outline-none focus:border-[var(--color-brand)]";
 const buttonClass =
-  "rounded-lg bg-zinc-950 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200";
+  "rounded-[var(--radius-sm)] bg-[var(--color-brand)] px-3 py-1.5 text-xs font-medium text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-brand-hover)] disabled:opacity-50";
 
 type Warranty = { id: string; provider: string | null; expires_at: string | null; claim_status: string | null };
 
@@ -21,7 +22,7 @@ function AddWarrantyForm({ itemId }: { itemId: string }) {
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="text-xs text-zinc-400 hover:underline dark:text-zinc-500">
+      <button onClick={() => setOpen(true)} className="text-xs text-[var(--color-text-tertiary)] hover:underline">
         + Warranty
       </button>
     );
@@ -35,7 +36,7 @@ function AddWarrantyForm({ itemId }: { itemId: string }) {
       <button type="submit" disabled={pending} className={buttonClass}>
         Save
       </button>
-      {state?.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state?.error ? <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span> : null}
     </form>
   );
 }
@@ -46,21 +47,21 @@ export function WarrantyControls({ itemId, warranties }: { itemId: string | null
   return (
     <div className="flex flex-wrap items-center gap-2">
       {warranties.map((warranty) => (
-        <span
-          key={warranty.id}
-          className="flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-950 dark:text-purple-400"
-        >
-          {warranty.provider ?? "Warranty"}
-          {warranty.expires_at ? ` until ${new Date(warranty.expires_at).toLocaleDateString()}` : ""}
-          {warranty.claim_status ? ` · ${warranty.claim_status}` : ""}
+        <div key={warranty.id} className="flex items-center gap-1.5">
+          <StatusBadge
+            tone="info"
+            label={`${warranty.provider ?? "Warranty"}${
+              warranty.expires_at ? ` until ${new Date(warranty.expires_at).toLocaleDateString()}` : ""
+            }${warranty.claim_status ? ` · ${warranty.claim_status}` : ""}`}
+          />
           {!warranty.claim_status ? (
             <form action={setWarrantyClaimStatus.bind(null, warranty.id, "filed")}>
-              <button type="submit" className="underline">
+              <button type="submit" className="text-xs text-[var(--color-info-text)] hover:underline">
                 file claim
               </button>
             </form>
           ) : null}
-        </span>
+        </div>
       ))}
       <AddWarrantyForm itemId={itemId} />
     </div>

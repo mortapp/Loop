@@ -2,15 +2,10 @@ import Link from "next/link";
 import type { MoneyEvent, MoneyEventKind } from "@loop/contracts";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { Amount } from "@/components/ui/amount";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { LogEventForm } from "./log-event-form";
-
-const KIND_STYLES: Record<MoneyEventKind, string> = {
-  earn: "text-emerald-600 dark:text-emerald-400",
-  recovered: "text-emerald-600 dark:text-emerald-400",
-  refund: "text-blue-600 dark:text-blue-400",
-  spend: "text-red-600 dark:text-red-400",
-  fee: "text-red-600 dark:text-red-400",
-};
 
 const KIND_SIGN: Record<MoneyEventKind, 1 | -1> = {
   earn: 1,
@@ -20,9 +15,13 @@ const KIND_SIGN: Record<MoneyEventKind, 1 | -1> = {
   fee: -1,
 };
 
-function formatCents(cents: number): string {
-  return (cents / 100).toLocaleString(undefined, { style: "currency", currency: "USD" });
-}
+const KIND_LABEL: Record<MoneyEventKind, string> = {
+  earn: "Made",
+  recovered: "Recovered",
+  refund: "Refunded",
+  spend: "Spent",
+  fee: "Fees",
+};
 
 export default async function MoneyPage() {
   const accountId = await getActiveAccountId();
@@ -48,68 +47,69 @@ export default async function MoneyPage() {
   const net = (events ?? []).reduce((sum, e) => sum + KIND_SIGN[e.kind] * e.amount_cents, 0);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-zinc-950 dark:text-zinc-50">Money</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Everything earned, spent, refunded, and recovered — the append-only ledger every engine
-          writes to.{" "}
-          <Link href="/money/purchases" className="underline">
-            Purchases &amp; returns →
-          </Link>
-        </p>
+    <div className="flex flex-col gap-8">
+      <div className="flex items-baseline justify-between">
+        <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Money</h1>
+        <Link
+          href="/money/purchases"
+          className="text-sm font-medium text-[var(--color-brand-text)] hover:opacity-70"
+        >
+          Purchases &amp; returns →
+        </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">Net</p>
-          <p className={`mt-1 text-lg font-semibold ${net >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
-            {formatCents(net)}
-          </p>
-        </div>
+      {/* One dominant figure, not six equally-weighted boxes — Net is what
+          answers "how am I doing," everything else is supporting detail. */}
+      <div>
+        <p className="text-sm text-[var(--color-text-tertiary)]">Net through LOOP</p>
+        <Amount cents={net} tone="auto" signed size="lg" className="mt-1" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {(["earn", "recovered", "refund", "spend", "fee"] as MoneyEventKind[]).map((kind) => (
-          <div
-            key={kind}
-            className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
-          >
-            <p className="text-xs capitalize text-zinc-500 dark:text-zinc-400">{kind}</p>
-            <p className={`mt-1 text-lg font-semibold ${KIND_STYLES[kind]}`}>
-              {formatCents(totals[kind] ?? 0)}
-            </p>
+          <div key={kind}>
+            <p className="text-xs text-[var(--color-text-tertiary)]">{KIND_LABEL[kind]}</p>
+            <Amount cents={totals[kind] ?? 0} tone="neutral" size="sm" className="mt-0.5 font-medium" />
           </div>
         ))}
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-950 dark:text-zinc-50">Log a manual entry</h2>
-        <LogEventForm />
-      </div>
+      <details className="group">
+        <summary className="cursor-pointer text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+          Log a manual entry
+        </summary>
+        <div className="mt-3">
+          <LogEventForm />
+        </div>
+      </details>
 
-      <ul className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
         {(events ?? []).length === 0 ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">No money events yet.</p>
+          <EmptyState
+            title="No recorded value yet"
+            description="Sales, refunds, and manual entries will appear here as they happen."
+          />
         ) : (
           (events ?? []).map((event) => (
-            <li
-              key={event.id}
-              className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950"
-            >
+            <Card key={event.id} className="flex items-center justify-between px-4 py-3">
               <div>
-                <p className="text-sm font-medium text-zinc-950 dark:text-zinc-50">
-                  {event.description || event.kind}
+                <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                  {event.description || KIND_LABEL[event.kind]}
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {new Date(event.occurred_at).toLocaleString()} · {event.source_type ?? "manual"}
+                <p className="text-xs text-[var(--color-text-tertiary)]">
+                  {new Date(event.occurred_at).toLocaleDateString()} · {event.source_type ?? "manual"}
                 </p>
               </div>
-              <p className={`text-sm font-semibold ${KIND_STYLES[event.kind]}`}>
-                {KIND_SIGN[event.kind] > 0 ? "+" : "-"}
-                {formatCents(event.amount_cents)}
-              </p>
-            </li>
+              <Amount
+                cents={KIND_SIGN[event.kind] * event.amount_cents}
+                tone="auto"
+                signed
+                className="font-medium"
+              />
+            </Card>
           ))
         )}
-      </ul>
+      </div>
     </div>
   );
 }
