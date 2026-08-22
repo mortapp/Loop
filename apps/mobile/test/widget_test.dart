@@ -10,6 +10,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:loop_mobile/core/router/app_router.dart';
 import 'package:loop_mobile/core/utils/money.dart';
 import 'package:loop_mobile/features/today/today_providers.dart';
 import 'package:loop_mobile/main.dart';
@@ -20,7 +21,10 @@ void main() {
   ) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [todayActionsProvider.overrideWith((ref) async => [])],
+        overrides: [
+          isAuthenticatedProvider.overrideWith((ref) => true),
+          todayActionsProvider.overrideWith((ref) async => []),
+        ],
         child: const LoopApp(),
       ),
     );
@@ -42,7 +46,10 @@ void main() {
   ) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [todayActionsProvider.overrideWith((ref) async => [])],
+        overrides: [
+          isAuthenticatedProvider.overrideWith((ref) => true),
+          todayActionsProvider.overrideWith((ref) async => []),
+        ],
         child: const LoopApp(),
       ),
     );
@@ -50,6 +57,22 @@ void main() {
 
     expect(find.text('Nothing open. Add something above.'), findsOneWidget);
     expect(find.text('Add'), findsOneWidget);
+  });
+
+  testWidgets('Unauthenticated users are redirected to sign-in, not Today', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [isAuthenticatedProvider.overrideWith((ref) => false)],
+        child: const LoopApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign in'), findsWidgets);
+    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Nothing open. Add something above.'), findsNothing);
   });
 
   group('MoneyUtils', () {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import type { AuthActionState } from "./actions";
+import { GoogleSignInButton } from "./google-sign-in-button";
 
 export function AuthForm({
   mode,
@@ -20,6 +21,14 @@ export function AuthForm({
       <h1 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
         {isSignIn ? "Sign in" : "Create your account"}
       </h1>
+
+      <GoogleSignInButton />
+
+      <div className="flex items-center gap-3 text-xs text-zinc-400 dark:text-zinc-500">
+        <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+        or
+        <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+      </div>
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium text-zinc-700 dark:text-zinc-300">Email</span>

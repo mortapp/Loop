@@ -30,12 +30,27 @@ class BusinessScreen extends ConsumerWidget {
           children: [
             Text('Acting as', style: theme.textTheme.titleMedium),
             const SizedBox(height: AppSpacing.sm),
-            ...accounts.map(
-              (account) => _AccountTile(
-                account: account,
-                selected: account.id == active.id,
-                onTap: () =>
-                    ref.read(activeAccountProvider.notifier).select(account),
+            accounts.when(
+              data: (list) => Column(
+                children: list
+                    .map(
+                      (account) => _AccountTile(
+                        account: account,
+                        selected: account.id == active.id,
+                        onTap: () => ref
+                            .read(activeAccountProvider.notifier)
+                            .select(account),
+                      ),
+                    )
+                    .toList(),
+              ),
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, _) => Text(
+                'Could not load accounts.',
+                style: theme.textTheme.bodyMedium,
               ),
             ),
             const SizedBox(height: AppSpacing.lg),

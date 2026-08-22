@@ -49,6 +49,24 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.loop.app.loop_mobile.auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- Supabase Auth OAuth/email-confirmation redirect target —
+				     must match the redirectTo passed to signInWithOAuth/signUp
+				     in lib/features/auth/auth_screen.dart. Deliberately not the
+				     app's actual bundle id (com.loop.app.loopMobile, camelCase)
+				     — a custom URL scheme just needs to be unique, and using one
+				     literal string across both platforms keeps the Dart-side
+				     redirect URL identical on iOS and Android. -->
+				<string>com.loop.app.loop_mobile</string>
+			</array>
+		</dict>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
