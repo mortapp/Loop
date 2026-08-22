@@ -32,3 +32,10 @@ HTML of `/sign-in` were checked via curl; no interactive browser session
 was available in this session to click through the actual form
 submission). No JS/TS unit or component test runner is configured for
 apps/web yet. See docs/KNOWN_ISSUES.md.
+
+**2026-08-21 CI gap found and fixed**: `.github/workflows/supabase-ci.yml`
+ran `supabase db reset` (applies migrations + seed) but never actually
+invoked `supabase test db` — the pgTAP suite above had only ever been
+run manually, not enforced by CI. Added the missing step so the 20
+pgTAP assertions across both test files run on every push/PR that
+touches `supabase/`, not just once by hand.

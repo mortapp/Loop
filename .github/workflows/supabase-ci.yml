@@ -26,3 +26,6 @@ jobs:
 
       - name: Reset (re-applies every migration + seed from empty)
         run: supabase db reset
+
+      - name: Run pgTAP regression suite
+        run: supabase test db
