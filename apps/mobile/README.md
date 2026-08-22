@@ -58,24 +58,38 @@ apps.
    flutter pub get
    ```
 
-2. Run the app. Supabase credentials are supplied via `--dart-define` and
-   are **not** committed anywhere in source:
+2. Copy `dart_define.example.json` to `dart_define.json` (gitignored,
+   **not** committed anywhere in source) and fill in the real values:
 
    ```sh
-   flutter run \
-     --dart-define=SUPABASE_URL=https://your-project.supabase.co \
-     --dart-define=SUPABASE_ANON_KEY=your-anon-key
+   cp dart_define.example.json dart_define.json
+   # edit dart_define.json: SUPABASE_URL, SUPABASE_ANON_KEY
    ```
 
-   If you omit these, the app still boots — `SUPABASE_URL` /
-   `SUPABASE_ANON_KEY` default to empty strings and Supabase is
-   initialized with placeholder values, so any auth/data call will fail
-   until real credentials are provided. This is expected for local UI
-   work before a live Supabase project is wired up.
+   Then run (or build) with `--dart-define-from-file`, not
+   `--dart-define` typed by hand every time -- this is the one
+   documented, hard-to-get-wrong command for every build path:
 
-3. To build a release artifact, pass the same `--dart-define` flags to
-   `flutter build apk` / `flutter build ios`, ideally sourced from your
-   CI secret store rather than typed by hand.
+   ```sh
+   flutter run --dart-define-from-file=dart_define.json
+   flutter build apk --debug --dart-define-from-file=dart_define.json
+   flutter build apk --release --dart-define-from-file=dart_define.json
+   ```
+
+   **If you omit `dart_define.json` (or leave a value empty), the app
+   deliberately refuses to boot into the real UI** — `main.dart` checks
+   `SupabaseConfig.isConfigured` before ever initializing Supabase, and
+   shows a plain "LOOP can't start" screen instead. This is intentional
+   hardening after a real regression: an earlier build run without
+   `--dart-define` used to boot normally and reach Google OAuth against
+   an unreachable `placeholder.supabase.co` (see
+   docs/KNOWN_ISSUES.md) instead of failing loudly. If you see the
+   "can't start" screen, you forgot `--dart-define-from-file`, not a
+   sign-in bug.
+
+3. In CI, source `dart_define.json`'s contents from your secret store
+   (e.g. write the file from secrets in a step) rather than committing
+   it or typing values by hand.
 
 ## Verifying changes
 
@@ -91,7 +105,9 @@ All three should be clean before landing a change.
 
 - No Supabase project credentials exist in this repository. Never
   hardcode a URL or anon key in source — always go through
-  `--dart-define` (see `lib/core/supabase/supabase_config.dart`).
+  `--dart-define-from-file=dart_define.json` (see
+  `lib/core/supabase/supabase_config.dart`). A build without it refuses
+  to boot into the real UI rather than silently misconfiguring itself.
 - The account-switcher model in `lib/core/account/` is currently backed by
   a placeholder provider (a single personal account). It's shaped to match
   the real personal/business membership model so the Supabase-backed

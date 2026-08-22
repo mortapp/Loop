@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'supabase_config.dart';
+
 /// Riverpod provider exposing the app-wide Supabase client.
 ///
 /// `Supabase.initialize` must have already run in `main()` before this
@@ -19,20 +21,30 @@ final authStateChangesProvider = StreamProvider<AuthState>((ref) {
   return client.auth.onAuthStateChange;
 });
 
-/// Initializes Supabase using build-time configuration. Safe to call even
-/// when no credentials have been supplied yet (see [SupabaseConfig]) — it
-/// will not throw, it just means the client will not be able to reach a
-/// backend until real values are provided via `--dart-define`.
+/// Initializes Supabase using build-time configuration.
+///
+/// Callers MUST check `SupabaseConfig.isConfigured` first (see
+/// `main.dart`) -- this function used to silently substitute a
+/// `placeholder.supabase.co` URL when `url`/`anonKey` were empty, which
+/// let a build missing `--dart-define` boot normally and reach the
+/// sign-in screen, only to fail with a DNS error the moment Google OAuth
+/// (or any auth/data call) actually hit the network. That fallback is
+/// gone: an invalid config must never reach here at all.
 Future<void> bootstrapSupabase({
   required String url,
   required String anonKey,
 }) async {
+  assert(
+    SupabaseConfig.isValidConfig(url, anonKey),
+    'bootstrapSupabase called with invalid config -- callers must check '
+    'SupabaseConfig.isConfigured first (see main.dart).',
+  );
   await Supabase.initialize(
-    url: url.isEmpty ? 'https://placeholder.supabase.co' : url,
+    url: url,
     // supabase_flutter renamed `anonKey` to `publishableKey`; we keep the
     // `anonKey` parameter name on bootstrapSupabase since it maps directly
     // to the SUPABASE_ANON_KEY --dart-define flag documented in the README.
-    publishableKey: anonKey.isEmpty ? 'placeholder-anon-key' : anonKey,
+    publishableKey: anonKey,
     debug: false,
   );
 }

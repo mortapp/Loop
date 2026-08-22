@@ -1,0 +1,5 @@
+{
+  "SUPABASE_URL": "https://your-project.supabase.co",
+  "SUPABASE_ANON_KEY": "your-anon-or-publishable-key",
+  "LOOP_WEB_BASE_URL": "https://loop-teal-rho.vercel.app"
+}

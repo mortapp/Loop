@@ -1,5 +1,72 @@
 # Known Issues
 
+## ~~Mobile builds silently ran against a placeholder Supabase host~~ — resolved 2026-08-22, found on the real Galaxy A14
+
+A real, live regression, not a hypothetical: on the physical device,
+tapping **Continue with Google** opened Chrome to
+`placeholder.supabase.co`, which failed with
+`DNS_PROBE_FINISHED_NXDOMAIN`. This explains a lot of this session's
+prior "still on the sign-in screen" observations — it's plausible
+sign-in was never actually reachable on-device, not just untried.
+
+Root cause: every `flutter build apk` this session (and likely
+before) was run as a plain `flutter build apk --debug`/`--release`,
+without the `--dart-define=SUPABASE_URL=...`
+`--dart-define=SUPABASE_ANON_KEY=...` flags the app has always
+required (documented correctly in the README, but easy to forget and
+nothing enforced it). `SupabaseConfig.url`/`.anonKey`
+(`lib/core/supabase/supabase_config.dart`) default to empty strings
+when omitted, and `bootstrapSupabase`
+(`lib/core/supabase/supabase_providers.dart`) used to silently
+substitute `https://placeholder.supabase.co` / `placeholder-anon-key`
+in that case — so the app booted normally, rendered a completely
+correct-looking sign-in screen, and only failed once a real network
+call (Google OAuth, or an email/password sign-in) actually hit the
+unreachable host. No CI build step exists for mobile
+(`mobile-ci.yml` only runs format/analyze/test), so nothing caught
+this either.
+
+Fixed, three parts:
+1. **The silent fallback is gone.** `bootstrapSupabase` now asserts its
+   inputs are valid instead of substituting a placeholder.
+2. **A real startup gate.** `main.dart` checks
+   `SupabaseConfig.isConfigured` (now real validation — non-empty,
+   `https://`, non-empty host, and explicitly not the literal
+   `placeholder.supabase.co` — see `SupabaseConfig.isValidConfig`,
+   factored out so it's unit-testable with arbitrary inputs) *before*
+   Supabase is ever initialized. An invalid config now renders a plain
+   "LOOP can't start" screen (`ConfigurationErrorApp`) instead of
+   silently proceeding into a sign-in screen that can never actually
+   sign anyone in. **Verified live on the Galaxy A14**: a build with no
+   dart-defines now shows this screen with a clean logcat (no crash);
+   a correctly-configured rebuild boots normally.
+3. **A durable, hard-to-forget build path.** `dart_define.example.json`
+   (committed) + `dart_define.json` (gitignored, the real values) with
+   `--dart-define-from-file=dart_define.json` replaces typing
+   `--dart-define` flags by hand every session — see the README.
+   8 new unit tests (`test/supabase_config_test.dart`) lock in the
+   validation contract: real config accepted; empty URL/key, the
+   literal placeholder host, a non-`https` scheme, an unparseable URL,
+   and a URL with no host are all rejected.
+
+**Verified live end-to-end on the Galaxy A14** with the corrected
+build: tapping **Continue with Google** now opens Chrome to
+`accounts.google.com`, "Choose an account to continue to
+zqalnvfwxmfrnyjcuehq.supabase.co" (the real project) — confirmed by
+screenshot. Did not select an account or complete sign-in (that step
+is the owner's, per the standing manual-sign-in rule); backed out via
+Home + a fresh relaunch, not further Back presses (see the note below
+about why).
+
+**One process note, not a code issue**: cancelling out of the Chrome
+Custom Tab with two Back presses navigated past LOOP entirely into an
+unrelated foreground app already in the device's recent-task history
+(briefly visible in a since-deleted screenshot). Nothing was read,
+touched, or interacted with beyond noticing it — Home followed by
+relaunching LOOP through the launcher intent is the safe way to
+back out of an OAuth Custom Tab on this device going forward, not
+repeated Back presses.
+
 ## ~~Android release builds had no INTERNET permission~~ — resolved 2026-08-22, found during iOS parity audit
 
 Was a real, serious bug, not cosmetic: `android.permission.INTERNET` was

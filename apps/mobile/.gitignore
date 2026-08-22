@@ -43,3 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Real Supabase URL/anon key for --dart-define-from-file (see
+# dart_define.example.json and the README). Never commit the filled-in
+# version -- it's not a secret (the anon key is public-by-design), but
+# keeping it out of source matches the rest of this repo's env-file
+# convention and avoids baking one environment into the tree.
+/dart_define.json

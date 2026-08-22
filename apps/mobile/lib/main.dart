@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/config/configuration_error_app.dart';
 import 'core/router/app_router.dart';
 import 'core/supabase/supabase_config.dart';
 import 'core/supabase/supabase_providers.dart';
@@ -10,9 +12,26 @@ import 'core/theme/theme_preference.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Supabase from build-time configuration. Safe to run with
-  // empty credentials — the app still boots, auth/data calls just won't
-  // succeed until real values are supplied via --dart-define.
+  // A build run without real --dart-define values (or with a stale/
+  // placeholder one) must fail loudly here, before the sign-in screen
+  // -- let alone Google OAuth -- is ever reachable. This used to boot
+  // normally into a Supabase client pointed at an unreachable
+  // placeholder.supabase.co; see docs/KNOWN_ISSUES.md for the real
+  // regression that caused.
+  if (!SupabaseConfig.isConfigured) {
+    if (kDebugMode) {
+      // Never prints the anon key -- only whether config looks present.
+      debugPrint(
+        'SupabaseConfig.isConfigured == false '
+        '(url ${SupabaseConfig.url.isEmpty ? "empty" : "set"}, '
+        'anonKey ${SupabaseConfig.anonKey.isEmpty ? "empty" : "set"}). '
+        'Rebuild with --dart-define-from-file=dart_define.json.',
+      );
+    }
+    runApp(const ConfigurationErrorApp());
+    return;
+  }
+
   await bootstrapSupabase(
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,
