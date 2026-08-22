@@ -21,8 +21,8 @@ docs/KNOWN_ISSUES.md for full evidence behind every row below.
 | MAKE | PASS | Leads → opportunities → quotes, transactional on web. |
 | PROTECT | PASS | Purchases, returns, warranties (web only). |
 | RECOVER | PASS | Items, valuations, listings, sales. |
-| AUTH | PASS | Email/password real and functional (sign-up, sign-in, PKCE callback, session refresh via `proxy.ts`). |
-| GOOGLE AUTH | OWNER_ACTION_REQUIRED | Not configured anywhere — needs Google Cloud OAuth client creation and wiring into Supabase Auth's Google provider, an owner action. Nothing in `apps/web` code blocks it once credentials exist. |
+| AUTH | PASS | Email/password real and functional on web (sign-up, sign-in, PKCE callback, session refresh via `proxy.ts`) **and now mobile** — apps/mobile had no auth screen at all before this session (no sign-in, no sign-up, no gating; `AccountSummary`'s own comment said "no live Supabase data is wired up yet"). Built a real `AuthScreen`, auth-gated GoRouter (`isAuthenticatedProvider`, overridable for tests), and replaced the placeholder account provider with a real `accounts` query. 5/5 widget tests passing (was 4/4 — added one for the new redirect behavior). |
+| GOOGLE AUTH | PASS — LIVE, VERIFIED END-TO-END | A dedicated GCP project (`loop-505805`, org `kolawoleorelesi-org`) already existed with branding partially set; created its OAuth Web client ("LOOP Supabase Web Client", authorized origin `loop-teal-rho.vercel.app`, redirect URI `https://zqalnvfwxmfrnyjcuehq.supabase.co/auth/v1/callback`). Found and replaced a stale/invalid Client ID (an email address had been typed into that field previously) in Supabase's Google provider config, enabled the provider, and set the Site URL + 4-entry Redirect URL allow-list (web production, mobile deep link `com.loop.app.loop_mobile://login-callback`, localhost dev, Vercel preview wildcard) — all previously empty/localhost-only. **Client Secret was entered directly by the owner** (never handled by this session, consistent with the standing rule against typing credentials into any field) after an earlier one-time reveal dialog closed prematurely from a stray click — owner confirmed they'd already copied it before that happened. Verified live end-to-end, not just configured: clicked "Continue with Google" on the real production site and confirmed the full redirect chain lands on the real `accounts.google.com` consent screen with the correct `client_id`, `redirect_uri` (Supabase's callback), and `redirect_to` (LOOP's own callback) — did not complete a real sign-in (no credentials to enter). Web button added to the shared auth form; mobile's `AuthScreen` uses the identical `signInWithOAuth` call and same Client ID, untested on a physical device (none connected this session) but uses the same verified provider config. |
 | DATABASE | PASS | Full schema (8 original migrations + this session's hardening migration) applied and verified on the real hosted project, not just locally. |
 | MIGRATIONS | PASS | 9 migrations, ordered, additive, all applied to the hosted project (`zqalnvfwxmfrnyjcuehq`) and tracked in `supabase/migrations/`. |
 | RLS | PASS | Every table has RLS enabled and a real policy (verified via `list_tables` against the hosted project: 20/20 tables `rls_enabled: true`); pgTAP suite (20/20 assertions) covers isolation and the quote RPC. |
@@ -56,14 +56,19 @@ live. What remains before this could reasonably read PRODUCTION_READY:
 
 **Owner-only / external (cannot be done by an agent):**
 - `ANTHROPIC_API_KEY` — AI chat cannot be live-verified without it.
-- Google OAuth credentials (Google Cloud Console + Supabase Auth
-  provider wiring).
-- Supabase Auth redirect allow-list needs the real Preview/production
-  URLs added before OAuth or email-confirmation redirects work
-  end-to-end on the hosted project.
+- ~~Google OAuth credentials~~ — done and verified live this session;
+  see GOOGLE AUTH row above.
+- ~~Supabase Auth redirect allow-list~~ — done this session (Site URL
+  + 4 redirect URLs: web production, mobile deep link, localhost,
+  Vercel preview wildcard).
 - A custom production domain, if wanted (currently serving from the
   generated `loop-teal-rho.vercel.app`, which is a legitimate
   production URL on its own).
+- Physical Android device to verify Google sign-in actually completes
+  on mobile (the plumbing is verified identical to web's — same
+  Client ID, same `signInWithOAuth` call — but the full round trip
+  through a real device's browser and back into the app has not been
+  observed).
 
 **Genuine remaining engineering (not started or partially started,
 not blocked on anything external):**
