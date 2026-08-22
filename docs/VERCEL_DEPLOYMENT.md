@@ -101,11 +101,12 @@ prefix (so Next.js never inlines it into the client bundle) and marked
 sensitive/encrypted in Vercel's env var UI. Nothing in `apps/web`
 currently needs this.
 
-Set these in Vercel under Project Settings → Environment Variables, for
-each of the Production / Preview / Development scopes as appropriate
-(the values will differ between local Supabase and a future hosted
-Supabase project — see docs/KNOWN_ISSUES.md, no hosted project exists
-yet).
+Set in Vercel (Production and Preview scopes; Development scope only
+matters for `vercel dev`, which this project's local flow doesn't use)
+— done 2026-08-21, pointing at the hosted Supabase project
+(`zqalnvfwxmfrnyjcuehq`). Local `apps/web/.env.local` uses the same
+hosted values now too, since Docker isn't running in this environment
+— see docs/KNOWN_ISSUES.md.
 
 ## Supabase
 
@@ -245,21 +246,34 @@ resulting URL for each preview must be added to Supabase Auth's redirect
 allow-list (see "Human Action Required") or PKCE callback exchanges will
 fail with a redirect-not-allowed error on every preview.
 
-## Production Deployment
+## Production Deployment — LIVE since 2026-08-21
 
-The app itself builds cleanly and is deployable (see "Build
-Verification" below), but "production" isn't real yet. Outstanding:
+**https://loop-teal-rho.vercel.app** — real production deployment,
+verified live (fetched directly: renders the actual sign-in UI, correct
+tagline, zero runtime errors). This section originally described a
+not-yet-real production state; that was stale. What actually happened:
 
-- No production domain has been chosen (Vercel will serve production
-  from a generated `*.vercel.app` URL until one is configured — do not
-  hardcode any domain anywhere).
-- No hosted Supabase project exists yet — only the local Docker stack
-  (see docs/KNOWN_ISSUES.md). Production env vars cannot be filled in
-  until one is created.
+A Vercel project (`loop`, team `mortapphelp-7067s-projects`) and a
+hosted Supabase project (`zqalnvfwxmfrnyjcuehq`) had both already been
+created (2026-08-17) but neither had been finished — the Vercel
+project's Root Directory was never set to `apps/web` and its Framework
+Preset was stuck on "Other", so all 13 prior deployment attempts had
+built successfully and then failed at the very last step looking for a
+static `public/` directory that a Next.js app doesn't have. Root cause
+found from the actual build log (`get_deployment_build_logs`), not
+guessed. Fixed both settings via the dashboard, added the three
+`NEXT_PUBLIC_*` env vars (previously unset) to Production and Preview
+scopes, redeployed — first `READY` production build in the project's
+history.
+
+Remaining, still genuinely open:
+- No custom production domain chosen yet — serving from the generated
+  `loop-teal-rho.vercel.app` (do not hardcode this or any domain
+  anywhere in code).
 - Google OAuth is not configured (see below); email/password auth is
   implemented and functional (see "Authentication").
-- No Vercel project has been created/linked yet (see "Human Action
-  Required").
+- `ANTHROPIC_API_KEY` still unset — AI chat shows its "not configured"
+  state in production, honestly, rather than a broken chat UI.
 
 ## Build Verification
 
@@ -288,19 +302,28 @@ generic env-var-driven redirect handling described above.
 
 ## Human Action Required
 
-Everything below requires a human with the relevant account access —
-none of it can be done by an agent:
+Done, struck through; still genuinely open below:
 
-- Create/own the Vercel account or team LOOP deploys under.
-- Authorize Vercel's GitHub App for `mortapp/Loop` (or the org it lives
-  in) and import the project.
-- Set real environment variable values in Vercel (Supabase URL/anon
-  key, site URL) for Production/Preview/Development.
-- Choose and configure a production domain (none chosen yet).
-- Create a hosted Supabase project (org/billing/region — see
-  docs/KNOWN_ISSUES.md) and populate its Auth redirect allow-list
-  (`additional_redirect_urls`, the hosted equivalent of the local
-  `supabase/config.toml` setting) with localhost, every preview
-  pattern, and the eventual production domain.
+- ~~Create/own the Vercel account or team LOOP deploys under.~~
+- ~~Authorize Vercel's GitHub App for `mortapp/Loop` and import the
+  project.~~
+- ~~Set real environment variable values in Vercel (Supabase URL/anon
+  key, site URL).~~ Done for Production/Preview; Development scope
+  (only relevant to `vercel dev`, which this project's local flow
+  doesn't use) was left unset.
+- ~~Create a hosted Supabase project.~~ Done, migrated, and hardened
+  2026-08-21 — see docs/KNOWN_ISSUES.md and "Deployed" in
+  docs/AUTONOMOUS_BUILD_STATUS.md.
+
+Still open:
+- Choose and configure a custom production domain (none chosen yet —
+  currently serving from the generated `loop-teal-rho.vercel.app`).
+- Populate the hosted Supabase project's Auth redirect allow-list
+  (`additional_redirect_urls`) with `localhost`, every Preview
+  deployment's pattern, and the eventual production domain — needed
+  before Google OAuth or email-confirmation redirects will work
+  end-to-end on the hosted project.
 - Create Google OAuth credentials (Google Cloud Console) and wire them
-  into Supabase Auth's Google provider once a hosted project exists.
+  into Supabase Auth's Google provider.
+- Set `ANTHROPIC_API_KEY` (and optionally `ANTHROPIC_MODEL`) for AI
+  chat to make real model calls.

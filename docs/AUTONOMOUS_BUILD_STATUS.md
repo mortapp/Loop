@@ -70,10 +70,50 @@ None outstanding.
   without one. Set it (and optionally `ANTHROPIC_MODEL`, defaults to
   `claude-opus-5`) in `apps/web/.env.local` — see `.env.example`. This
   is the only thing standing between the current AI code and a real
-  conversation.
-- No hosted Supabase project or Vercel project yet (human account
-  setup) — see docs/VERCEL_DEPLOYMENT.md "Human Action Required". Local
-  development and GitHub are both unblocked.
+  conversation. Genuinely still blocked — no key exists anywhere in
+  this environment, and one was not fabricated.
+
+## Deployed (2026-08-21)
+
+Both the hosted Supabase project and the Vercel project already
+existed (created 2026-08-17, same day as the original build) but
+neither had ever been finished — this was found and fixed live, not
+assumed from docs:
+
+- **Supabase** (`zqalnvfwxmfrnyjcuehq`, org "Loop", us-west-2): had
+  zero migrations and zero tables despite being `ACTIVE_HEALTHY`. All
+  8 schema migrations applied in order; confirmed via `list_tables`
+  that all 20 land with RLS enabled. A fresh security-advisor scan
+  (only possible against a real hosted project, not local Postgres)
+  found two real gaps neither migration author nor local pgTAP had
+  caught: two functions without a pinned `search_path`, and every
+  `SECURITY DEFINER` function still executable by `anon` because
+  Postgres grants EXECUTE to PUBLIC by default and nothing had
+  explicitly revoked it. Fixed in
+  `20260821235200_harden_function_search_path_and_grants.sql`,
+  applied to the hosted project and committed so local dev picks it
+  up too. Reverified clean afterward. `apps/web/.env.local` now
+  points at this hosted project instead of local Docker (which isn't
+  running in this environment) — `lint`/`typecheck`/`build` reverified
+  clean against it.
+- **Vercel** (`loop`, team `mortapphelp-7067s-projects`, linked to
+  `mortapp/Loop`): **every one of its 13 prior deployment attempts had
+  errored** — `list_deployments` showed 100% failure back to the very
+  first commit. Root cause found from the build log, not guessed:
+  Root Directory was never set to `apps/web` and Framework Preset was
+  stuck on "Other", so Vercel built successfully but then looked for
+  a static `public/` output directory at the repo root and failed with
+  "No Output Directory named public found". Fixed both settings
+  (Root Directory → `apps/web`, Framework Preset → Next.js) and the
+  three `NEXT_PUBLIC_*` env vars (previously unset entirely) via the
+  dashboard, then redeployed. **First successful production
+  deployment in the project's history**: `READY`, correctly built as
+  real Next.js serverless functions (not a static misfire), live at
+  https://loop-teal-rho.vercel.app — fetched directly and confirmed it
+  renders the real sign-in UI with the correct tagline, zero runtime
+  errors in the last hour. Env vars now cover both Production and
+  Preview scopes so future PR/branch deployments will build too, not
+  just `main`.
 
 ## Remaining
 
@@ -91,8 +131,8 @@ None outstanding.
   verification only).
 - A real shared design system between web and mobile (both are
   independently "clean" right now, not visually unified).
-- Push local commits to `origin/main`; push to hosted Supabase / Vercel
-  (human steps, see docs/VERCEL_DEPLOYMENT.md).
+- ~~Push local commits to `origin/main`; push to hosted Supabase /
+  Vercel~~ — done; see "Deployed" above.
 
 ## Last Known Good Commit
 

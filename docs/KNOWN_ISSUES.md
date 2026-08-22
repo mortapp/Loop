@@ -1,12 +1,35 @@
 # Known Issues
 
-## No hosted Supabase project yet
+## ~~No hosted Supabase project yet~~ — resolved 2026-08-21
 
-There is no cloud Supabase project for LOOP — only the local Docker stack
-(`supabase/config.toml`, project id `loop`). `.env.example` has empty
-values. Creating a hosted project is a human decision (org/billing
-account, project name/region) — blocked pending that choice. Local
-development is fully functional in the meantime (`supabase start`).
+Was stale: a hosted project (`zqalnvfwxmfrnyjcuehq`, org "Loop",
+`mzkhysoovbzhkkgeqtku`, us-west-2) had already been created but was
+never migrated or wired into either app — `list_migrations`/
+`list_tables` against it both came back empty. All 8 schema migrations
+were applied directly (`apply_migration`, in order); confirmed via
+`list_tables` afterward that all 20 tables exist with RLS enabled.
+A fresh `get_advisors(security)` scan then surfaced two real,
+pre-existing gaps neither local dev nor pgTAP had exercised (both
+require a real hosted project's linter, not just local Postgres):
+`set_updated_at`/`current_profile_id` had no pinned `search_path`, and
+every `SECURITY DEFINER` function was still executable by `anon` (the
+Postgres default of granting EXECUTE to PUBLIC was never explicitly
+revoked, unlike every table-level GRANT in this schema, which always
+revokes-then-narrows). Fixed in a new migration,
+`20260821235200_harden_function_search_path_and_grants.sql`, applied
+to the hosted project and committed to `supabase/migrations/` so local
+dev picks it up too. Reverified clean afterward (only the expected,
+intentional `authenticated`-only advisories remain, plus one
+Supabase-platform-owned event trigger, `rls_auto_enable`, correctly
+left untouched).
+
+`apps/web/.env.local` now points at the hosted project instead of
+local Docker (`http://127.0.0.1:55321`) — Docker Desktop isn't running
+in this environment, so this unblocks real backend development without
+it. `apps/web` lint/typecheck/build all reverified clean against the
+new config. Local Docker Supabase (`supabase start`) remains available
+and still works for anyone who prefers it; nothing about the local dev
+path was removed.
 
 ## Supabase CLI 2.108.0 does not auto-expose new tables
 
