@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountSummary } from "@/lib/active-account";
+import { getCurrentProfile, initialsFor } from "@/lib/profile";
 import { AppShell } from "@/components/app-shell";
 import { signOut } from "../(auth)/actions";
 
@@ -21,10 +22,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/sign-in");
   }
 
-  const activeAccount = await getActiveAccountSummary();
+  const [activeAccount, profile] = await Promise.all([
+    getActiveAccountSummary(),
+    getCurrentProfile(),
+  ]);
+
+  const email = profile?.email ?? user.email ?? "";
+  const displayName = profile?.displayName ?? null;
 
   return (
-    <AppShell activeAccountLabel={activeAccount?.label ?? null} signOutAction={signOut}>
+    <AppShell
+      activeAccountLabel={activeAccount?.label ?? null}
+      displayName={displayName}
+      email={email}
+      initials={initialsFor(displayName, email)}
+      signOutAction={signOut}
+    >
       {children}
     </AppShell>
   );

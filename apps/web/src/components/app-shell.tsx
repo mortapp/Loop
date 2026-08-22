@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { NAV_ITEMS } from "@/lib/nav";
 import { NAV_ICONS } from "@/lib/nav-icons";
 import { LoopSeal } from "@/components/ui/loop-seal";
+import { AccountMenu } from "@/components/account-menu";
 
 /**
  * The authenticated app shell — a compact vertical rail on desktop/tablet,
@@ -15,10 +16,16 @@ import { LoopSeal } from "@/components/ui/loop-seal";
  */
 export function AppShell({
   activeAccountLabel,
+  displayName,
+  email,
+  initials,
   signOutAction,
   children,
 }: {
   activeAccountLabel: string | null;
+  displayName: string | null;
+  email: string;
+  initials: string;
   signOutAction: () => Promise<void>;
   children: React.ReactNode;
 }) {
@@ -29,7 +36,7 @@ export function AppShell({
     <div className="min-h-full bg-[var(--color-bg)]">
       {/* Desktop / tablet rail — md: icon-only, lg: full width with labels */}
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-16 flex-col border-r border-[var(--color-border-subtle)] bg-[var(--color-bg)] md:flex lg:w-52">
-        <div className="flex flex-col items-center gap-1 px-3 py-5 lg:items-start">
+        <div className="flex items-center px-3 py-5 lg:justify-start">
           <Link href="/today" aria-label="LOOP — Today" className="flex items-center gap-2">
             <LoopSeal size={26} />
             <span
@@ -40,17 +47,6 @@ export function AppShell({
               LOOP
             </span>
           </Link>
-          {activeAccountLabel ? (
-            <Link
-              href="/business"
-              aria-label={`Switch account — currently ${activeAccountLabel}`}
-              title={`Switch account — currently ${activeAccountLabel}`}
-              className="mt-3 w-full truncate rounded-[var(--radius-sm)] bg-[var(--color-surface)] px-2 py-1.5 text-center text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] lg:text-left"
-            >
-              <span className="lg:hidden">{activeAccountLabel.slice(0, 1).toUpperCase()}</span>
-              <span className="hidden lg:inline">{activeAccountLabel}</span>
-            </Link>
-          ) : null}
         </div>
 
         <nav className="flex flex-1 flex-col gap-0.5 px-2" aria-label="Primary">
@@ -84,21 +80,15 @@ export function AppShell({
           })}
         </nav>
 
-        <div className="border-t border-[var(--color-border-subtle)] px-2 py-3">
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              aria-label="Sign out"
-              className="w-full rounded-[var(--radius-sm)] px-2.5 py-2 text-center text-xs text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-primary)] lg:text-left"
-            >
-              <span className="lg:hidden" aria-hidden>
-                ⏻
-              </span>
-              <span className="hidden lg:inline" aria-hidden>
-                Sign out
-              </span>
-            </button>
-          </form>
+        <div className="border-t border-[var(--color-border-subtle)] p-2">
+          <AccountMenu
+            variant="rail"
+            displayName={displayName}
+            email={email}
+            initials={initials}
+            activeAccountLabel={activeAccountLabel}
+            signOutAction={signOutAction}
+          />
         </div>
       </aside>
 
@@ -113,24 +103,14 @@ export function AppShell({
             LOOP
           </span>
         </Link>
-        <div className="flex items-center gap-3">
-          {activeAccountLabel ? (
-            <Link
-              href="/business"
-              className="rounded-full bg-[var(--color-surface)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)]"
-            >
-              {activeAccountLabel}
-            </Link>
-          ) : null}
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              className="text-sm text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-primary)]"
-            >
-              Sign out
-            </button>
-          </form>
-        </div>
+        <AccountMenu
+          variant="mobile"
+          displayName={displayName}
+          email={email}
+          initials={initials}
+          activeAccountLabel={activeAccountLabel}
+          signOutAction={signOutAction}
+        />
       </header>
 
       {/* Mobile web bottom tab bar — same five items/order as apps/mobile */}

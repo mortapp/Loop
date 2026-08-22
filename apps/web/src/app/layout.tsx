@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
+import { getThemePreference } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -25,10 +26,13 @@ export const metadata: Metadata = {
   description: "LOOP — one unified value operating system. Earn, buy, own, return or resell, earn again.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const theme = await getThemePreference();
+
   return (
     <html
       lang="en"
+      data-theme={theme === "system" ? undefined : theme}
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>

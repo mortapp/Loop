@@ -74,8 +74,18 @@
   --radius-lg: 16px;
 }
 
+/*
+ * Personalization → theme (Settings/Personalization, apps/web/src/lib/
+ * theme.ts): "System" (default) follows prefers-color-scheme below;
+ * an explicit "Dark"/"Light" choice sets data-theme on <html> server-side
+ * (no flash of the wrong theme) and wins over system preference either
+ * direction — the :not([data-theme="light"]) guard on the media query
+ * lets an explicit Light choice cancel system dark, and the standalone
+ * [data-theme="dark"] block below lets an explicit Dark choice apply
+ * even when the OS is in light mode.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --color-bg: #0a070b; /* Murex Noir */
     --color-bg-secondary: #151019; /* Murex Ink */
     --color-surface: #1d171f;
@@ -101,6 +111,33 @@
     --color-danger-soft: #2c0f18;
     --color-danger-text: #b0636e; /* 4.6:1, raw Danger fails at 3.6:1 */
   }
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #0a070b;
+  --color-bg-secondary: #151019;
+  --color-surface: #1d171f;
+  --color-surface-hover: #251c25;
+  --color-border-subtle: #29242c;
+  --color-border-strong: #3d393e;
+  --color-text-primary: #f1ebdd;
+  --color-text-secondary: #d9d0be;
+  --color-text-tertiary: #aba091;
+
+  --color-brand-soft: #2b1728;
+  --color-brand-text: #c49aaf;
+
+  --color-info-soft: #2b3d49;
+  --color-info-text: #7d94a2;
+
+  --color-opportunity-soft: #362b24;
+  --color-opportunity-text: #b89a68;
+
+  --color-warning-soft: #4c3b2e;
+  --color-warning-text: #b18a55;
+
+  --color-danger-soft: #2c0f18;
+  --color-danger-text: #b0636e;
 }
 
 @theme inline {
