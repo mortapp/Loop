@@ -52,7 +52,11 @@ Supabase project, never disable RLS).
 Done: schema + RLS + storage on the real hosted project, both apps'
 core five areas (Today/Money/Sell/Business/AI-scaffold) real and
 functional, CI actually runs the real test suites now, first-ever
-successful production deployment, verified live.
+successful production deployment (verified live), Google Sign-In live
+end-to-end on web, a real shared design system (docs/DESIGN_SYSTEM.md
+— "Ledger" direction, identical tokens on web + mobile, WCAG-verified)
+applied to web's 5 representative screens + shell and to mobile's
+Today/Money/Sell/Purchases/Quotes screens.
 
 Not done, no owner action needed — just pick one and go:
 1. Mobile Warranties (closes the last web/mobile PROTECT gap).
@@ -61,9 +65,17 @@ Not done, no owner action needed — just pick one and go:
 3. AI mobile surface, or more AI tools, or streaming (all reasonable
    Phase 8 depth work).
 4. Today auto-population from real events (currently manual-only).
-5. Shared design system between web and mobile.
-6. Browser/component test runner for `apps/web`.
-7. iOS source-parity audit (compare `apps/mobile/ios` config against
+5. Design system propagation: mobile's Business account-switcher,
+   Contacts, Leads, Opportunities, and AI screens still only inherit
+   the shared `ThemeData` — none individually redesigned yet. Web's AI
+   screen likewise untouched.
+6. Formal accessibility audit beyond color contrast (focus states,
+   ARIA/semantics, keyboard nav, touch targets) and formal responsive
+   QA at real breakpoints (attempted 2026-08-21, blocked by a browser
+   tool limitation — window resize didn't reflect in screenshot
+   capture — worth retrying with a different tool/approach).
+7. Browser/component test runner for `apps/web`.
+8. iOS source-parity audit (compare `apps/mobile/ios` config against
    `apps/mobile/android`, the way MORT's sessions did for that repo).
 
 Owner-only, ask rather than attempt: `ANTHROPIC_API_KEY`, Google OAuth

@@ -9,9 +9,9 @@ docs/KNOWN_ISSUES.md for full evidence behind every row below.
 |---|---|---|
 | REPO | PASS | Clean, `main` up to date with `origin/main`, pushed. |
 | SOURCE | PASS | Foundation + Today + MAKE + PROTECT + RECOVER + Money + AI tool registry, real in both apps/web and apps/mobile. |
-| UI/UX | IN_PROGRESS | Every area functional, not placeholder. No shared design system between web and mobile yet (each independently clean, not visually unified) — genuine remaining work, not started this session. |
-| DESIGN SYSTEM | NOT_APPLICABLE (not started) | Explicitly listed as remaining in docs/AUTONOMOUS_BUILD_STATUS.md; out of scope for this session's pass. |
-| MOBILE | IN_PROGRESS | Feature parity with web for Today/Money+Purchases/Sell/Business, reverified this session (`flutter analyze` 0 issues, `dart format` clean, `flutter test` 4/4). Gaps: no Warranties on mobile (web has it), quote creation still non-transactional on mobile (web uses the RPC), no AI surface at all on mobile. |
+| UI/UX | IN_PROGRESS | Real, unified "Ledger" design system now shared between web and mobile — see DESIGN SYSTEM row and docs/DESIGN_SYSTEM.md. Web: all 5 representative screens (Today/Money/Business·Quotes/Purchases/Sell) + shell redesigned. Mobile: theme fully applied everywhere via `ThemeData`; Today/Money/Sell/Purchases/Quotes individually redesigned to match web's exact hierarchy fixes (dominant Net figure, real urgency badges, one primary action + "Other…" instead of N equal buttons); Business account-switcher, Contacts, Leads, Opportunities, and AI still only inherit the theme automatically, not individually redesigned. Motion system, iconography audit, and full copywriting pass not done. |
+| DESIGN SYSTEM | IN_PROGRESS | Built and WCAG-verified this session (docs/DESIGN_SYSTEM.md): 3 directions considered, "Ledger" chosen with rationale; tokens (color/radius/spacing) identical hex values in `apps/web/src/app/globals.css` (Tailwind v4 `@theme`) and `apps/mobile/lib/core/theme/` (Dart). Every text/background pair contrast-computed live; 2 real AA failures found and fixed (solid brand/opportunity as small text on light backgrounds) via darkened `*TextLight` variants + a brightness-aware `AppColors.opportunityText()` helper for the dark-mode fallback. Not yet propagated to every remaining screen (see UI/UX row). |
+| MOBILE | IN_PROGRESS | Feature parity with web for Today/Money+Purchases/Sell/Business, reverified this session (`flutter analyze` 0 issues, `dart format` clean, `flutter test` 5/5, real `flutter build apk --debug` against the hosted Supabase project succeeded). Gaps: no Warranties on mobile (web has it), quote creation still non-transactional on mobile (web uses the RPC), no AI surface at all on mobile, design system not propagated to every screen (see UI/UX row). |
 | WEB | PASS | `lint`/`typecheck`/`build` all clean, reverified this session against the real hosted Supabase project (not just local Docker). |
 | TODAY | PASS | Real actions queue, quick-add/done/dismiss/reopen. Does not yet auto-populate from expiring returns/unsent quotes — noted as remaining, not started. |
 | MONEY | PASS | Real ledger (`money_events`) + totals + manual entry; cross-engine writes (RECOVER sales, PROTECT refunds) confirmed posting to it. |
@@ -37,15 +37,17 @@ docs/KNOWN_ISSUES.md for full evidence behind every row below.
 | DATABASE TESTS | PASS | pgTAP 20/20, and now actually wired into CI this session (previously only ever run by hand). |
 | CI | PASS | All three workflows (`web-ci`, `mobile-ci`, `supabase-ci`) now execute real tests, not just static checks — fixed this session. |
 | VERCEL | PASS | **Live in production for the first time in the project's history** this session — see ANDROID/DEPLOYMENT notes below and docs/AUTONOMOUS_BUILD_STATUS.md "Deployed". |
-| ANDROID BUILD | PASS | `flutter analyze`/`test`/`format` all clean; no new AAB/APK cut this session (not needed — no distribution channel exists yet for LOOP mobile, unlike MORT). |
-| ANDROID PHYSICAL QA | EXTERNAL_BLOCKER | `adb devices -l` checked once this session (empty) — no physical device reachable. Not looped on. |
+| ANDROID BUILD | PASS | `flutter analyze`/`test`/`format` all clean; a real `flutter build apk --debug` against the actual hosted Supabase project succeeded this session (233s, produced a real APK) — genuine build evidence, not just static analysis. No distribution channel exists yet for LOOP mobile (unlike MORT), so no release AAB was cut. |
+| ANDROID PHYSICAL QA | EXTERNAL_BLOCKER | `adb devices -l` checked once this session (empty) — no physical device reachable at any point this session. Not looped on. The debug APK exists and is ready to install the moment a device is connected. |
 | IOS SOURCE PARITY | NOT_APPLICABLE (not audited this session) | No iOS-specific audit performed this pass; `apps/mobile/ios` exists from the Flutter scaffold but has not been reviewed for parity claims. |
 | IOS REAL BUILD | EXTERNAL_BLOCKER | Windows environment; no Xcode/macOS available, as expected. |
 | SECURITY | PASS | Live advisor scan against the hosted Supabase project found and fixed two real gaps this session (function `search_path`, `anon` execute grants) — see docs/AUTONOMOUS_BUILD_STATUS.md. Secret scan across both MORT and LOOP tracked files: **clean, no committed credentials in either repo.** Only tracked env files are `.env.example`/`.env.local.example`; the one real `eyJ...` JWT found in MORT's tracked source decodes to the public anon key (safe by design); no AIza/AKIA/ghp_/sk_live_/sk-ant_/private-key matches anywhere. |
-| ACCESSIBILITY | NOT_APPLICABLE (not audited this session) | Not in scope for this pass; no accessibility-specific review performed. |
-| DOCUMENTATION | PASS | `KNOWN_ISSUES.md`, `AUTONOMOUS_BUILD_STATUS.md`, `VERCEL_DEPLOYMENT.md` all corrected this session to match live, verified reality rather than the stale "nothing hosted yet" state they previously described. |
-| GITHUB | PASS | Both commits pushed to `origin/main`, no force-push, fast-forward only. |
-| PRODUCTION DEPLOYMENT | PASS | https://loop-teal-rho.vercel.app — live, verified by direct fetch (real sign-in UI, correct tagline, zero runtime errors in the last hour). |
+| ACCESSIBILITY | IN_PROGRESS | Color contrast: every design-token text/background pair WCAG-AA-computed live and verified this session (docs/DESIGN_SYSTEM.md) — real failures found and fixed, not assumed passing. Not done: a formal audit of focus states, semantic landmarks/ARIA, keyboard navigation, and touch-target sizing. Genuinely partial, not a full pass. |
+| RESPONSIVE | IN_PROGRESS | Web built on Tailwind's standard responsive utilities throughout (not newly audited this session); live production verified correct at desktop width via real browser. Mobile-width (390px) verification attempted this session but blocked by a browser-extension tool limitation (window resize didn't reflect in the screenshot capture) — not fabricated as passing. |
+| UI PERFORMANCE | NOT_APPLICABLE (not audited this session) | No Lighthouse/Web Vitals pass performed; production build succeeds and page loads render correctly in manual verification, but no performance-specific measurement was taken. |
+| DOCUMENTATION | PASS | `KNOWN_ISSUES.md`, `AUTONOMOUS_BUILD_STATUS.md`, `VERCEL_DEPLOYMENT.md`, `DESIGN_SYSTEM.md` all corrected/added this session to match live, verified reality rather than the stale "nothing hosted yet" state they previously described. |
+| GITHUB | PASS | All commits pushed to `origin/main`, no force-push, fast-forward only — including this session's 2 mobile design commits (`6d5e6ba`, `055c70e`). |
+| PRODUCTION DEPLOYMENT | PASS | https://loop-teal-rho.vercel.app — live at commit `055c70e` (latest), verified by direct browser navigation this session while authenticated: Today, Money, and Business/Quotes all render the new design system correctly (warm near-black dark mode, dominant Net figure, real empty states), zero visible regressions. |
 | EXTERNAL BLOCKERS | — | See below. |
 
 ## LOOP_FINAL_STATE=NOT_READY
@@ -75,14 +77,48 @@ not blocked on anything external):**
 - Mobile: Warranties, transactional quote RPC, any AI surface at all.
 - Today: auto-populated actions from real domain events (currently
   manual-only).
-- A real shared design system between web and mobile.
+- Design system propagation: mobile's Business account-switcher,
+  Contacts, Leads, Opportunities, and AI screens (inherit the theme
+  automatically, not individually redesigned); web's AI screen and any
+  settings/profile surface (none currently exist).
+- Motion system, iconography-family audit, full copywriting pass —
+  none formally done, only the ad-hoc restraint already present in the
+  5 web screens redesigned this session.
+- Formal accessibility audit beyond color contrast (focus states,
+  ARIA/semantics, keyboard nav, touch targets).
+- Formal responsive QA at specific breakpoints (attempted this
+  session, blocked by a browser tool limitation, not by the app).
 - Browser/component test coverage for `apps/web` (currently
   build-time checks + manual/curl verification only).
 - AI depth: more tools, streaming responses.
 - iOS source-parity audit (not performed this session) and any real
   iOS build/TestFlight verification (needs macOS/Xcode, unavailable
   on this Windows machine).
-- Accessibility review (not performed this session).
+
+## Design/UI directive final status (this session)
+
+Exact status for the 9 rows the UI/UX reconstruction directive asked
+for, each traceable to a row above:
+
+- `LOOP_UIUX_WEB=IN_PROGRESS` — 5/5 representative screens + shell
+  redesigned and live in production; AI screen and any future
+  settings/profile screens not touched.
+- `LOOP_UIUX_MOBILE=IN_PROGRESS` — theme fully applied; Today/Money/
+  Sell/Purchases/Quotes individually redesigned; Business switcher/
+  Contacts/Leads/Opportunities/AI inherit theme only.
+- `LOOP_DESIGN_SYSTEM=IN_PROGRESS` — tokens complete, WCAG-verified,
+  identical across platforms; not propagated to every screen.
+- `LOOP_ACCESSIBILITY=IN_PROGRESS` — contrast verified; focus/ARIA/
+  keyboard/touch-target audit not done.
+- `LOOP_RESPONSIVE=IN_PROGRESS` — desktop verified live; mobile-width
+  verification blocked by a browser tool limitation this session.
+- `LOOP_UI_PERFORMANCE=NOT_APPLICABLE` — not measured this session.
+- `LOOP_WEB_PRODUCTION=PASS` — live at the current commit, verified
+  live in a real authenticated browser session.
+- `LOOP_ANDROID_BUILD=PASS` — real debug APK built against the
+  hosted Supabase project this session.
+- `LOOP_ANDROID_PHYSICAL_UI_QA=EXTERNAL_BLOCKER` — no physical device
+  connected at any point this session.
 
 See docs/LOOP_CONTINUATION_PROMPT.md for the exact next-session
 starting point.
