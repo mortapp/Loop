@@ -25,7 +25,6 @@ class TodayScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Today'),
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.account_circle_outlined),
@@ -72,21 +71,38 @@ class _TodayList extends ConsumerWidget {
         .toList();
     final done = actions.where((a) => a.status == ActionStatus.done).toList();
 
+    final theme = Theme.of(context);
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
+        Text('TODAY', style: theme.textTheme.headlineLarge),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          _formatFullDate(DateTime.now()),
+          style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: AppSpacing.xl),
         const _QuickAddForm(),
         const SizedBox(height: AppSpacing.lg),
         if (open.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-            child: Text('Nothing open. Add something above.'),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            child: Text(
+              'Nothing open. Add something above.',
+              style: theme.textTheme.bodyMedium,
+            ),
           )
         else
           ...open.map((action) => _ActionTile(action: action)),
         if (done.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text('Recently done', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'RECENTLY DONE',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: AppColors.textStructural,
+              letterSpacing: 1.5,
+            ),
+          ),
           const SizedBox(height: AppSpacing.sm),
           ...done.map((action) => _DoneActionTile(action: action)),
         ],
@@ -163,6 +179,9 @@ class _QuickAddFormState extends ConsumerState<_QuickAddForm> {
   }
 }
 
+/// A ledger entry, not a card — Today's rows read as lines in a private
+/// register (rule line below, no per-row surface/elevation) rather than
+/// stacked Trello-style cards. See docs/DESIGN_SYSTEM.md.
 class _ActionTile extends ConsumerWidget {
   const _ActionTile({required this.action});
 
@@ -183,37 +202,35 @@ class _ActionTile extends ConsumerWidget {
       }
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(action.title, style: theme.textTheme.bodyLarge),
-                    if (action.dueAt != null) _DueLabel(dueAt: action.dueAt!),
-                  ],
-                ),
-              ),
-              TextButton(
-                onPressed: () => setStatus(ActionStatus.done),
-                style: TextButton.styleFrom(foregroundColor: AppColors.brand),
-                child: const Text('Done'),
-              ),
-              TextButton(
-                onPressed: () => setStatus(ActionStatus.dismissed),
-                child: const Text('Dismiss'),
-              ),
-            ],
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm + 2),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.platinum.withValues(alpha: 0.25)),
         ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(action.title, style: theme.textTheme.bodyLarge),
+                if (action.dueAt != null) _DueLabel(dueAt: action.dueAt!),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () => setStatus(ActionStatus.done),
+            style: TextButton.styleFrom(foregroundColor: AppColors.tyrianText),
+            child: const Text('Done'),
+          ),
+          TextButton(
+            onPressed: () => setStatus(ActionStatus.dismissed),
+            style: TextButton.styleFrom(foregroundColor: AppColors.textMuted),
+            child: const Text('Dismiss'),
+          ),
+        ],
       ),
     );
   }
@@ -274,11 +291,38 @@ class _DueLabel extends StatelessWidget {
     return Text(
       '${overdue ? 'Overdue · ' : 'Due '}${_formatDate(dueAt)}',
       style: theme.textTheme.bodyMedium?.copyWith(
-        color: overdue ? AppColors.danger : null,
+        color: overdue ? AppColors.dangerText : null,
         fontWeight: overdue ? FontWeight.w600 : null,
       ),
     );
   }
+}
+
+String _formatFullDate(DateTime date) {
+  const weekdays = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+  const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+  return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}';
 }
 
 String _formatDate(DateTime date) {

@@ -4,12 +4,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 import 'app_spacing.dart';
 
-/// Builds LOOP's shared Material theme (light and dark) — "Imperial
-/// Verdigris": old-world private treasury × modern financial ledger. See
+/// Builds LOOP's shared Material theme (light and dark) — "Murex Noir":
+/// blackened royal ink, the Tyrian/murex dye tradition read as a
+/// near-black digital material rather than a bright purple. See
 /// docs/DESIGN_SYSTEM.md for the full rationale, the WCAG contrast
-/// computations, and why this replaced the earlier "Ledger" green system.
-/// This is the single design system every engine (MAKE, PROTECT, RECOVER)
-/// and every shared surface (Today, Money, Sell, Business, AI) draws from.
+/// computations, and why this replaced "Imperial Verdigris" and the
+/// earlier "Ledger" green system. This is the single design system every
+/// engine (MAKE, PROTECT, RECOVER) and every shared surface (Today,
+/// Money, Sell, Business, AI) draws from.
 class AppTheme {
   const AppTheme._();
 
@@ -21,11 +23,11 @@ class AppTheme {
 
   static ThemeData light() {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: AppColors.verdigris,
+      seedColor: AppColors.tyrianRoyal,
       brightness: Brightness.light,
-      primary: AppColors.verdigrisDeep,
-      onPrimary: AppColors.ivory,
-      secondary: AppColors.archivalBlueDark,
+      primary: AppColors.tyrianDeep,
+      onPrimary: AppColors.royalBone,
+      secondary: AppColors.sapphireDeep,
       surface: AppColors.lightSurfaceRaised,
       error: AppColors.danger,
     );
@@ -38,30 +40,30 @@ class AppTheme {
       border: AppColors.lightBorder,
       textPrimary: AppColors.lightTextPrimary,
       textSecondary: AppColors.lightTextSecondary,
-      focusRing: AppColors.verdigrisDeep,
+      focusRing: AppColors.lightTyrianText,
     );
   }
 
   static ThemeData dark() {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: AppColors.verdigris,
+      seedColor: AppColors.tyrianRoyal,
       brightness: Brightness.dark,
-      primary: AppColors.verdigris,
+      primary: AppColors.tyrianRoyal,
       onPrimary: AppColors.onAccentFill,
-      secondary: AppColors.archivalBlueLight,
-      surface: AppColors.ledgerBlack,
+      secondary: AppColors.sapphirePale,
+      surface: AppColors.murexInk,
       error: AppColors.danger,
     );
 
     return _base(
       colorScheme: colorScheme,
-      scaffoldBackground: AppColors.obsidian,
-      surface: AppColors.ledgerBlack,
-      surfaceHover: AppColors.raisedInk,
-      border: AppColors.blackenedSilver,
+      scaffoldBackground: AppColors.murexNoir,
+      surface: AppColors.murexInk,
+      surfaceHover: AppColors.surfaceRaised,
+      border: AppColors.platinum,
       textPrimary: AppColors.textPrimary,
       textSecondary: AppColors.textSecondary,
-      focusRing: AppColors.verdigrisBright,
+      focusRing: AppColors.tyrianAccent,
     );
   }
 
@@ -149,11 +151,11 @@ class AppTheme {
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          side: BorderSide(color: border.withValues(alpha: 0.5)),
+          side: BorderSide(color: border.withValues(alpha: 0.16)),
         ),
       ),
       dividerTheme: DividerThemeData(
-        color: border.withValues(alpha: 0.35),
+        color: border.withValues(alpha: 0.12),
         thickness: 1,
         space: 1,
       ),
@@ -191,11 +193,11 @@ class AppTheme {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          borderSide: BorderSide(color: border.withValues(alpha: 0.5)),
+          borderSide: BorderSide(color: border.withValues(alpha: 0.16)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          borderSide: BorderSide(color: border.withValues(alpha: 0.5)),
+          borderSide: BorderSide(color: border.withValues(alpha: 0.16)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
@@ -244,7 +246,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.verdigrisText,
+          foregroundColor: AppColors.tyrianText,
           textStyle: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),

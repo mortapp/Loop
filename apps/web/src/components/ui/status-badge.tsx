@@ -6,7 +6,7 @@ const toneClasses: Record<StatusTone, string> = {
   info: "bg-[var(--color-info-soft)] text-[var(--color-info-text)]",
   opportunity: "bg-[var(--color-opportunity-soft)] text-[var(--color-opportunity-text)]",
   danger: "bg-[var(--color-danger-soft)] text-[var(--color-danger-text)]",
-  warning: "bg-[var(--color-opportunity-soft)] text-[var(--color-opportunity-text)]",
+  warning: "bg-[var(--color-warning-soft)] text-[var(--color-warning-text)]",
 };
 
 /**

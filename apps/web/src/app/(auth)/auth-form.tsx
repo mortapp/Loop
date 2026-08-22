@@ -17,44 +17,53 @@ export function AuthForm({
   const isSignIn = mode === "sign-in";
 
   return (
-    <form action={formAction} className="flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-      <h1 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
-        {isSignIn ? "Sign in" : "Create your account"}
+    <form
+      action={formAction}
+      className="flex flex-col gap-4 rounded-[var(--radius-lg)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-6"
+    >
+      <h1 className="text-xs font-semibold tracking-[0.2em] text-[var(--color-text-secondary)]">
+        {(isSignIn ? "Sign in" : "Create your account").toUpperCase()}
       </h1>
 
       <GoogleSignInButton />
 
-      <div className="flex items-center gap-3 text-xs text-zinc-400 dark:text-zinc-500">
-        <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-        or
-        <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+      <div className="flex items-center gap-3 text-[var(--color-text-tertiary)]">
+        <div className="h-px flex-1 bg-[var(--color-border-strong)] opacity-40" />
+        <span className="text-xs">◇</span>
+        <div className="h-px flex-1 bg-[var(--color-border-strong)] opacity-40" />
       </div>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-zinc-700 dark:text-zinc-300">Email</span>
+      <label className="flex flex-col gap-1.5">
+        <span className="text-[10px] font-semibold tracking-[0.15em] text-[var(--color-text-secondary)]">
+          EMAIL
+        </span>
         <input
           name="email"
           type="email"
           required
           autoComplete="email"
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+          placeholder="you@business.com"
+          className="rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-brand)]"
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-zinc-700 dark:text-zinc-300">Password</span>
+      <label className="flex flex-col gap-1.5">
+        <span className="text-[10px] font-semibold tracking-[0.15em] text-[var(--color-text-secondary)]">
+          PASSWORD
+        </span>
         <input
           name="password"
           type="password"
           required
           minLength={8}
           autoComplete={isSignIn ? "current-password" : "new-password"}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+          placeholder="••••••••"
+          className="rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-brand)]"
         />
       </label>
 
       {state?.error ? (
-        <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+        <p className="text-sm text-[var(--color-danger-text)]" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -62,23 +71,26 @@ export function AuthForm({
       <button
         type="submit"
         disabled={pending}
-        className="mt-2 rounded-lg bg-zinc-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200"
+        className="mt-2 rounded-[var(--radius-sm)] px-4 py-2.5 text-sm font-semibold tracking-wide text-[var(--color-on-accent)] transition-opacity disabled:opacity-50"
+        style={{
+          background: "linear-gradient(90deg, #2B1728, #693754, #401C38)",
+        }}
       >
         {pending ? "Please wait…" : isSignIn ? "Sign in" : "Sign up"}
       </button>
 
-      <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="text-center text-sm text-[var(--color-text-tertiary)]">
         {isSignIn ? (
           <>
             Don&apos;t have an account?{" "}
-            <Link href="/sign-up" className="font-medium text-zinc-950 underline dark:text-zinc-50">
+            <Link href="/sign-up" className="font-semibold text-[var(--color-brand-text)]">
               Sign up
             </Link>
           </>
         ) : (
           <>
             Already have an account?{" "}
-            <Link href="/sign-in" className="font-medium text-zinc-950 underline dark:text-zinc-50">
+            <Link href="/sign-in" className="font-semibold text-[var(--color-brand-text)]">
               Sign in
             </Link>
           </>

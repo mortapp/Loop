@@ -1,5 +1,20 @@
 # Known Issues
 
+## Galaxy A14 physical QA blocked — device not connected (2026-08-22)
+
+The "Murex Noir" rebrand (see docs/DESIGN_SYSTEM.md) requires physical
+verification on the real Samsung Galaxy A14 5G (SM-A146U, Android 15)
+reference device before propagating past the auth reference screen —
+`adb devices` currently returns no attached devices (Wireless ADB not
+connected in this environment). This is a human/device-only step per
+CLAUDE.md's autonomous-behavior rule: documented here rather than
+blocking other work. When Wireless ADB reconnects: `flutter build apk`,
+install, and visually verify the auth screen reads as blackened royal
+ink (not bright purple), Royal Bone stays warm, Champagne stays rare,
+no overflow/clipping, keyboard usable. All static verification that
+doesn't require the device — `dart format`, `flutter analyze`,
+`flutter test` — is done and passing.
+
 ## ~~No hosted Supabase project yet~~ — resolved 2026-08-21
 
 Was stale: a hosted project (`zqalnvfwxmfrnyjcuehq`, org "Loop",

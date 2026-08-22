@@ -1,144 +1,164 @@
 import 'package:flutter/material.dart';
 
-/// LOOP's shared color palette — "Imperial Verdigris" (old-world royal
-/// treasury × private financial ledger). Same hex values as
+/// LOOP's shared color palette — "Murex Noir" (blackened royal ink, the
+/// Tyrian/murex dye tradition translated into a near-black digital
+/// material rather than a bright purple). Same hex values as
 /// apps/web/src/app/globals.css so the two platforms read as one product;
 /// see docs/DESIGN_SYSTEM.md for the full rationale and the WCAG contrast
 /// computations behind every text/fill pairing below.
 ///
-/// Every semantic getter here is contrast-verified for its stated use —
-/// do not substitute a "look right" color for the one named. The raw
-/// swatches (Verdigris, Oxblood, Danger) fail WCAG AA as small text
-/// directly on dark surfaces; that's why the *Text variants exist.
+/// Supersedes "Imperial Verdigris" (2026-08-22, aged-copper teal) and the
+/// earlier "Ledger" (mint green) system — both rejected by the owner as
+/// reading like generic fintech. Every semantic getter here is
+/// contrast-verified for its stated use — do not substitute a "looks
+/// right" color for the one named. Several raw swatches fail WCAG AA as
+/// small text directly on Murex Noir; that's why the dedicated *Text
+/// roles below exist instead of using the raw swatch everywhere.
 class AppColors {
   const AppColors._();
 
-  // ---- Royal Obsidian (the world) ----
-  static const obsidian = Color(0xFF08090A);
-  static const deepInk = Color(0xFF0E1011);
-  static const ledgerBlack = Color(0xFF151718);
-  static const raisedInk = Color(0xFF1B1E1F);
+  // ---- Murex Noir (the world — near-black, barely-there plum undertone) ----
+  static const murexNoir = Color(0xFF0A070B);
+  static const murexInk = Color(0xFF151019);
+  static const surfaceRaised = Color(0xFF1D171F);
+  static const surfaceDialog = Color(0xFF251C25);
 
-  // ---- Imperial Verdigris (LOOP identity — aged oxidized copper, not
-  // mint/emerald/banking green) ----
-  static const verdigris = Color(0xFF356C67);
-  static const verdigrisDeep = Color(0xFF1D4543);
-  static const verdigrisDark = Color(0xFF102F2F);
-  static const verdigrisBright = Color(0xFF5E9891);
-  static const verdigrisLight = Color(0xFF8BBAB2);
-  static const verdigrisGhost = Color(0xFFB8D5CE);
-  static const verdigrisShadow = Color(0xFF081D1E);
+  // ---- Tyrian / Murex (LOOP identity — blackened royal ink, not neon
+  // violet/SaaS purple) ----
+  static const imperialPlum = Color(0xFF2B1728);
+  static const tyrianDeep = Color(0xFF401C38);
+  static const tyrianRoyal = Color(0xFF693754);
+  static const murexBloom = Color(0xFF98637D);
+  static const murexVeil = Color(0xFFC49AAF);
 
-  // ---- Cathedral Ivory (clarity / premium typography) ----
-  static const ivory = Color(0xFFF1ECDD);
-  static const agedIvory = Color(0xFFD8D0BF);
-  static const parchment = Color(0xFFBDB3A1);
-  static const mutedParchment = Color(0xFF8F877A);
+  // ---- Imperial Bone / Ivory (readability — warm, never sterile white) ----
+  static const royalBone = Color(0xFFF1EBDD);
+  static const agedIvory = Color(0xFFD9D0BE);
+  static const parchmentAsh = Color(0xFFABA091);
+  static const archiveDust = Color(0xFF756D66);
 
-  // ---- Blackened Silver / Pewter (structure) ----
-  static const blackenedSilver = Color(0xFF777D7B);
-  static const agedSilver = Color(0xFFA8ACA6);
-  static const royalPewter = Color(0xFFC2C4BC);
-  static const palePewter = Color(0xFFD8D9D1);
+  // ---- Blackened Platinum (structure — borders, icons) ----
+  static const platinum = Color(0xFFBCBAB5);
+  static const smokedPlatinum = Color(0xFF858381);
+  static const blackPlatinum = Color(0xFF48464A);
+  static const platinumGhost = Color(0xFFD6D3CC);
 
-  // ---- Oxblood Seal (rare archival/royal emphasis — used sparingly) ----
-  static const oxblood = Color(0xFF6D2934);
-  static const oxbloodDeep = Color(0xFF421820);
-  static const oxbloodLight = Color(0xFF98505B);
+  // ---- Antique Champagne (very rare — prestige/value markers only) ----
+  static const champagne = Color(0xFFB89A68);
+  static const champagneLight = Color(0xFFD0B782);
+  static const champagneDark = Color(0xFF735C38);
 
-  // ---- Archival Blue (information / protection — restrained) ----
-  static const archivalBlue = Color(0xFF536D73);
-  static const archivalBlueLight = Color(0xFF7F999E);
-  static const archivalBlueDark = Color(0xFF30474B);
+  // ---- Royal Ruby (extremely sparing — rare seal / critical emphasis) ----
+  static const royalRuby = Color(0xFF7A263D);
+  static const rubyDeep = Color(0xFF481522);
+  static const rubyLight = Color(0xFFA65368);
 
-  // ---- Semantic states ----
-  static const success = Color(0xFF6E9B78);
-  static const successDeep = Color(0xFF456C50);
-  static const warning = Color(0xFFB38A51);
-  static const danger = Color(0xFFA14E53);
+  // ---- Archival Sapphire (PROTECT / trust / information — restrained) ----
+  static const sapphireAsh = Color(0xFF4D6474);
+  static const sapphirePale = Color(0xFF7D94A2);
+  static const sapphireDeep = Color(0xFF2B3D49);
+
+  // ---- Semantic states (muted old-money tones, not brand identity) ----
+  static const success = Color(0xFF65856E);
+  static const successBright = Color(0xFF8EA894);
+  static const successDeep = Color(0xFF405B48);
+  static const warning = Color(0xFFB18A55);
+  static const danger = Color(0xFFA44B5A);
 
   // =========================================================================
   // WCAG-verified semantic roles. Contrast ratios computed against the
-  // dark-mode default surfaces (Obsidian/Ink/LedgerBlack); see
+  // dark-mode default surfaces (Murex Noir / Murex Ink); see
   // docs/DESIGN_SYSTEM.md for the full table.
   // =========================================================================
 
-  /// Primary body text on dark surfaces. 16.9:1 on Obsidian.
-  static const textPrimary = ivory;
+  /// Primary body text on dark surfaces. 16.9:1 on Murex Noir.
+  static const textPrimary = royalBone;
 
-  /// Secondary text — captions, supporting copy. 9.6:1 on Obsidian.
-  static const textSecondary = parchment;
+  /// Secondary text — captions, supporting copy. 13.1:1 on Murex Noir.
+  static const textSecondary = agedIvory;
 
-  /// Tertiary / muted text — timestamps, placeholders. 5.6:1 on Obsidian.
-  static const textMuted = mutedParchment;
+  /// Tertiary / muted text — timestamps, placeholders. 7.8:1 on Murex Noir.
+  static const textMuted = parchmentAsh;
 
-  /// Structural labels (field labels, table headers). 8.7:1 on Obsidian.
-  static const textStructural = agedSilver;
+  /// Structural labels (field labels, table headers, uppercase micro-
+  /// labels). 10.3:1 on Murex Noir.
+  static const textStructural = platinum;
 
-  /// Verdigris used as small TEXT (links, the emphasized word in "Sign
-  /// in" / "Sign up" toggles) — 6.1:1 on Obsidian. The raw `verdigris`
-  /// swatch only measures 3.3:1 as text and must not be used for text
-  /// at body size; reserve it for fills, icons, and large (18px+ bold
-  /// or 24px+) headings, where 3:1 is the correct AA threshold.
-  static const verdigrisText = verdigrisBright;
+  /// Decorative/whisper only — measures 4.0:1 on Murex Noir, which clears
+  /// the 3:1 large-text/UI floor but NOT the 4.5:1 small-text threshold.
+  /// Use for large (18px+ bold / 24px+) display text or non-text
+  /// decoration only; never small body copy.
+  static const textWhisper = archiveDust;
 
-  /// Danger/Oxblood as small TEXT on dark surfaces (inline error copy,
-  /// overdue-deadline emphasis) — neither raw swatch clears 4.5:1 as
-  /// text (Oxblood 1.9:1, Danger 3.5:1), so both get a lighter,
-  /// text-specific tint here instead of being used directly.
-  static const dangerText = Color(0xFFC97882);
-  static const oxbloodText = Color(0xFFC08088);
+  /// Tyrian used as small TEXT (links, the emphasized word in "Sign in" /
+  /// "Sign up" toggles) — 8.2:1 on Murex Noir. Raw `tyrianRoyal` only
+  /// measures 2.2:1 as text and must not be used for text at any size;
+  /// reserve it for fills and icons.
+  static const tyrianText = murexVeil;
 
-  /// Foreground for text/icons placed ON a solid Verdigris/Oxblood/
-  /// Danger/ArchivalBlue fill (buttons, filled badges) — Ivory, not a
-  /// dark ink. Dark-on-Verdigris measured 3.3:1 (fails AA normal text);
-  /// Ivory-on-Verdigris measures 5.1:1.
-  static const onAccentFill = ivory;
+  /// Tyrian as a non-text UI accent (focus rings, active-state borders,
+  /// the loop seal stroke) — 4.2:1 on Murex Noir, clears the 3:1 UI-
+  /// component threshold. Not for text.
+  static const tyrianAccent = murexBloom;
 
-  /// Foreground for text/icons on a solid Success/Warning fill — dark
-  /// ink, not Ivory (Ivory-on-Success measures 2.7:1, fails).
-  static const onSemanticFill = obsidian;
+  /// Danger as small TEXT on dark surfaces (inline validation errors) —
+  /// raw `danger` only measures 3.6:1 as text (fails AA 4.5:1), so this
+  /// dedicated lighter tint (4.6:1) exists instead of using the raw
+  /// swatch directly. Raw `danger` remains correct for fills/badges/icons.
+  static const dangerText = Color(0xFFB0636E);
 
-  // ---- Light mode (Cathedral Ivory ground, never plain white) ----
-  static const lightBackground = ivory;
-  static const lightSurface = Color(0xFFF7F3E8);
-  static const lightSurfaceRaised = Color(0xFFFFFFFF);
+  /// Royal Ruby as small TEXT (rare — critical deadlines, destructive
+  /// confirmations) — raw `royalRuby` measures 2.1:1 as text, a severe
+  /// fail; this tint measures 5.3:1.
+  static const rubyText = Color(0xFFAA757D);
+
+  /// Archival Sapphire as small TEXT (PROTECT module accents, info
+  /// copy) — raw `sapphireAsh` measures 3.2:1 as text (fails AA); this
+  /// lighter tint (`sapphirePale`) measures 6.3:1.
+  static const sapphireText = sapphirePale;
+
+  /// Foreground for text/icons placed ON a solid Tyrian/Ruby/Sapphire/
+  /// Danger fill (buttons, filled badges) — Royal Bone, not a dark ink.
+  /// Dark-on-Tyrian measures 2.2:1 (fails AA normal text); Bone-on-Tyrian
+  /// measures 7.8:1.
+  static const onAccentFill = royalBone;
+
+  /// Foreground for text/icons on a solid Success/Warning/Champagne
+  /// fill — dark ink, not Bone (Bone-on-Success measures 3.4:1, fails;
+  /// Murex Noir-on-Success measures 4.9:1).
+  static const onSemanticFill = murexNoir;
+
+  // ---- Light mode (Royal Bone ground, never plain white) ----
+  static const lightBackground = royalBone;
+  static const lightSurface = Color(0xFFEBE3D2);
+  static const lightSurfaceRaised = Color(0xFFF8F4E9);
   static const lightBorder = agedIvory;
-  static const lightTextPrimary = obsidian;
-  static const lightTextSecondary = Color(0xFF4A4740);
-  static const lightVerdigrisText = verdigrisDeep;
+  static const lightTextPrimary = murexNoir;
+  static const lightTextSecondary = blackPlatinum;
 
-  // Engine accents (MAKE / PROTECT / RECOVER) — used as small accents,
-  // never full-surface colors.
-  static const makeAccent = oxbloodLight;
-  static const protectAccent = archivalBlueLight;
-  static const recoverAccent = verdigrisBright;
+  /// Tertiary text in light mode — a darkened Archive Dust tint (5.0:1
+  /// on Royal Bone). Raw `archiveDust` only measures 4.3:1 on Bone,
+  /// marginally failing AA small text.
+  static const lightTextTertiary = Color(0xFF6A635D);
 
-  // ===========================================================================
-  // Compatibility aliases for the pre-"Imperial Verdigris" ("Ledger") token
-  // names. The Step 1 reconstruction directive redesigns only a handful of
-  // reference screens first (auth, Today, Money, Sell, Business/Quotes) —
-  // every other screen keeps compiling and inherits the new palette
-  // automatically through these aliases until it gets its own real pass.
-  // Do not add new call sites against these names; use the semantic roles
-  // above instead. Remove once every screen has been migrated off them.
-  // ===========================================================================
-  static const brand = verdigris;
-  static const info = archivalBlueLight;
-  static const opportunity = warning;
-  static const background = obsidian;
-  static const backgroundDark = obsidian;
-  static const surface = ledgerBlack;
-  static const surfaceDark = ledgerBlack;
-  static const surfaceHover = raisedInk;
-  static const surfaceHoverDark = raisedInk;
-  static const border = blackenedSilver;
-  static const borderDark = blackenedSilver;
-  static const textPrimaryDark = ivory;
-  static const textSecondaryDark = parchment;
-  static const onAccent = ivory;
-  static const brandSoftDark = verdigrisDark;
+  /// Accent text in light mode (links, toggle emphasis) — 12.3:1 on
+  /// Royal Bone. Raw `murexBloom`/`tyrianRoyal` both fail as light-mode
+  /// text (4.0:1 / 1.9:1); `tyrianDeep` is the one pairing that clears.
+  static const lightTyrianText = tyrianDeep;
+  static const lightDangerText = royalRuby;
+  static const lightSapphireText = sapphireDeep;
+  static const lightSuccessText = successDeep;
+  static const lightChampagneText = champagneDark;
+
+  // Engine accents (MAKE/Business, PROTECT, RECOVER/Sell) — used as small
+  // accents (icons, thin rules, badges), never full-surface colors. Mirrors
+  // the directive's per-module semantic cues: Business+Platinum, Protect+
+  // Sapphire, Sell+Champagne, Money+Champagne.
+  static const makeAccent = platinum;
+  static const protectAccent = sapphireAsh;
+  static const recoverAccent = champagne;
+  static const moneyAccent = champagne;
 
   static Color opportunityText(Brightness brightness) =>
-      brightness == Brightness.light ? Color(0xFF8A6423) : warning;
+      brightness == Brightness.light ? champagneDark : warning;
 }

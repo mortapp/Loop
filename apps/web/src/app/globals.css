@@ -1,13 +1,21 @@
 @import "tailwindcss";
 
 /*
- * LOOP design tokens — "Ledger" direction. See docs/DESIGN_SYSTEM.md for
- * the full rationale, the three directions considered, and the WCAG
- * contrast computations behind every pair below (two real failures were
- * found and fixed before this shipped: solid brand/opportunity green
- * as small text on light backgrounds, and porcelain text on the brand
- * button fill — both now use a dark foreground / darker text variant
- * instead).
+ * LOOP design tokens — "Murex Noir": blackened royal ink, the historic
+ * Tyrian/murex dye tradition read as a near-black digital material
+ * rather than a bright purple. Supersedes "Imperial Verdigris" and the
+ * earlier "Ledger" (mint green) direction — both rejected by the owner
+ * as reading like generic fintech/SaaS. See docs/DESIGN_SYSTEM.md for
+ * the full rationale and the WCAG contrast computations behind every
+ * pair below.
+ *
+ * Two real constraints shaped the token split: (1) the identity hue
+ * (Tyrian) is deliberately dark and low-contrast against Murex Noir —
+ * that's the "emerges from black" effect the brief wants — which means
+ * it is fill/large-element safe but fails as small text/icon color, so
+ * every accent has a separate *-text tint computed to clear 4.5:1;
+ * (2) light mode uses a warm bone ground, never plain white, per the
+ * brief's explicit "do not use white" rule.
  *
  * Dark is the default (a financial utility people check often benefits
  * from a calmer, lower-glare default); light is a fully-designed second
@@ -15,43 +23,47 @@
  */
 
 :root {
-  /* Neutrals — light mode */
-  --color-bg: #fafaf8;
-  --color-bg-secondary: #f2f1ed;
-  --color-surface: #ffffff;
-  --color-surface-hover: #f5f4f0;
-  --color-border-subtle: #e5e4df;
-  --color-border-strong: #d3d2cb;
-  --color-text-primary: #14141a;
-  --color-text-secondary: #55555d;
-  --color-text-tertiary: #8a8a90;
+  /* Neutrals — light mode (Royal Bone ground, never plain white) */
+  --color-bg: #f1ebdd;
+  --color-bg-secondary: #ebe3d2;
+  --color-surface: #f8f4e9;
+  --color-surface-hover: #d9d0be;
+  --color-border-subtle: #d9d0be;
+  --color-border-strong: #aba091;
+  --color-text-primary: #0a070b;
+  --color-text-secondary: #48464a;
+  --color-text-tertiary: #6a635d;
 
-  /* Brand + semantic accents (same hues both modes; text-on-light-bg
-     variants are darker so small colored text still clears WCAG AA —
-     see docs/DESIGN_SYSTEM.md contrast table) */
-  --color-brand: #2fae7a;
-  --color-brand-hover: #279467;
-  --color-brand-pressed: #1f7a55;
-  --color-brand-soft: #e8f5ee;
-  --color-brand-text: #1f7a55;
+  /* Brand + semantic accents. Solid values are shared across both modes
+     (fills, icons, large text ≥18px/24px-bold only); *-text variants are
+     the dedicated small-text-safe tints and differ per mode — see
+     docs/DESIGN_SYSTEM.md contrast table. */
+  --color-brand: #693754; /* Tyrian Royal */
+  --color-brand-hover: #401c38; /* Tyrian Deep */
+  --color-brand-pressed: #2b1728; /* Imperial Plum */
+  --color-brand-soft: #d6c7c2;
+  --color-brand-text: #401c38;
 
-  --color-info: #3d7eeb;
-  --color-info-soft: #eaf1fe;
-  --color-info-text: #1e5bc4;
+  --color-info: #4d6474; /* Sapphire Ash */
+  --color-info-soft: #d0d0c8;
+  --color-info-text: #2b3d49;
 
-  --color-opportunity: #d98a3d;
-  --color-opportunity-soft: #fbf0e2;
-  --color-opportunity-text: #8a5119;
+  --color-opportunity: #b89a68; /* Champagne — very rare, see brief */
+  --color-opportunity-soft: #e2d6bf;
+  --color-opportunity-text: #735c38;
 
-  --color-success: #2fae7a;
-  --color-warning: #d9a73d;
-  --color-danger: #e0473f;
-  --color-danger-soft: #fdeae8;
-  --color-danger-text: #b8362e;
+  --color-success: #65856e;
+  --color-warning: #b18a55;
+  --color-warning-soft: #e4d8c2;
+  --color-warning-text: #7f633f;
+  --color-danger: #a44b5a;
+  --color-danger-soft: #e2cbc3;
+  --color-danger-text: #7a263d;
 
-  /* Foreground for text/icons placed ON a solid accent fill (buttons,
-     filled badges) — dark, not white; see contrast table. */
-  --color-on-accent: #0a0a0c;
+  /* Foreground for text/icons placed ON a solid Brand/Info/Danger fill
+     (buttons, filled badges) — Royal Bone, not dark ink. Dark-on-Tyrian
+     measures 2.2:1 (fails); Bone-on-Tyrian measures 7.8:1. */
+  --color-on-accent: #f1ebdd;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -60,27 +72,30 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #0a0a0c;
-    --color-bg-secondary: #101013;
-    --color-surface: #17171b;
-    --color-surface-hover: #1e1e23;
-    --color-border-subtle: #242429;
-    --color-border-strong: #35353c;
-    --color-text-primary: #f5f5f2;
-    --color-text-secondary: #a8a8ad;
-    --color-text-tertiary: #6e6e74;
+    --color-bg: #0a070b; /* Murex Noir */
+    --color-bg-secondary: #151019; /* Murex Ink */
+    --color-surface: #1d171f;
+    --color-surface-hover: #251c25;
+    --color-border-subtle: #29242c;
+    --color-border-strong: #3d393e;
+    --color-text-primary: #f1ebdd; /* Royal Bone */
+    --color-text-secondary: #d9d0be; /* Aged Ivory */
+    --color-text-tertiary: #aba091; /* Parchment Ash */
 
-    --color-brand-soft: #12261c;
-    --color-brand-text: #2fae7a;
+    --color-brand-soft: #2b1728;
+    --color-brand-text: #c49aaf; /* Murex Veil — 8.2:1, raw Tyrian fails at 2.2:1 */
 
-    --color-info-soft: #101b2e;
-    --color-info-text: #3d7eeb;
+    --color-info-soft: #2b3d49;
+    --color-info-text: #7d94a2; /* Sapphire Pale — 6.3:1, raw Sapphire Ash fails at 3.2:1 */
 
-    --color-opportunity-soft: #2a1e10;
-    --color-opportunity-text: #d98a3d;
+    --color-opportunity-soft: #362b24;
+    --color-opportunity-text: #b89a68; /* Champagne clears 7.5:1 directly */
 
-    --color-danger-soft: #2e1210;
-    --color-danger-text: #e0473f;
+    --color-warning-soft: #4c3b2e;
+    --color-warning-text: #b18a55; /* clears 6.3:1 directly */
+
+    --color-danger-soft: #2c0f18;
+    --color-danger-text: #b0636e; /* 4.6:1, raw Danger fails at 3.6:1 */
   }
 }
 
@@ -111,6 +126,8 @@
 
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
+  --color-warning-soft: var(--color-warning-soft);
+  --color-warning-text: var(--color-warning-text);
   --color-danger: var(--color-danger);
   --color-danger-soft: var(--color-danger-soft);
   --color-danger-text: var(--color-danger-text);
@@ -123,6 +140,7 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-fraunces);
 }
 
 body {

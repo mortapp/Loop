@@ -36,7 +36,7 @@ class _ReturnWindowBadge extends StatelessWidget {
       color = AppColors.danger;
     } else if (days.ceil() <= 14) {
       label = '${days.ceil()} days left';
-      color = AppColors.opportunity;
+      color = AppColors.warning;
     } else {
       label = 'Return by ${_formatShortDate(expiresAt)}';
       color = AppColors.textMuted;

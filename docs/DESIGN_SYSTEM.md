@@ -1,5 +1,116 @@
 # LOOP Design System
 
+## 2026-08-22 — Current: "Murex Noir" replaces "Imperial Verdigris"
+
+Owner-directed rebrand (second one today): "Imperial Verdigris" (aged
+oxidized-copper teal) is rejected in full — reads too close to a
+mineral-green fintech accent, not distinctive enough. "Murex Noir"
+replaces it. Concept: blackened royal ink — the historic Tyrian/murex
+dye tradition (rare, imperial, expensive to produce) translated into a
+near-black digital material where the royal hue only reveals itself up
+close, never a bright/neon purple. Explicitly not medieval cosplay, not
+crypto, not glassmorphism, not an AI-SaaS gradient template.
+
+**Palette** (`apps/mobile/lib/core/theme/app_colors.dart`, mirrored in
+`apps/web/src/app/globals.css`): Murex Noir (`#0A070B`/`#151019`/
+`#1D171F`/`#251C25`, the world — four surface levels, deliberately not
+dramatically lighter step to step) · Tyrian/Murex (`#2B1728` Imperial
+Plum → `#401C38` Tyrian Deep → `#693754` Tyrian Royal → `#98637D` Murex
+Bloom → `#C49AAF` Murex Veil, the LOOP identity) · Imperial Bone/Ivory
+(`#F1EBDD` family, warm archival off-white, never plain white) ·
+Blackened Platinum (structure — borders, icons) · Antique Champagne
+(`#B89A68` family, *very* rare — prestige/value markers only, never a
+general accent) · Royal Ruby (`#7A263D` family, extremely sparing —
+rare seal/critical only) · Archival Sapphire (`#4D6474` family,
+PROTECT/trust/information) · Success/Warning/Danger semantic states
+(muted old-money tones, not brand identity).
+
+**WCAG contrast, computed live, not assumed** — real relative-luminance
+math (script discarded after use; re-derive with the standard formula
+before shipping any new pairing), same discipline as the Verdigris pass
+below. The identity hue is deliberately dark and low-contrast against
+Murex Noir (that's the "emerges from black" effect the brief wants),
+which means every accent needs a dedicated small-text-safe tint —
+using the raw swatch as text anywhere is a real accessibility bug, not
+a style choice:
+- `tyrianRoyal` (`#693754`) measures 2.2:1 as text on Murex Noir — a
+  severe fail even against the 3:1 large-text/UI floor. Fixed with
+  `tyrianText` → `murexVeil` (`#C49AAF`, 8.2:1) for small text/links,
+  and `tyrianAccent` → `murexBloom` (`#98637D`, 4.2:1) for non-text UI
+  accents (focus rings, active borders) where only the 3:1 floor
+  applies. Raw `tyrianRoyal`/`tyrianDeep` stay reserved for fills and
+  large (18px+ bold/24px+) headings.
+- `danger` (`#A44B5A`) measures 3.6:1 as text — fails AA 4.5:1. Fixed
+  with a dedicated `dangerText` tint (`#B0636E`, 4.6:1).
+- `royalRuby` (`#7A263D`) measures 2.1:1 as text — fixed with `rubyText`
+  (`#AA757D`, 5.3:1).
+- `sapphireAsh` (`#4D6474`) measures 3.2:1 as text — fixed with
+  `sapphireText` → `sapphirePale` (`#7D94A2`, 6.3:1).
+- `champagne` and `success`/`warning` all clear 4.5:1 directly as text
+  on Murex Noir (7.5:1 / 4.9:1 / 6.3:1) — no separate tint needed.
+- Button foregrounds: Bone-on-Tyrian measures 7.8:1, dark-ink-on-Tyrian
+  measures 2.2:1 (fails) — every Tyrian/Ruby/Sapphire/Danger fill uses
+  Royal Bone as foreground (`onAccentFill`). Bone-on-Success measures
+  only 3.4:1 (fails); dark-ink-on-Success measures 4.9:1 — Success/
+  Warning/Champagne fills use Murex Noir ink as foreground
+  (`onSemanticFill`) instead.
+- Light mode (Royal Bone ground, never plain white): `murexBloom`/
+  `tyrianRoyal` both fail as light-mode text (4.0:1 / 1.9:1);
+  `tyrianDeep` (12.3:1) is the pairing that clears, so light-mode
+  accent text uses `lightTyrianText` → `tyrianDeep`. Raw `archiveDust`
+  measures 4.3:1 on Bone (marginal fail); `lightTextTertiary` is a
+  darkened tint (`#6A635D`, 5.0:1) instead.
+
+**Typography**: unchanged from Verdigris — `google_fonts`' Fraunces
+(heritage serif, OFL) for the wordmark/hero figures/section titles
+only, Inter for everything else. Web now loads Fraunces too
+(`next/font/google`, `apps/web/src/app/layout.tsx`, exposed as
+`--font-display`) so the two platforms share the same editorial/
+utility split, not just the color tokens.
+
+**Material language**: the "double loop seal" brand mark — two
+interlocked rings, each with an engraved double line (outer Platinum,
+inner Tyrian) and a tiny Champagne key point where they cross — drawn
+natively on both platforms (`CustomPainter` in
+`apps/mobile/lib/features/auth/auth_screen.dart`, inline SVG in
+`apps/web/src/components/ui/loop-seal.tsx`), not imported art. Border
+language tightened toward the brief's "whisper" tier (12–16% alpha
+Platinum hairlines, down from Verdigris's 35–50%) for card/divider/
+input borders — restraint over visible chrome. Auth screen: persistent
+tiny uppercase field labels (EMAIL/PASSWORD) above bare hint-only
+inputs instead of Material floating labels, an engraved divider with a
+centered archival diamond (◇) instead of the word "or", a subtle
+3-stop Tyrian gradient on the primary CTA (Imperial Plum → Tyrian Royal
+→ Tyrian Deep, reads as dyed silk rather than a flat fill), and a
+"PRIVATE VALUE LEDGER" Champagne micro-label under the wordmark. Same
+Galaxy A14 performance constraints as before: no `BackdropFilter`, no
+blur, gradients and watermarks are single cheap paints under ~4%
+opacity.
+
+**What this pass covers vs. defers**: the token systems (mobile
+`AppColors`/`AppTheme`, web `globals.css`) are fully Murex Noir on both
+platforms — every screen that already drew from the shared semantic
+roles (`textPrimary`, `success`, `danger`, `protectAccent`, the CSS
+`--color-*` vars, …) inherited the new palette automatically the
+moment the token files changed, with zero per-screen edits, because
+the Verdigris-era architecture was already organized around semantic
+roles rather than literal color names. Confirmed via `flutter analyze`
+(0 issues), `flutter test` (5/5), `tsc --noEmit`, `eslint`, and
+`next build` (all clean) — see docs/AUTONOMOUS_BUILD_STATUS.md.
+Structurally redesigned this pass: mobile + web auth (the brief's
+required first reference screen). Mobile Today/Money/Sell/Business
+screens and the five web reference screens (Today, Money, Sell,
+Business/Quotes) already had row-based/ledger-style structural passes
+from the Verdigris session and inherited the new palette without
+further structural change. **Not yet done**: the web vertical-rail nav
+(still a horizontal pill nav), Money's "hero screen" treatment on web,
+Sell's auction-catalog gallery layout, Business's non-Quotes
+subpages (contacts/leads/opportunities) and AI (both still on raw
+Tailwind zinc/emerald, never migrated to tokens under any design
+system), and physical Galaxy A14 verification (device not connected —
+see docs/KNOWN_ISSUES.md). Real, valuable follow-up work, not treated
+as done.
+
 ## 2026-08-22 — Superseded: "Imperial Verdigris" replaces "Ledger"
 
 Owner-directed rebrand: the "Ledger" system below (mint-green accent,

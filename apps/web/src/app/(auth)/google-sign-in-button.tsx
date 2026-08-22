@@ -32,7 +32,7 @@ export function GoogleSignInButton() {
       type="button"
       onClick={handleClick}
       disabled={pending}
-      className="flex items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:bg-zinc-800"
+      className="flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-[var(--color-border-strong)]/30 bg-[var(--color-bg-secondary)] px-4 py-2.5 text-sm font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-hover)] disabled:opacity-50"
     >
       <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
         <path

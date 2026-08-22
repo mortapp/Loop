@@ -19,11 +19,12 @@ const _oauthRedirectUrl = 'com.loop.app.loop_mobile://login-callback';
 /// email/password via signInWithPassword/signUp, plus "Continue with
 /// Google" via the same browser-based PKCE flow apps/web uses.
 ///
-/// This is LOOP's "Imperial Verdigris" reference screen — see
+/// This is LOOP's "Murex Noir" reference screen — see
 /// docs/DESIGN_SYSTEM.md. Every other screen inherits the shared token
 /// system through AppTheme regardless, but this one carries the full
-/// editorial treatment (monogram, serif wordmark, engraved divider,
-/// restrained accent use) that the rest of the app is judged against.
+/// editorial treatment (double loop seal, serif wordmark, engraved
+/// divider, persistent micro-labels, restrained accent use) that the
+/// rest of the app is judged against.
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
 
@@ -124,16 +125,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Barely-visible mineral bloom — noticed subconsciously, not
-          // seen as a decoration. No blur, no shader: a single cheap
-          // RadialGradient well under the directive's 2-5% ceiling.
-          const Positioned.fill(child: _VerdigrisBloom()),
+          // Felt, not seen: a single cheap RadialGradient wash plus one
+          // faint oversized seal watermark. No blur, no shader — well
+          // under the directive's 2-4% ceiling.
+          const Positioned.fill(child: _MurexWash()),
+          const Positioned(right: -60, top: 40, child: _SealWatermark()),
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.xl,
+                  vertical: AppSpacing.lg,
                 ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 360),
@@ -142,7 +144,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Center(child: _LoopSeal()),
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: AppSpacing.sm),
                       Text(
                         'LOOP',
                         textAlign: TextAlign.center,
@@ -150,15 +152,26 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           letterSpacing: 6,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.xs),
+                      const SizedBox(height: 2),
+                      Text(
+                        'PRIVATE VALUE LEDGER',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: AppColors.champagne,
+                          letterSpacing: 3,
+                          fontSize: 10,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
                       Text(
                         'Earn. Buy. Own. Return or resell. Earn again.',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: AppColors.textMuted,
+                          fontSize: 12.5,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.xxl),
+                      const SizedBox(height: AppSpacing.xl),
                       Text(
                         (_isSignIn ? 'Sign in' : 'Create your account')
                             .toUpperCase(),
@@ -186,12 +199,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 : 'Continue with Google',
                           ),
                           style: OutlinedButton.styleFrom(
-                            backgroundColor: AppColors.ledgerBlack,
+                            backgroundColor: AppColors.murexInk,
                             foregroundColor: AppColors.textPrimary,
                             side: BorderSide(
-                              color: AppColors.royalPewter.withValues(
-                                alpha: 0.4,
-                              ),
+                              color: AppColors.platinum.withValues(alpha: 0.22),
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(
@@ -209,42 +220,48 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            TextFormField(
-                              controller: _emailController,
-                              enabled: !busy,
-                              keyboardType: TextInputType.emailAddress,
-                              autofillHints: const [AutofillHints.email],
-                              decoration: const InputDecoration(
-                                labelText: 'Email',
+                            _LabeledField(
+                              label: 'EMAIL',
+                              child: TextFormField(
+                                controller: _emailController,
+                                enabled: !busy,
+                                keyboardType: TextInputType.emailAddress,
+                                autofillHints: const [AutofillHints.email],
+                                decoration: const InputDecoration(
+                                  hintText: 'you@business.com',
+                                ),
+                                validator: (value) {
+                                  if (value == null || !value.contains('@')) {
+                                    return 'Enter a valid email address';
+                                  }
+                                  return null;
+                                },
                               ),
-                              validator: (value) {
-                                if (value == null || !value.contains('@')) {
-                                  return 'Enter a valid email address';
-                                }
-                                return null;
-                              },
                             ),
                             const SizedBox(height: AppSpacing.sm),
-                            TextFormField(
-                              controller: _passwordController,
-                              enabled: !busy,
-                              obscureText: true,
-                              autofillHints: [
-                                _isSignIn
-                                    ? AutofillHints.password
-                                    : AutofillHints.newPassword,
-                              ],
-                              decoration: const InputDecoration(
-                                labelText: 'Password',
+                            _LabeledField(
+                              label: 'PASSWORD',
+                              child: TextFormField(
+                                controller: _passwordController,
+                                enabled: !busy,
+                                obscureText: true,
+                                autofillHints: [
+                                  _isSignIn
+                                      ? AutofillHints.password
+                                      : AutofillHints.newPassword,
+                                ],
+                                decoration: const InputDecoration(
+                                  hintText: '••••••••',
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.length < 8) {
+                                    return 'At least 8 characters';
+                                  }
+                                  return null;
+                                },
+                                onFieldSubmitted: (_) =>
+                                    busy ? null : _submitEmailPassword(),
                               ),
-                              validator: (value) {
-                                if (value == null || value.length < 8) {
-                                  return 'At least 8 characters';
-                                }
-                                return null;
-                              },
-                              onFieldSubmitted: (_) =>
-                                  busy ? null : _submitEmailPassword(),
                             ),
                             if (_error != null) ...[
                               const SizedBox(height: AppSpacing.sm),
@@ -258,17 +275,39 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             const SizedBox(height: AppSpacing.md),
                             SizedBox(
                               height: 52,
-                              child: ElevatedButton(
-                                onPressed: busy ? null : _submitEmailPassword,
-                                child: _submitting
-                                    ? SizedBox.square(
-                                        dimension: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: AppColors.onAccentFill,
-                                        ),
-                                      )
-                                    : Text(_isSignIn ? 'Sign in' : 'Sign up'),
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.radiusSm,
+                                  ),
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                    colors: [
+                                      AppColors.imperialPlum,
+                                      AppColors.tyrianRoyal,
+                                      AppColors.tyrianDeep,
+                                    ],
+                                  ),
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: busy ? null : _submitEmailPassword,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    disabledBackgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    elevation: 0,
+                                  ),
+                                  child: _submitting
+                                      ? SizedBox.square(
+                                          dimension: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: AppColors.onAccentFill,
+                                          ),
+                                        )
+                                      : Text(_isSignIn ? 'Sign in' : 'Sign up'),
+                                ),
                               ),
                             ),
                           ],
@@ -292,7 +331,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 TextSpan(
                                   text: _isSignIn ? 'Sign up' : 'Sign in',
                                   style: const TextStyle(
-                                    color: AppColors.verdigrisText,
+                                    color: AppColors.tyrianText,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -309,6 +348,38 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A tiny persistent uppercase label above a bare (hint-only) field —
+/// reads as a constructed financial form rather than default Material
+/// floating-label chrome.
+class _LabeledField extends StatelessWidget {
+  const _LabeledField({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6, left: 2),
+          child: Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: AppColors.textStructural,
+              letterSpacing: 1.5,
+              fontSize: 10.5,
+            ),
+          ),
+        ),
+        child,
+      ],
     );
   }
 }
@@ -340,10 +411,12 @@ class _GoogleGlyph extends StatelessWidget {
   }
 }
 
-/// LOOP's small brand mark: two interlocking circles standing in for the
-/// product's own name (a loop), not a crown or shield — "more intelligent
-/// than a crown" per the design brief. Drawn, not imported, so it costs
-/// nothing to ship and nothing to render (a handful of stroked arcs).
+/// LOOP's brand mark: the "double loop seal" — two precisely interlocked
+/// rings, each drawn with an engraved double line (outer Platinum, inner
+/// Tyrian) and a tiny Champagne key point where they cross. Reads at once
+/// as a banking seal, an archive stamp, and a monogram — deliberately not
+/// a crown or shield. Drawn, not imported: a handful of stroked arcs,
+/// nothing that costs anything to ship or render.
 class _LoopSeal extends StatelessWidget {
   const _LoopSeal();
 
@@ -362,23 +435,54 @@ class _LoopSealPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
+    final outer = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6
-      ..color = AppColors.verdigrisBright;
+      ..strokeWidth = 1.4
+      ..color = AppColors.platinum.withValues(alpha: 0.85);
+    final inner = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = AppColors.tyrianAccent;
+    final keyPoint = Paint()..color = AppColors.champagne;
+
     final radius = size.height / 2 - 1;
     final leftCenter = Offset(size.width / 2 - radius * 0.55, size.height / 2);
     final rightCenter = Offset(size.width / 2 + radius * 0.55, size.height / 2);
-    canvas.drawCircle(leftCenter, radius, paint);
-    canvas.drawCircle(rightCenter, radius, paint);
+
+    canvas.drawCircle(leftCenter, radius, outer);
+    canvas.drawCircle(rightCenter, radius, outer);
+    canvas.drawCircle(leftCenter, radius - 3, inner);
+    canvas.drawCircle(rightCenter, radius - 3, inner);
+    canvas.drawCircle(Offset(size.width / 2, size.height / 2), 1.1, keyPoint);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// A thin engraved rule with a centered "or" — replaces a plain
-/// Divider()-on-both-sides row with something that reads as an
+/// The same seal drawn at ~30x scale and ~3% opacity, offset off-canvas —
+/// "felt, not seen" watermark per the directive. A single static paint,
+/// no animation, no filter.
+class _SealWatermark extends StatelessWidget {
+  const _SealWatermark();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Opacity(
+        opacity: 0.035,
+        child: SizedBox(
+          width: 420,
+          height: 300,
+          child: CustomPaint(painter: _LoopSealPainter()),
+        ),
+      ),
+    );
+  }
+}
+
+/// A thin engraved rule with a centered archival diamond — replaces a
+/// plain Divider()-on-both-sides row with something that reads as an
 /// intentional archival detail rather than default Material chrome.
 class _EngravedDivider extends StatelessWidget {
   const _EngravedDivider();
@@ -387,7 +491,7 @@ class _EngravedDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     final line = Container(
       height: 1,
-      color: AppColors.blackenedSilver.withValues(alpha: 0.35),
+      color: AppColors.smokedPlatinum.withValues(alpha: 0.3),
     );
     return Row(
       children: [
@@ -395,11 +499,10 @@ class _EngravedDivider extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
           child: Text(
-            'or',
+            '◇',
             style: GoogleFonts.inter(
-              fontSize: 11,
-              letterSpacing: 1.5,
-              color: AppColors.mutedParchment,
+              fontSize: 10,
+              color: AppColors.smokedPlatinum,
             ),
           ),
         ),
@@ -409,11 +512,11 @@ class _EngravedDivider extends StatelessWidget {
   }
 }
 
-/// Extremely subtle radial Verdigris bloom behind the auth content —
-/// noticed subconsciously, not as visible wallpaper. A single gradient
-/// paint, no image asset, no blur filter.
-class _VerdigrisBloom extends StatelessWidget {
-  const _VerdigrisBloom();
+/// Extremely subtle radial Murex wash behind the auth content — noticed
+/// subconsciously, not seen as decoration. A single gradient paint, no
+/// image asset, no blur filter.
+class _MurexWash extends StatelessWidget {
+  const _MurexWash();
 
   @override
   Widget build(BuildContext context) {
@@ -423,8 +526,8 @@ class _VerdigrisBloom extends StatelessWidget {
           center: const Alignment(0, -0.6),
           radius: 1.1,
           colors: [
-            AppColors.verdigrisDark.withValues(alpha: 0.16),
-            AppColors.obsidian.withValues(alpha: 0),
+            AppColors.imperialPlum.withValues(alpha: 0.18),
+            AppColors.murexNoir.withValues(alpha: 0),
           ],
         ),
       ),

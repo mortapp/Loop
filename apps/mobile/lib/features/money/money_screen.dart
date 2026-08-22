@@ -27,7 +27,7 @@ Color _kindColor(BuildContext context, MoneyEventKind kind) {
       return AppColors.protectAccent;
     case MoneyEventKind.spend:
     case MoneyEventKind.fee:
-      return AppColors.danger;
+      return AppColors.dangerText;
   }
 }
 
@@ -94,33 +94,51 @@ class _MoneyBody extends ConsumerWidget {
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
           Text(
-            'Net through LOOP',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.textMuted,
+            'TOTAL VALUE THROUGH LOOP',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: AppColors.textStructural,
+              letterSpacing: 1.5,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
             MoneyUtils.formatCents(net),
             style: theme.textTheme.headlineLarge?.copyWith(
+              fontSize: 44,
               color: net >= 0 ? AppColors.success : AppColors.danger,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              for (final kind in _kinds)
-                Expanded(
-                  child: _KindTotal(
-                    label: kind.name,
-                    value: MoneyUtils.formatCents(totals[kind] ?? 0),
-                  ),
+          Container(
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: AppColors.platinum.withValues(alpha: 0.25),
                 ),
-            ],
+              ),
+            ),
+            child: Row(
+              children: [
+                for (final kind in _kinds)
+                  Expanded(
+                    child: _KindTotal(
+                      label: kind.name,
+                      value: MoneyUtils.formatCents(totals[kind] ?? 0),
+                    ),
+                  ),
+              ],
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text('Log a manual entry', style: theme.textTheme.titleMedium),
+          Text(
+            'LOG A MANUAL ENTRY',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: AppColors.textStructural,
+              letterSpacing: 1.5,
+            ),
+          ),
           const SizedBox(height: AppSpacing.sm),
           const _LogEventForm(),
           const SizedBox(height: AppSpacing.lg),
@@ -146,7 +164,14 @@ class _KindTotal extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: theme.textTheme.bodyMedium?.copyWith(fontSize: 11)),
+        Text(
+          label.toUpperCase(),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 10,
+            letterSpacing: 0.8,
+            color: AppColors.textStructural,
+          ),
+        ),
         Text(
           value,
           style: theme.textTheme.bodyMedium?.copyWith(
@@ -171,40 +196,42 @@ class _MoneyEventTile extends StatelessWidget {
     final sign = moneyEventKindSign(event.kind);
     final color = _kindColor(context, event.kind);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      event.description?.isNotEmpty == true
-                          ? event.description!
-                          : event.kind.name,
-                      style: theme.textTheme.bodyLarge,
-                    ),
-                    Text(
-                      '${event.occurredAt.toLocal()} · ${event.sourceType ?? "manual"}',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '${sign > 0 ? '+' : '-'}${MoneyUtils.formatCents(event.amountCents)}',
-                style: theme.textTheme.titleMedium?.copyWith(color: color),
-              ),
-            ],
-          ),
+    // A ledger row, not a card — see docs/DESIGN_SYSTEM.md; matches
+    // Today's transaction-row treatment.
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.platinum.withValues(alpha: 0.25)),
         ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.description?.isNotEmpty == true
+                      ? event.description!
+                      : event.kind.name,
+                  style: theme.textTheme.bodyLarge,
+                ),
+                Text(
+                  '${event.occurredAt.toLocal()} · ${event.sourceType ?? "manual"}',
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${sign > 0 ? '+' : '-'}${MoneyUtils.formatCents(event.amountCents)}',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: color,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
       ),
     );
   }
