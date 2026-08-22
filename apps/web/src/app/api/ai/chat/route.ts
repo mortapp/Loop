@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import type Anthropic from "@anthropic-ai/sdk";
-import { createClient } from "@/lib/supabase/server";
-import { getActiveAccountId } from "@/lib/active-account";
 import { AI_MODEL, AI_SYSTEM_PROMPT, createAiClient, isAiConfigured } from "@/lib/ai/client";
 import { AI_TOOLS } from "@/lib/ai/tools";
+import { resolveAiRequest } from "@/lib/ai/auth";
 
 export type ChatResponseBody =
   | { type: "text"; text: string; messages: Anthropic.MessageParam[] }
@@ -31,23 +30,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json<ChatResponseBody>({ type: "error", error: "Not signed in." }, { status: 401 });
-  }
-
-  const accountId = await getActiveAccountId();
-  if (!accountId) {
-    return NextResponse.json<ChatResponseBody>({ type: "error", error: "No active account." }, { status: 400 });
-  }
-
-  const body = (await request.json()) as { messages?: Anthropic.MessageParam[] };
+  const body = (await request.json()) as {
+    messages?: Anthropic.MessageParam[];
+    accountId?: string;
+  };
   const messages = body.messages ?? [];
   if (messages.length === 0) {
     return NextResponse.json<ChatResponseBody>({ type: "error", error: "No messages." }, { status: 400 });
+  }
+
+  const auth = await resolveAiRequest(request, body.accountId);
+  if ("error" in auth) {
+    return NextResponse.json<ChatResponseBody>({ type: "error", error: auth.error }, { status: auth.status });
   }
 
   const client = createAiClient();
