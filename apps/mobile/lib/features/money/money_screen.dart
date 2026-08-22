@@ -9,6 +9,7 @@ import '../../core/utils/money.dart';
 import '../../core/widgets/account_sheet.dart';
 import '../../core/widgets/async_error_view.dart';
 import 'models/money_event.dart';
+import 'models/money_totals.dart';
 import 'money_providers.dart';
 
 const _kinds = [
@@ -44,6 +45,7 @@ class MoneyScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final eventsAsync = ref.watch(moneyEventsProvider);
+    final totalsAsync = ref.watch(moneyTotalsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -59,7 +61,14 @@ class MoneyScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         child: eventsAsync.when(
-          data: (events) => _MoneyBody(events: events),
+          data: (events) => totalsAsync.when(
+            data: (totals) => _MoneyBody(events: events, totals: totals),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, _) => AsyncErrorView(
+              error: error,
+              onRetry: () => ref.invalidate(moneyTotalsProvider),
+            ),
+          ),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => AsyncErrorView(
             error: error,
@@ -71,27 +80,43 @@ class MoneyScreen extends ConsumerWidget {
   }
 }
 
+int _centsForKind(MoneyTotals totals, MoneyEventKind kind) {
+  switch (kind) {
+    case MoneyEventKind.earn:
+      return totals.madeCents;
+    case MoneyEventKind.recovered:
+      return totals.recoveredCents;
+    case MoneyEventKind.refund:
+      return totals.protectedCents;
+    case MoneyEventKind.spend:
+      return totals.spentCents;
+    case MoneyEventKind.fee:
+      return totals.feesCents;
+  }
+}
+
 class _MoneyBody extends ConsumerWidget {
-  const _MoneyBody({required this.events});
+  const _MoneyBody({required this.events, required this.totals});
 
   final List<MoneyEvent> events;
+  final MoneyTotals totals;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-
-    final totals = <MoneyEventKind, int>{};
-    var net = 0;
-    for (final event in events) {
-      totals[event.kind] = (totals[event.kind] ?? 0) + event.amountCents;
-      net += moneyEventKindSign(event.kind) * event.amountCents;
-    }
+    final net = totals.netCents;
 
     // One dominant Net figure, not six equally-weighted boxes — Net is
     // what answers "how am I doing," everything else is supporting
     // detail (matches the same hierarchy fix on apps/web's Money page).
+    // Totals come from the one canonical formula (public.account_money_
+    // totals) rather than being reduced from `events` here — see
+    // money_providers.dart's moneyTotalsProvider.
     return RefreshIndicator(
-      onRefresh: () => ref.refresh(moneyEventsProvider.future),
+      onRefresh: () => Future.wait([
+        ref.refresh(moneyEventsProvider.future),
+        ref.refresh(moneyTotalsProvider.future),
+      ]),
       child: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
@@ -127,7 +152,9 @@ class _MoneyBody extends ConsumerWidget {
                   Expanded(
                     child: _KindTotal(
                       label: kind.name,
-                      value: MoneyUtils.formatCents(totals[kind] ?? 0),
+                      value: MoneyUtils.formatCents(
+                        _centsForKind(totals, kind),
+                      ),
                     ),
                   ),
               ],

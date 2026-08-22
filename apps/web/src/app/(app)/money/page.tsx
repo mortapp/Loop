@@ -24,6 +24,15 @@ const KIND_LABEL: Record<MoneyEventKind, string> = {
   fee: "Fees",
 };
 
+type MoneyTotalsRow = {
+  made_cents: number;
+  protected_cents: number;
+  recovered_cents: number;
+  spent_cents: number;
+  fees_cents: number;
+  net_cents: number;
+};
+
 export default async function MoneyPage() {
   const accountId = await getActiveAccountId();
   const supabase = await createClient();
@@ -37,15 +46,22 @@ export default async function MoneyPage() {
         .returns<MoneyEvent[]>()
     : { data: [] as MoneyEvent[] };
 
-  const totals = (events ?? []).reduce(
-    (acc, event) => {
-      acc[event.kind] = (acc[event.kind] ?? 0) + event.amount_cents;
-      return acc;
-    },
-    {} as Record<MoneyEventKind, number>,
-  );
-
-  const net = (events ?? []).reduce((sum, e) => sum + KIND_SIGN[e.kind] * e.amount_cents, 0);
+  // Totals come from the one canonical formula (public.account_money_totals,
+  // see supabase/migrations/20260822163000_money_integrity.sql) rather than
+  // being re-derived here -- this page used to reduce over `events` itself,
+  // duplicating the exact same formula apps/mobile also reimplemented.
+  const { data: totalsRows } = accountId
+    ? await supabase.rpc("account_money_totals", { p_account_id: accountId })
+    : { data: null };
+  const totals = (totalsRows as MoneyTotalsRow[] | null)?.[0] ?? {
+    made_cents: 0,
+    protected_cents: 0,
+    recovered_cents: 0,
+    spent_cents: 0,
+    fees_cents: 0,
+    net_cents: 0,
+  };
+  const net = totals.net_cents;
 
   return (
     <div className="flex flex-col gap-10">
@@ -80,9 +96,9 @@ export default async function MoneyPage() {
         <div className="mt-6 grid grid-cols-3 gap-4 border-t border-[var(--color-border-subtle)] pt-4">
           {(
             [
-              ["MADE", totals.earn ?? 0],
-              ["PROTECTED", totals.refund ?? 0],
-              ["RECOVERED", totals.recovered ?? 0],
+              ["MADE", totals.made_cents],
+              ["PROTECTED", totals.protected_cents],
+              ["RECOVERED", totals.recovered_cents],
             ] as const
           ).map(([label, cents]) => (
             <div key={label}>
@@ -98,8 +114,8 @@ export default async function MoneyPage() {
         <div className="mt-3 flex gap-6">
           {(
             [
-              ["Spent", totals.spend ?? 0],
-              ["Fees", totals.fee ?? 0],
+              ["Spent", totals.spent_cents],
+              ["Fees", totals.fees_cents],
             ] as const
           ).map(([label, cents]) => (
             <p key={label} className="text-xs text-[var(--color-text-tertiary)]">

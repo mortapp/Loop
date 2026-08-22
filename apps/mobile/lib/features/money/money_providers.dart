@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/account/account_providers.dart';
 import '../../core/supabase/supabase_providers.dart';
 import 'models/money_event.dart';
+import 'models/money_totals.dart';
 
 /// Every `money_events` row for the active account, newest first — mirrors
 /// `apps/web/src/app/(app)/money/page.tsx`.
@@ -20,6 +21,28 @@ final moneyEventsProvider = FutureProvider.autoDispose<List<MoneyEvent>>((
       .order('occurred_at', ascending: false);
 
   return rows.map(MoneyEvent.fromJson).toList();
+});
+
+/// MADE/PROTECTED/RECOVERED/SPENT/FEES/NET, sourced from the one canonical
+/// formula (public.account_money_totals — see
+/// supabase/migrations/20260822163000_money_integrity.sql) instead of
+/// being re-derived client-side. Web reads the same RPC.
+final moneyTotalsProvider = FutureProvider.autoDispose<MoneyTotals>((
+  ref,
+) async {
+  final client = ref.watch(supabaseClientProvider);
+  final accountId = ref.watch(activeAccountProvider).id;
+
+  if (accountId.isEmpty) return MoneyTotals.zero;
+
+  final rows = await client.rpc(
+    'account_money_totals',
+    params: {'p_account_id': accountId},
+  );
+  final row = (rows as List).isEmpty
+      ? null
+      : rows.first as Map<String, dynamic>;
+  return row == null ? MoneyTotals.zero : MoneyTotals.fromJson(row);
 });
 
 class MoneyEventsRepository {
