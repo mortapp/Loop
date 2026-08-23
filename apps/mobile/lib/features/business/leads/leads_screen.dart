@@ -143,9 +143,12 @@ class _LeadTile extends ConsumerWidget {
         await ref
             .read(leadsRepositoryProvider)
             .setStatus(id: lead.id, status: status);
+        if (!context.mounted) return;
         ref.invalidate(leadsProvider);
-      } catch (e) {
-        if (context.mounted) showErrorSnackBar(context, 'Failed: $e');
+      } catch (_) {
+        if (context.mounted) {
+          showErrorSnackBar(context, userSafeActionError('update this lead'));
+        }
       }
     }
 
@@ -270,12 +273,15 @@ class _CreateLeadFormState extends ConsumerState<_CreateLeadForm> {
                 ? null
                 : _notesController.text.trim(),
           );
+      if (!mounted) return;
       _sourceController.clear();
       _notesController.clear();
       setState(() => _contactId = null);
       ref.invalidate(leadsProvider);
-    } catch (e) {
-      setState(() => _error = 'Failed to add lead: $e');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = userSafeActionError('add this lead'));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

@@ -10,10 +10,8 @@ enum AccountKind { personal, business }
 /// A single account a signed-in user can act as — either their own
 /// personal account, or a business account they hold membership in.
 ///
-/// This is a placeholder/interface shape for the account-switcher: no
-/// live Supabase data is wired up yet, but the navigation shell and
-/// Business tab are built against this model so the real data layer can
-/// slot in later without reshaping the UI.
+/// This is the live account-switcher shape populated from Supabase accounts
+/// and the signed-in user's active business memberships.
 class AccountSummary {
   const AccountSummary({
     required this.id,

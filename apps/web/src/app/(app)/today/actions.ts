@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { userSafeServerError } from "@/lib/user-safe-error";
 
 export type CreateActionState = { error: string } | null;
 
@@ -33,7 +34,7 @@ export async function createAction(
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: userSafeServerError("today:create-action", error) };
   }
 
   revalidatePath("/today");

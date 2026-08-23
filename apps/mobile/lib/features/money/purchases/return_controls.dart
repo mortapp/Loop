@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/async_error_view.dart';
+import '../money_providers.dart';
 import 'models/return_record.dart';
 import 'purchases_providers.dart';
 
@@ -23,13 +24,6 @@ Color _statusColor(ReturnStatus status) {
       return AppColors.danger;
   }
 }
-
-const _simpleStatuses = [
-  ReturnStatus.initiated,
-  ReturnStatus.shipped,
-  ReturnStatus.received,
-  ReturnStatus.denied,
-];
 
 /// Return lifecycle controls for one purchase — mirrors
 /// `apps/web/src/app/(app)/money/purchases/return-controls.tsx`:
@@ -74,18 +68,22 @@ class ReturnControls extends ConsumerWidget {
           side: BorderSide.none,
         ),
         if (!isTerminal) ...[
-          for (final status in _simpleStatuses.where(
-            (s) => s != existing.status,
-          ))
+          for (final status in nextReturnStatuses(existing.status))
             TextButton(
               onPressed: () async {
                 try {
                   await ref
                       .read(purchasesRepositoryProvider)
                       .setReturnStatus(id: existing.id, status: status);
+                  if (!context.mounted) return;
                   ref.invalidate(purchasesPageProvider);
-                } catch (e) {
-                  if (context.mounted) showErrorSnackBar(context, 'Failed: $e');
+                } catch (_) {
+                  if (context.mounted) {
+                    showErrorSnackBar(
+                      context,
+                      userSafeActionError('update this return'),
+                    );
+                  }
                 }
               },
               child: Text(
@@ -142,9 +140,12 @@ class _StartReturnControlState extends ConsumerState<_StartReturnControl> {
                 ? null
                 : _reasonController.text.trim(),
           );
+      if (!mounted) return;
       ref.invalidate(purchasesPageProvider);
-    } catch (e) {
-      if (mounted) showErrorSnackBar(context, 'Failed to start return: $e');
+    } catch (_) {
+      if (mounted) {
+        showErrorSnackBar(context, userSafeActionError('start this return'));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -224,9 +225,14 @@ class _RefundControlState extends ConsumerState<_RefundControl> {
             itemId: widget.itemId,
             refundAmountCents: cents,
           );
+      if (!mounted) return;
       ref.invalidate(purchasesPageProvider);
-    } catch (e) {
-      if (mounted) showErrorSnackBar(context, 'Failed to refund: $e');
+      ref.invalidate(moneyEventsProvider);
+      ref.invalidate(moneyTotalsProvider);
+    } catch (_) {
+      if (mounted) {
+        showErrorSnackBar(context, userSafeActionError('record this refund'));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { userSafeServerError } from "@/lib/user-safe-error";
 
 export type CreateContactState = { error: string } | null;
 
@@ -39,7 +40,7 @@ export async function createContact(
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: userSafeServerError("contacts:create", error) };
   }
 
   revalidatePath("/business/contacts");

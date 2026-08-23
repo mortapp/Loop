@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { userSafeServerError } from "@/lib/user-safe-error";
 
 export type CreateOpportunityState = { error: string } | null;
 
@@ -45,7 +46,7 @@ export async function createOpportunity(
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: userSafeServerError("opportunities:create", error) };
   }
 
   revalidatePath("/business/opportunities");

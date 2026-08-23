@@ -1,6 +1,6 @@
 # LOOP Codex Primary Finishing Progress
 
-Updated: 2026-08-23T05:27:00-04:00
+Updated: 2026-08-23T07:04:18Z
 
 ## Repository
 
@@ -8,16 +8,16 @@ Updated: 2026-08-23T05:27:00-04:00
 - Branch: `main`
 - Starting HEAD: `40692e8fdb22284b57b0a8e0742e585b1f177e4e`
 - Auth/onboarding checkpoint: `87a25000f9656b81bf0e19a137ee44d5894a09b5`
+- Backend/account/storage/quote checkpoint: `4ab112bfeb05b4cc3e4f1063b92fe4790fd37a62`
 - Remote: `git@github.com:mortapp/Loop.git`
-- Remote policy: ordinary fast-forward pushes only; no force push. The
-  backend/quote checkpoint travels with this progress update after all listed
-  source and hosted rollback gates passed.
+- Remote policy: ordinary fast-forward pushes only; no force push. The current
+  atomic lifecycle/error-safety checkpoint is pending its final scoped commit.
 - Source version: `1.0.0+1`
 - MORT status: reference-only; not modified
 
 ## Current Phase
 
-`PHASE 7 - hosted account graph, private Storage, and atomic quote integrity`
+`PHASE 8 - atomic Money/Protect/Recover lifecycle and cross-platform error safety`
 
 ## Verified Evidence
 
@@ -30,7 +30,7 @@ Updated: 2026-08-23T05:27:00-04:00
   timeout, cancel, retry, and cold-session coverage.
 - Onboarding requires display name + globally unique username, atomically
   saves both, and adds a password to Google-only users without creating a
-  second account. Flutter is 41/41 green at the current checkpoint.
+  second account. Flutter is 47/47 green at the current checkpoint.
 - Hosted migration `20260823050806_enforce_account_graph_integrity` blocks
   forged cross-account nested UUIDs, derives actor IDs from Auth, restricts
   profile email updates, and removes unnecessary trigger-function RPC access.
@@ -45,6 +45,28 @@ Updated: 2026-08-23T05:27:00-04:00
 - Mobile quote creation now calls that atomic RPC instead of leaving a possible
   orphan header, guards post-await widget disposal, and sanitizes errors on
   mobile and web. Focused Flutter quote tests pass 3/3; analyzer is clean.
+- Hosted migration `20260823060632_enforce_atomic_money_lifecycle` adds four
+  authenticated, security-invoker RPCs for purchases, listings, sales, and
+  refunds; direct-write guards, integer-cent/state constraints, source-event
+  uniqueness, and one-sale-per-item enforcement keep legacy clients safe.
+- Hosted migration
+  `20260823062451_order_lifecycle_guards_after_account_integrity` preserves the
+  established cross-account SQLSTATE contract by deterministically running
+  account guards before lifecycle validation.
+- Hosted migration `20260823070326_consolidate_business_member_policies`
+  preserves all member/admin behavior while reducing SELECT/DELETE from
+  multiple permissive policies to exactly one policy per command. The
+  performance advisor now reports zero multiple-policy warnings.
+- A current-CLI clean local reset now replays every migration and seed from
+  empty. `supabase/roles.sql` supplies only the unattached local compatibility
+  helper that the hosted platform owns; applied migrations remain immutable.
+- Fresh database regression is 166/166 across nine pgTAP suites. Mobile is
+  47/47, `flutter analyze --no-pub` is clean, and web typecheck, ESLint, and
+  optimized Next.js build pass.
+- Mobile and web purchase/listing/sale/refund flows use the same atomic RPCs.
+  Async widget disposal is guarded, account selection survives refresh, return
+  transitions only move forward, money caches invalidate after mutations, and
+  browser/mobile/AI responses no longer expose raw backend/provider errors.
 - Security advisor no longer reports anonymous execution of
   `rls_auto_enable()`. Remaining helper-function warnings are reviewed,
   intentional RLS recursion breakers; leaked-password protection remains a
@@ -74,5 +96,6 @@ Updated: 2026-08-23T05:27:00-04:00
 
 ## Next Automatic Checkpoint
 
-Continue profile, Today, Money, Protect, and Recover flow audits while polling
-the owner-gated Samsung callback state.
+Commit and push the verified lifecycle/error-safety checkpoint, then continue
+Today, Money, Protect, Recover, and account-action UX audits while polling the
+owner-gated Samsung callback state.

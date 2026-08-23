@@ -3,10 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { userSafeServerError } from "@/lib/user-safe-error";
 
 export type CreateLeadState = { error: string } | null;
 
-export async function createLead(_prev: CreateLeadState, formData: FormData): Promise<CreateLeadState> {
+export async function createLead(
+  _prev: CreateLeadState,
+  formData: FormData,
+): Promise<CreateLeadState> {
   const contactId = String(formData.get("contactId") ?? "").trim() || null;
   const source = String(formData.get("source") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
@@ -34,14 +38,17 @@ export async function createLead(_prev: CreateLeadState, formData: FormData): Pr
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: userSafeServerError("leads:create", error) };
   }
 
   revalidatePath("/business/leads");
   return null;
 }
 
-export async function setLeadStatus(id: string, status: "new" | "contacted" | "qualified" | "disqualified" | "converted") {
+export async function setLeadStatus(
+  id: string,
+  status: "new" | "contacted" | "qualified" | "disqualified" | "converted",
+) {
   const supabase = await createClient();
   await supabase.from("leads").update({ status }).eq("id", id);
   revalidatePath("/business/leads");

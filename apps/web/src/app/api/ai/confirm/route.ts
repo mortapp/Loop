@@ -3,6 +3,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { AI_MODEL, AI_SYSTEM_PROMPT, createAiClient, isAiConfigured } from "@/lib/ai/client";
 import { AI_TOOLS, executeTool } from "@/lib/ai/tools";
 import { resolveAiRequest } from "@/lib/ai/auth";
+import { userSafeServerError } from "@/lib/user-safe-error";
 import type { ChatResponseBody } from "../chat/route";
 
 type ConfirmRequestBody = {
@@ -31,7 +32,10 @@ export async function POST(request: Request) {
 
   const auth = await resolveAiRequest(request, body.accountId);
   if ("error" in auth) {
-    return NextResponse.json<ChatResponseBody>({ type: "error", error: auth.error }, { status: auth.status });
+    return NextResponse.json<ChatResponseBody>(
+      { type: "error", error: auth.error },
+      { status: auth.status },
+    );
   }
   const { supabase, userId, accountId } = auth;
 
@@ -39,12 +43,16 @@ export async function POST(request: Request) {
   const toolUseBlock =
     lastAssistant?.role === "assistant" && Array.isArray(lastAssistant.content)
       ? lastAssistant.content.find(
-          (block): block is Anthropic.ToolUseBlock => block.type === "tool_use" && block.id === toolUseId,
+          (block): block is Anthropic.ToolUseBlock =>
+            block.type === "tool_use" && block.id === toolUseId,
         )
       : undefined;
 
   if (!toolUseBlock) {
-    return NextResponse.json<ChatResponseBody>({ type: "error", error: "No matching tool call." }, { status: 400 });
+    return NextResponse.json<ChatResponseBody>(
+      { type: "error", error: "No matching tool call." },
+      { status: 400 },
+    );
   }
 
   let toolResultContent: string;
@@ -95,7 +103,11 @@ export async function POST(request: Request) {
       messages: messagesWithResult,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "AI request failed.";
+    const message = userSafeServerError(
+      "ai:confirm-provider",
+      error,
+      "LOOP AI is temporarily unavailable. Please try again.",
+    );
     return NextResponse.json<ChatResponseBody>({ type: "error", error: message }, { status: 502 });
   }
 

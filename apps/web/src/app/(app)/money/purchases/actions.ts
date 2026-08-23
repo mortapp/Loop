@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { userSafeServerError } from "@/lib/user-safe-error";
 
 export type FormState = { error: string } | null;
 
@@ -25,35 +26,18 @@ export async function createPurchase(_prev: FormState, formData: FormData): Prom
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { error } = await supabase.from("purchases").insert({
-    account_id: accountId,
-    item_id: itemId,
-    vendor_name: vendorName,
-    purchase_date: purchaseDate,
-    price_cents: priceCents,
-    return_window_expires_at: returnWindowExpiresAt,
-    warranty_expires_at: warrantyExpiresAt,
-    created_by: user?.id ?? null,
+  const { error } = await supabase.rpc("create_purchase_with_money_event", {
+    p_account_id: accountId,
+    p_item_id: itemId,
+    p_vendor_name: vendorName,
+    p_purchase_date: purchaseDate,
+    p_price_cents: priceCents,
+    p_return_window_expires_at: returnWindowExpiresAt,
+    p_warranty_expires_at: warrantyExpiresAt,
   });
 
   if (error) {
-    return { error: error.message };
-  }
-
-  if (priceCents) {
-    await supabase.from("money_events").insert({
-      account_id: accountId,
-      item_id: itemId,
-      kind: "spend",
-      amount_cents: priceCents,
-      source_type: "purchase",
-      description: vendorName ? `Purchase from ${vendorName}` : "Purchase",
-      created_by: user?.id ?? null,
-    });
+    return { error: "Could not save this purchase. Please try again." };
   }
 
   revalidatePath("/money/purchases");
@@ -89,7 +73,7 @@ export async function startReturn(_prev: FormState, formData: FormData): Promise
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: userSafeServerError("returns:create", error) };
   }
 
   revalidatePath("/money/purchases");
@@ -115,7 +99,13 @@ export async function refundReturn(_prev: FormState, formData: FormData): Promis
   const amount = String(formData.get("amount") ?? "").trim();
   const refundAmountCents = Math.round(Number(amount) * 100);
 
-  if (!returnId || !itemId || !amount || !Number.isFinite(refundAmountCents) || refundAmountCents <= 0) {
+  if (
+    !returnId ||
+    !itemId ||
+    !amount ||
+    !Number.isFinite(refundAmountCents) ||
+    refundAmountCents <= 0
+  ) {
     return { error: "Enter a valid refund amount." };
   }
 
@@ -125,30 +115,16 @@ export async function refundReturn(_prev: FormState, formData: FormData): Promis
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  await supabase
-    .from("returns")
-    .update({
-      status: "refunded",
-      refund_amount_cents: refundAmountCents,
-      resolved_at: new Date().toISOString(),
-    })
-    .eq("id", returnId);
-
-  await supabase.from("money_events").insert({
-    account_id: accountId,
-    item_id: itemId,
-    kind: "refund",
-    amount_cents: refundAmountCents,
-    source_type: "return",
-    description: "Return refunded",
-    created_by: user?.id ?? null,
+  const { error } = await supabase.rpc("refund_return_with_money_event", {
+    p_account_id: accountId,
+    p_return_id: returnId,
+    p_item_id: itemId,
+    p_refund_amount_cents: refundAmountCents,
   });
 
-  await supabase.from("items").update({ status: "returned" }).eq("id", itemId);
+  if (error) {
+    return { error: "Could not record this refund. Please try again." };
+  }
 
   revalidatePath("/money/purchases");
   revalidatePath("/money");
@@ -183,7 +159,7 @@ export async function addWarranty(_prev: FormState, formData: FormData): Promise
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: userSafeServerError("warranties:create", error) };
   }
 
   revalidatePath("/money/purchases");

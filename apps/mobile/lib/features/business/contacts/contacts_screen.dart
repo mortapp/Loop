@@ -154,14 +154,17 @@ class _CreateContactFormState extends ConsumerState<_CreateContactForm> {
                 ? null
                 : _companyController.text.trim(),
           );
+      if (!mounted) return;
       _nameController.clear();
       _companyController.clear();
       _emailController.clear();
       _phoneController.clear();
       ref.invalidate(contactsProvider);
       ref.invalidate(contactRefsProvider);
-    } catch (e) {
-      setState(() => _error = 'Failed to add contact: $e');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = userSafeActionError('add this contact'));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

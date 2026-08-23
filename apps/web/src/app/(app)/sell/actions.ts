@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { userSafeServerError } from "@/lib/user-safe-error";
 
 export type FormState = { error: string } | null;
 
@@ -16,6 +17,13 @@ export async function createItem(_prev: FormState, formData: FormData): Promise<
   const condition = String(formData.get("condition") ?? "").trim() || null;
   const purchasePrice = String(formData.get("purchasePrice") ?? "").trim();
   const purchasePriceCents = purchasePrice ? Math.round(Number(purchasePrice) * 100) : null;
+
+  if (
+    purchasePriceCents !== null &&
+    (!Number.isFinite(purchasePriceCents) || purchasePriceCents < 0)
+  ) {
+    return { error: "Enter a valid purchase price." };
+  }
 
   const accountId = await getActiveAccountId();
   if (!accountId) {
@@ -37,7 +45,7 @@ export async function createItem(_prev: FormState, formData: FormData): Promise<
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: userSafeServerError("sell:create-item", error) };
   }
 
   revalidatePath("/sell");
@@ -60,11 +68,15 @@ export async function attachItemPhoto(itemId: string, objectPath: string): Promi
     .select("photos")
     .eq("id", itemId)
     .single();
-  if (fetchError) return { error: fetchError.message };
+  if (fetchError) {
+    return { error: userSafeServerError("sell:load-item-photos", fetchError) };
+  }
 
   const photos = [...((item?.photos as string[] | null) ?? []), objectPath];
   const { error } = await supabase.from("items").update({ photos }).eq("id", itemId);
-  if (error) return { error: error.message };
+  if (error) {
+    return { error: userSafeServerError("sell:add-item-photo", error) };
+  }
 
   revalidatePath("/sell");
   return null;
@@ -109,7 +121,7 @@ export async function addValuation(_prev: FormState, formData: FormData): Promis
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: userSafeServerError("sell:create-valuation", error) };
   }
 
   revalidatePath("/sell");
@@ -125,6 +137,9 @@ export async function createListing(_prev: FormState, formData: FormData): Promi
   if (!itemId || !marketplace) {
     return { error: "Marketplace is required." };
   }
+  if (listPriceCents !== null && (!Number.isFinite(listPriceCents) || listPriceCents < 0)) {
+    return { error: "Enter a valid listing price." };
+  }
 
   const accountId = await getActiveAccountId();
   if (!accountId) {
@@ -132,25 +147,16 @@ export async function createListing(_prev: FormState, formData: FormData): Promi
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { error } = await supabase.from("listings").insert({
-    account_id: accountId,
-    item_id: itemId,
-    marketplace,
-    status: "active",
-    list_price_cents: listPriceCents,
-    published_at: new Date().toISOString(),
-    created_by: user?.id ?? null,
+  const { error } = await supabase.rpc("create_listing_and_mark_item", {
+    p_account_id: accountId,
+    p_item_id: itemId,
+    p_marketplace: marketplace,
+    p_list_price_cents: listPriceCents,
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: "Could not create this listing. Please try again." };
   }
-
-  await supabase.from("items").update({ status: "listed" }).eq("id", itemId);
 
   revalidatePath("/sell");
   return null;
@@ -165,7 +171,14 @@ export async function recordSale(_prev: FormState, formData: FormData): Promise<
   const salePriceCents = Math.round(Number(salePrice) * 100);
   const feesCents = fees ? Math.round(Number(fees) * 100) : 0;
 
-  if (!itemId || !Number.isFinite(salePriceCents) || salePriceCents <= 0) {
+  if (
+    !itemId ||
+    !Number.isFinite(salePriceCents) ||
+    salePriceCents <= 0 ||
+    !Number.isFinite(feesCents) ||
+    feesCents < 0 ||
+    feesCents > salePriceCents
+  ) {
     return { error: "Enter a valid sale price." };
   }
 
@@ -175,40 +188,17 @@ export async function recordSale(_prev: FormState, formData: FormData): Promise<
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const netAmountCents = salePriceCents - feesCents;
-
-  const { error: saleError } = await supabase.from("sales").insert({
-    account_id: accountId,
-    item_id: itemId,
-    listing_id: listingId,
-    sale_price_cents: salePriceCents,
-    fees_cents: feesCents,
-    net_amount_cents: netAmountCents,
-    created_by: user?.id ?? null,
+  const { error: saleError } = await supabase.rpc("record_item_sale", {
+    p_account_id: accountId,
+    p_item_id: itemId,
+    p_listing_id: listingId,
+    p_sale_price_cents: salePriceCents,
+    p_fees_cents: feesCents,
   });
 
   if (saleError) {
-    return { error: saleError.message };
+    return { error: "Could not record this sale. Please try again." };
   }
-
-  await supabase.from("items").update({ status: "sold" }).eq("id", itemId);
-  if (listingId) {
-    await supabase.from("listings").update({ status: "sold" }).eq("id", listingId);
-  }
-
-  await supabase.from("money_events").insert({
-    account_id: accountId,
-    item_id: itemId,
-    kind: "recovered",
-    amount_cents: netAmountCents,
-    source_type: "sale",
-    description: "Item sold via RECOVER",
-    created_by: user?.id ?? null,
-  });
 
   revalidatePath("/sell");
   revalidatePath("/money");

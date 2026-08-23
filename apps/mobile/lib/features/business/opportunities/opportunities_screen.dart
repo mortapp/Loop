@@ -141,9 +141,15 @@ class _OpportunityTile extends ConsumerWidget {
         await ref
             .read(opportunitiesRepositoryProvider)
             .setStage(id: opportunity.id, stage: stage);
+        if (!context.mounted) return;
         ref.invalidate(opportunitiesProvider);
-      } catch (e) {
-        if (context.mounted) showErrorSnackBar(context, 'Failed: $e');
+      } catch (_) {
+        if (context.mounted) {
+          showErrorSnackBar(
+            context,
+            userSafeActionError('update this opportunity'),
+          );
+        }
       }
     }
 
@@ -255,6 +261,15 @@ class _CreateOpportunityFormState
       setState(() => _error = 'Title is required.');
       return;
     }
+    final valueText = _valueController.text.trim();
+    final estimatedValueCents = valueText.isEmpty
+        ? null
+        : MoneyUtils.dollarsStringToCents(valueText);
+    if (valueText.isNotEmpty &&
+        (estimatedValueCents == null || estimatedValueCents < 0)) {
+      setState(() => _error = 'Enter a valid estimated value.');
+      return;
+    }
 
     setState(() {
       _submitting = true;
@@ -269,16 +284,17 @@ class _CreateOpportunityFormState
             accountId: accountId,
             contactId: contactId,
             title: title,
-            estimatedValueCents: MoneyUtils.dollarsStringToCents(
-              _valueController.text,
-            ),
+            estimatedValueCents: estimatedValueCents,
           );
+      if (!mounted) return;
       _titleController.clear();
       _valueController.clear();
       setState(() => _contactId = null);
       ref.invalidate(opportunitiesProvider);
-    } catch (e) {
-      setState(() => _error = 'Failed to add opportunity: $e');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = userSafeActionError('add this opportunity'));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

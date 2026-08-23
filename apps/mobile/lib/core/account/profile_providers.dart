@@ -71,11 +71,13 @@ class ProfileRepository {
 
   final SupabaseClient _client;
 
-  Future<void> updateDisplayName(String userId, String displayName) {
-    return _client
+  Future<void> updateDisplayName(String userId, String displayName) async {
+    await _client
         .from('profiles')
         .update({'display_name': displayName})
-        .eq('id', userId);
+        .eq('id', userId)
+        .select('id')
+        .single();
   }
 
   /// Completes the profile in one statement so the router can never observe

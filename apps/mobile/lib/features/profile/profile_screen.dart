@@ -51,6 +51,16 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   bool _justSaved = false;
 
   @override
+  void didUpdateWidget(covariant _ProfileBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldName = oldWidget.profile.displayName ?? '';
+    final newName = widget.profile.displayName ?? '';
+    if (!_submitting && _nameController.text == oldName && oldName != newName) {
+      _nameController.text = newName;
+    }
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
@@ -60,6 +70,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       setState(() => _error = 'Name is required.');
+      return;
+    }
+    if (name.length > 100) {
+      setState(() => _error = 'Name must be 100 characters or fewer.');
       return;
     }
     setState(() {
@@ -73,8 +87,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           .updateDisplayName(widget.profile.id, name);
       ref.invalidate(currentProfileProvider);
       if (mounted) setState(() => _justSaved = true);
-    } catch (e) {
-      if (mounted) setState(() => _error = 'Failed to save: $e');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = userSafeActionError('save your profile'));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -127,6 +143,34 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                       ),
                     ],
                   ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'USERNAME',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: AppColors.textStructural,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  '@${widget.profile.username}',
+                  style: theme.textTheme.bodyLarge,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Usernames are permanent for now.',
+                  style: theme.textTheme.bodyMedium,
                 ),
               ],
             ),

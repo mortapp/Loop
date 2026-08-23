@@ -2,7 +2,13 @@
 
 import { useActionState, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { addValuation, createListing, recordSale, attachItemPhoto, type FormState } from "./actions";
+import {
+  addValuation,
+  createListing,
+  recordSale,
+  attachItemPhoto,
+  type FormState,
+} from "./actions";
 
 const inputClass =
   "w-24 rounded-[var(--radius-sm)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2 py-1.5 text-xs text-[var(--color-text-primary)] outline-none focus:border-[var(--color-brand)]";
@@ -11,13 +17,16 @@ const buttonClass =
 
 function useItemForm(action: (prev: FormState, formData: FormData) => Promise<FormState>) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction, pending] = useActionState<FormState, FormData>(async (prev, formData) => {
-    const result = await action(prev, formData);
-    if (!result) {
-      formRef.current?.reset();
-    }
-    return result;
-  }, null);
+  const [state, formAction, pending] = useActionState<FormState, FormData>(
+    async (prev, formData) => {
+      const result = await action(prev, formData);
+      if (!result) {
+        formRef.current?.reset();
+      }
+      return result;
+    },
+    null,
+  );
   return { formRef, state, formAction, pending };
 }
 
@@ -57,7 +66,7 @@ export function AddPhotoControl({ itemId, accountId }: { itemId: string; account
         .from("item-photos")
         .upload(objectPath, file, { contentType: file.type });
       if (uploadError) {
-        setError(uploadError.message);
+        setError("We couldn't upload that photo. Check the file and try again.");
         return;
       }
 
@@ -101,7 +110,10 @@ export function ValuationForm({ itemId }: { itemId: string }) {
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="text-xs text-[var(--color-text-tertiary)] hover:underline">
+      <button
+        onClick={() => setOpen(true)}
+        className="text-xs text-[var(--color-text-tertiary)] hover:underline"
+      >
         + Valuation
       </button>
     );
@@ -110,11 +122,20 @@ export function ValuationForm({ itemId }: { itemId: string }) {
   return (
     <form ref={formRef} action={formAction} className="flex items-center gap-2">
       <input type="hidden" name="itemId" value={itemId} />
-      <input name="value" type="number" step="0.01" min="0" placeholder="$ est." className={inputClass} />
+      <input
+        name="value"
+        type="number"
+        step="0.01"
+        min="0"
+        placeholder="$ est."
+        className={inputClass}
+      />
       <button type="submit" disabled={pending} className={buttonClass}>
         Save
       </button>
-      {state?.error ? <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span> : null}
+      {state?.error ? (
+        <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span>
+      ) : null}
     </form>
   );
 }
@@ -125,7 +146,10 @@ export function ListingForm({ itemId }: { itemId: string }) {
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="text-xs text-[var(--color-text-tertiary)] hover:underline">
+      <button
+        onClick={() => setOpen(true)}
+        className="text-xs text-[var(--color-text-tertiary)] hover:underline"
+      >
         + List for sale
       </button>
     );
@@ -135,11 +159,20 @@ export function ListingForm({ itemId }: { itemId: string }) {
     <form ref={formRef} action={formAction} className="flex items-center gap-2">
       <input type="hidden" name="itemId" value={itemId} />
       <input name="marketplace" placeholder="Marketplace" className={inputClass} />
-      <input name="listPrice" type="number" step="0.01" min="0" placeholder="$ price" className={inputClass} />
+      <input
+        name="listPrice"
+        type="number"
+        step="0.01"
+        min="0"
+        placeholder="$ price"
+        className={inputClass}
+      />
       <button type="submit" disabled={pending} className={buttonClass}>
         List
       </button>
-      {state?.error ? <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span> : null}
+      {state?.error ? (
+        <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span>
+      ) : null}
     </form>
   );
 }
@@ -150,7 +183,10 @@ export function SaleForm({ itemId, listingId }: { itemId: string; listingId?: st
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="text-xs text-[var(--color-brand-text)] hover:underline">
+      <button
+        onClick={() => setOpen(true)}
+        className="text-xs text-[var(--color-brand-text)] hover:underline"
+      >
         + Record sale
       </button>
     );
@@ -160,12 +196,28 @@ export function SaleForm({ itemId, listingId }: { itemId: string; listingId?: st
     <form ref={formRef} action={formAction} className="flex items-center gap-2">
       <input type="hidden" name="itemId" value={itemId} />
       {listingId ? <input type="hidden" name="listingId" value={listingId} /> : null}
-      <input name="salePrice" type="number" step="0.01" min="0" placeholder="$ sold for" className={inputClass} />
-      <input name="fees" type="number" step="0.01" min="0" placeholder="$ fees" className={inputClass} />
+      <input
+        name="salePrice"
+        type="number"
+        step="0.01"
+        min="0"
+        placeholder="$ sold for"
+        className={inputClass}
+      />
+      <input
+        name="fees"
+        type="number"
+        step="0.01"
+        min="0"
+        placeholder="$ fees"
+        className={inputClass}
+      />
       <button type="submit" disabled={pending} className={buttonClass}>
         Save
       </button>
-      {state?.error ? <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span> : null}
+      {state?.error ? (
+        <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span>
+      ) : null}
     </form>
   );
 }

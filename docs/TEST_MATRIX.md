@@ -14,6 +14,8 @@
 | Grants | Authenticated user inserts into `items`, `businesses`, `money_events` | Succeeds (previously `42501` before explicit GRANTs were added) | Pass (after fix — see docs/KNOWN_ISSUES.md) | REST smoke test 2026-08-17 |
 | Ledger semantics | Insert into `money_events` | Succeeds, row returned | Pass | REST smoke test 2026-08-17 |
 | pgTAP suite | All eight files in `supabase/tests/database` against the hosted schema, each in an isolated rollback transaction | All assertions pass with no fixture persistence | Pass — 128/128 | Suites 001-008, run 2026-08-23 |
+| Fresh Supabase replay | Current CLI `2.115.0` `db reset --local` from empty, including roles bootstrap, every migration, and seed | Full history recreates without hosted-only helper assumptions | Pass | Clean reset, 2026-08-23; `supabase/roles.sql` compatibility shim runs before immutable migrations |
+| Current pgTAP suite | All nine files in `supabase/tests/database` after the fresh reset | All account, quote, Today, Money, membership, username, storage, graph, and lifecycle assertions pass | Pass — 166/166 | Local current-schema run, 2026-08-23 |
 | apps/web build | `lint` / `typecheck` / `build` from repo root | All pass | Pass | See docs/VERCEL_DEPLOYMENT.md "Build Verification" |
 | apps/web runtime | `next dev`, unauthenticated `GET /`, `/today`, `/business` | 307 redirect to `/sign-in` (proxy.ts gating) | Pass | Manual curl against local dev server 2026-08-17 |
 | apps/web runtime | `GET /sign-in` | 200, renders "LOOP" / "Sign in" | Pass | Manual curl 2026-08-17 |
@@ -22,6 +24,11 @@
 | apps/web E2E | `npx playwright test` — 17 authenticated specs (nav, Today, Money, Sell, Business, Protect, AI, account menu, personalization) | Self-skip cleanly without failing the run | Pass (skipped) | Real run, 2026-08-22 — needs `QA_TEST_EMAIL`/`QA_TEST_PASSWORD`, see docs/KNOWN_ISSUES.md (`OWNER_ACTION_REQUIRED`) |
 | apps/mobile config contract | `SupabaseConfig.isValidConfig` — real URL, empty URL, empty key, placeholder host, non-https scheme, unparseable URL, no-host URL | Only real config accepted | Pass — 8/8 | `test/supabase_config_test.dart`, run 2026-08-22 |
 | apps/mobile quote RPC | Atomic RPC parameter builder: totals, actor, normalized lines, empty/non-finite/negative rejection | One canonical payload; invalid values rejected before network | Pass — 3/3 | `test/features/business/quotes/quote_rpc_parameters_test.dart`, run 2026-08-23 |
+| apps/mobile full suite | Auth/session, callback parity, onboarding disposal/large text, account persistence, safe errors, quote/lifecycle RPC payloads, return transitions, config, and shell behavior | All tests pass serially | Pass — 47/47 | `flutter test --no-pub --concurrency=1`, 2026-08-23 |
+| Atomic money lifecycle | Purchases/listings/sales/refunds, ledger source uniqueness, state transitions, idempotency, privilege surface, and two-account isolation | Domain state and money state commit together; invalid/replayed/cross-account writes fail | Pass — 38/38 | `supabase/tests/database/009_atomic_money_lifecycle.sql`, 2026-08-23 |
+| Business-member policy consolidation | Owner/admin/member/outsider/anon SELECT/INSERT/UPDATE/DELETE matrix after one-policy-per-command migration | Permissions unchanged and no self-escalation | Pass — 17/17 | `005_business_members_rls.sql`; advisor multiple-policy warnings reduced 2 to 0, 2026-08-23 |
+| Hosted lifecycle schema | Latest migration, four invoker RPC grants, four private guards, 11 constraints, two unique indexes, four ordered triggers, direct sale-update grant | Exact expected metadata installed; anon/PUBLIC cannot execute RPCs | Pass | Read-only hosted catalog probes; ledger ends `20260823070326`, 2026-08-23 |
+| apps/web safe errors | Static raw-error scan plus typecheck, ESLint, optimized build after server-action/AI/photo sanitization | No raw backend/provider `.message` rendered or returned; all gates pass | Pass | `rg`, `npm run typecheck`, `npm run lint`, `npm run build`, 2026-08-23 |
 | Hosted account graph | Two synthetic accounts forge all nested contact/item/document/lead/opportunity/purchase/listing edges and actor IDs | Every foreign edge denied; actors derived from Auth | Pass — 32/32 | `supabase/tests/database/007_account_graph_integrity.sql`, rollback verified, 2026-08-23 |
 | Hosted private Storage | Bucket privacy/limits/MIME/path RLS plus document metadata constraints | Cross-account/malformed paths denied; valid own paths work | Pass — 18/18 | `supabase/tests/database/008_private_storage.sql`, rollback verified, 2026-08-23 |
 | Hosted quote integrity | Atomic header+lines, no orphans, totals recomputed, actor derived, direct-write constraints | All malformed/forged writes denied | Pass — 13/13 | `supabase/tests/database/002_quote_rpc.sql`, rollback verified, 2026-08-23 |
@@ -47,7 +54,9 @@ QA Supabase account this session cannot create itself).
 
 **2026-08-21 CI gap found and fixed**: `.github/workflows/supabase-ci.yml`
 ran `supabase db reset` (applies migrations + seed) but never actually
-invoked `supabase test db` — the pgTAP suite above had only ever been
-run manually, not enforced by CI. Added the missing step so the 20
-pgTAP assertions across all eight test files run on every push/PR that
-touches `supabase/`, not just once by hand.
+invoked `supabase test db`. The missing step was added. On 2026-08-23 a
+second clean-replay defect was found: local CLI images do not contain the
+hosted platform's `rls_auto_enable()` helper referenced by an immutable
+migration. `supabase/roles.sql` now supplies an unattached local compatibility
+function before migrations. A current-CLI reset and all 166 assertions pass,
+so fresh CI no longer depends on a manually prepared local database.

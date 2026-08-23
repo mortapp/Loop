@@ -7,6 +7,40 @@ import 'models/purchase.dart';
 import 'models/return_record.dart';
 import 'models/warranty.dart';
 
+Map<String, dynamic> buildPurchaseRpcParameters({
+  required String accountId,
+  String? itemId,
+  String? vendorName,
+  String? purchaseDate,
+  int? priceCents,
+  String? returnWindowExpiresAt,
+  String? warrantyExpiresAt,
+}) {
+  return {
+    'p_account_id': accountId,
+    'p_item_id': itemId,
+    'p_vendor_name': vendorName,
+    'p_purchase_date': purchaseDate,
+    'p_price_cents': priceCents,
+    'p_return_window_expires_at': returnWindowExpiresAt,
+    'p_warranty_expires_at': warrantyExpiresAt,
+  };
+}
+
+Map<String, dynamic> buildRefundRpcParameters({
+  required String accountId,
+  required String returnId,
+  required String itemId,
+  required int refundAmountCents,
+}) {
+  return {
+    'p_account_id': accountId,
+    'p_return_id': returnId,
+    'p_item_id': itemId,
+    'p_refund_amount_cents': refundAmountCents,
+  };
+}
+
 /// A minimal item reference for the "link to an item" dropdown on the
 /// purchase form.
 class ItemRef {
@@ -63,6 +97,15 @@ final purchasesPageProvider = FutureProvider.autoDispose<PurchasesPageData>((
   final client = ref.watch(supabaseClientProvider);
   final accountId = ref.watch(activeAccountProvider).id;
 
+  if (accountId.isEmpty) {
+    return const PurchasesPageData(
+      purchases: [],
+      items: [],
+      returns: [],
+      warranties: [],
+    );
+  }
+
   final results = await Future.wait([
     client
         .from('purchases')
@@ -80,7 +123,8 @@ final purchasesPageProvider = FutureProvider.autoDispose<PurchasesPageData>((
     client
         .from('returns')
         .select('id, purchase_id, item_id, status')
-        .eq('account_id', accountId),
+        .eq('account_id', accountId)
+        .order('created_at', ascending: true),
     client
         .from('warranties')
         .select('id, item_id, provider, expires_at, claim_status')
@@ -114,31 +158,18 @@ class PurchasesRepository {
     String? returnWindowExpiresAt,
     String? warrantyExpiresAt,
   }) async {
-    final userId = _client.auth.currentUser?.id;
-    await _client.from('purchases').insert({
-      'account_id': accountId,
-      'item_id': itemId,
-      'vendor_name': vendorName,
-      'purchase_date': purchaseDate,
-      'price_cents': priceCents,
-      'return_window_expires_at': returnWindowExpiresAt,
-      'warranty_expires_at': warrantyExpiresAt,
-      'created_by': userId,
-    });
-
-    if (priceCents != null) {
-      await _client.from('money_events').insert({
-        'account_id': accountId,
-        'item_id': itemId,
-        'kind': 'spend',
-        'amount_cents': priceCents,
-        'source_type': 'purchase',
-        'description': vendorName != null
-            ? 'Purchase from $vendorName'
-            : 'Purchase',
-        'created_by': userId,
-      });
-    }
+    await _client.rpc(
+      'create_purchase_with_money_event',
+      params: buildPurchaseRpcParameters(
+        accountId: accountId,
+        itemId: itemId,
+        vendorName: vendorName,
+        purchaseDate: purchaseDate,
+        priceCents: priceCents,
+        returnWindowExpiresAt: returnWindowExpiresAt,
+        warrantyExpiresAt: warrantyExpiresAt,
+      ),
+    );
   }
 
   Future<void> startReturn({
@@ -174,28 +205,15 @@ class PurchasesRepository {
     required String itemId,
     required int refundAmountCents,
   }) async {
-    final userId = _client.auth.currentUser?.id;
-
-    await _client
-        .from('returns')
-        .update({
-          'status': 'refunded',
-          'refund_amount_cents': refundAmountCents,
-          'resolved_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', returnId);
-
-    await _client.from('money_events').insert({
-      'account_id': accountId,
-      'item_id': itemId,
-      'kind': 'refund',
-      'amount_cents': refundAmountCents,
-      'source_type': 'return',
-      'description': 'Return refunded',
-      'created_by': userId,
-    });
-
-    await _client.from('items').update({'status': 'returned'}).eq('id', itemId);
+    await _client.rpc(
+      'refund_return_with_money_event',
+      params: buildRefundRpcParameters(
+        accountId: accountId,
+        returnId: returnId,
+        itemId: itemId,
+        refundAmountCents: refundAmountCents,
+      ),
+    );
   }
 
   Future<void> addWarranty({

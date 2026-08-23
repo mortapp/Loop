@@ -5,6 +5,7 @@ import '../../core/account/account_providers.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/async_error_view.dart';
+import '../money/money_providers.dart';
 import 'sell_providers.dart';
 
 /// Per-item action row (+ Valuation / + List for sale / + Record sale) —
@@ -72,9 +73,12 @@ class _ValuationActionState extends ConsumerState<_ValuationAction> {
             itemId: widget.itemId,
             estimatedValueCents: cents,
           );
+      if (!mounted) return;
       ref.invalidate(sellPageProvider);
-    } catch (e) {
-      if (mounted) showErrorSnackBar(context, 'Failed: $e');
+    } catch (_) {
+      if (mounted) {
+        showErrorSnackBar(context, userSafeActionError('save this valuation'));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -144,6 +148,11 @@ class _ListingActionState extends ConsumerState<_ListingAction> {
     final listPriceCents = MoneyUtils.dollarsStringToCents(
       _priceController.text,
     );
+    if (_priceController.text.trim().isNotEmpty &&
+        (listPriceCents == null || listPriceCents < 0)) {
+      showErrorSnackBar(context, 'Enter a valid listing price.');
+      return;
+    }
 
     setState(() => _submitting = true);
     try {
@@ -156,9 +165,12 @@ class _ListingActionState extends ConsumerState<_ListingAction> {
             marketplace: marketplace,
             listPriceCents: listPriceCents,
           );
+      if (!mounted) return;
       ref.invalidate(sellPageProvider);
-    } catch (e) {
-      if (mounted) showErrorSnackBar(context, 'Failed: $e');
+    } catch (_) {
+      if (mounted) {
+        showErrorSnackBar(context, userSafeActionError('create this listing'));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -242,6 +254,13 @@ class _SaleActionState extends ConsumerState<_SaleAction> {
     }
     final feesCents =
         MoneyUtils.dollarsStringToCents(_feesController.text) ?? 0;
+    if (feesCents < 0 || feesCents > salePriceCents) {
+      showErrorSnackBar(
+        context,
+        'Fees must be between zero and the sale price.',
+      );
+      return;
+    }
 
     setState(() => _submitting = true);
     try {
@@ -255,9 +274,14 @@ class _SaleActionState extends ConsumerState<_SaleAction> {
             salePriceCents: salePriceCents,
             feesCents: feesCents,
           );
+      if (!mounted) return;
       ref.invalidate(sellPageProvider);
-    } catch (e) {
-      if (mounted) showErrorSnackBar(context, 'Failed: $e');
+      ref.invalidate(moneyEventsProvider);
+      ref.invalidate(moneyTotalsProvider);
+    } catch (_) {
+      if (mounted) {
+        showErrorSnackBar(context, userSafeActionError('record this sale'));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

@@ -121,6 +121,20 @@ class _ItemTile extends ConsumerWidget {
         ? signedUrlByPath[item.photos.first]
         : null;
 
+    Future<void> removePhoto(String objectPath) async {
+      try {
+        await ref
+            .read(sellRepositoryProvider)
+            .removePhoto(itemId: item.id, objectPath: objectPath);
+        if (!context.mounted) return;
+        ref.invalidate(sellPageProvider);
+      } catch (_) {
+        if (context.mounted) {
+          showErrorSnackBar(context, userSafeActionError('remove this photo'));
+        }
+      }
+    }
+
     // A private collection, not a marketplace listing — an image band
     // (Loop Seal watermark until real photo upload exists) leads every
     // tile, matching apps/web's Sell gallery.
@@ -172,32 +186,19 @@ class _ItemTile extends ConsumerWidget {
                 ),
                 if (heroUrl != null && item.status != ItemStatus.sold)
                   Positioned(
-                    top: AppSpacing.sm,
-                    left: AppSpacing.sm,
-                    child: GestureDetector(
-                      onTap: () async {
-                        await ref
-                            .read(sellRepositoryProvider)
-                            .removePhoto(
-                              itemId: item.id,
-                              objectPath: item.photos.first,
-                            );
-                        ref.invalidate(sellPageProvider);
-                      },
-                      child: Container(
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          color: AppColors.danger.withValues(alpha: 0.9),
-                          shape: BoxShape.circle,
+                    top: AppSpacing.xs,
+                    left: AppSpacing.xs,
+                    child: IconButton(
+                      tooltip: 'Remove photo',
+                      onPressed: () => removePhoto(item.photos.first),
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.danger.withValues(
+                          alpha: 0.9,
                         ),
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.close,
-                          size: 14,
-                          color: AppColors.onAccentFill,
-                        ),
+                        foregroundColor: AppColors.onAccentFill,
+                        minimumSize: const Size(48, 48),
                       ),
+                      icon: const Icon(Icons.close, size: 18),
                     ),
                   ),
               ],
@@ -211,7 +212,7 @@ class _ItemTile extends ConsumerWidget {
                   0,
                 ),
                 child: SizedBox(
-                  height: 44,
+                  height: 56,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
                     children: [
@@ -229,39 +230,25 @@ class _ItemTile extends ConsumerWidget {
                                   ),
                                   child: Image.network(
                                     signedUrlByPath[path]!,
-                                    width: 44,
-                                    height: 44,
+                                    width: 56,
+                                    height: 56,
                                     fit: BoxFit.cover,
                                   ),
                                 ),
                                 if (item.status != ItemStatus.sold)
                                   Positioned(
-                                    right: -4,
-                                    top: -4,
-                                    child: GestureDetector(
-                                      onTap: () async {
-                                        await ref
-                                            .read(sellRepositoryProvider)
-                                            .removePhoto(
-                                              itemId: item.id,
-                                              objectPath: path,
-                                            );
-                                        ref.invalidate(sellPageProvider);
-                                      },
-                                      child: Container(
-                                        width: 16,
-                                        height: 16,
-                                        decoration: const BoxDecoration(
-                                          color: AppColors.danger,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: const Icon(
-                                          Icons.close,
-                                          size: 11,
-                                          color: AppColors.onAccentFill,
-                                        ),
+                                    right: 0,
+                                    top: 0,
+                                    child: IconButton(
+                                      tooltip: 'Remove photo',
+                                      onPressed: () => removePhoto(path),
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: AppColors.danger
+                                            .withValues(alpha: 0.9),
+                                        foregroundColor: AppColors.onAccentFill,
+                                        minimumSize: const Size(48, 48),
                                       ),
+                                      icon: const Icon(Icons.close, size: 16),
                                     ),
                                   ),
                               ],
@@ -327,16 +314,26 @@ class _ItemTile extends ConsumerWidget {
                       children: [
                         TextButton(
                           onPressed: () async {
-                            final error = await ref
-                                .read(sellRepositoryProvider)
-                                .pickAndUploadPhoto(
-                                  accountId: item.accountId,
-                                  itemId: item.id,
-                                );
-                            if (error != null && context.mounted) {
-                              showErrorSnackBar(context, error);
-                            } else {
+                            try {
+                              final error = await ref
+                                  .read(sellRepositoryProvider)
+                                  .pickAndUploadPhoto(
+                                    accountId: item.accountId,
+                                    itemId: item.id,
+                                  );
+                              if (!context.mounted) return;
+                              if (error != null) {
+                                showErrorSnackBar(context, error);
+                                return;
+                              }
                               ref.invalidate(sellPageProvider);
+                            } catch (_) {
+                              if (context.mounted) {
+                                showErrorSnackBar(
+                                  context,
+                                  userSafeActionError('add this photo'),
+                                );
+                              }
                             }
                           },
                           child: const Text('+ Photo'),
@@ -391,6 +388,15 @@ class _CreateItemFormState extends ConsumerState<_CreateItemForm> {
       setState(() => _error = 'Name is required.');
       return;
     }
+    final purchasePriceText = _priceController.text.trim();
+    final purchasePriceCents = purchasePriceText.isEmpty
+        ? null
+        : MoneyUtils.dollarsStringToCents(purchasePriceText);
+    if (purchasePriceText.isNotEmpty &&
+        (purchasePriceCents == null || purchasePriceCents < 0)) {
+      setState(() => _error = 'Enter a valid purchase price.');
+      return;
+    }
 
     setState(() {
       _submitting = true;
@@ -410,17 +416,18 @@ class _CreateItemFormState extends ConsumerState<_CreateItemForm> {
             condition: _conditionController.text.trim().isEmpty
                 ? null
                 : _conditionController.text.trim(),
-            purchasePriceCents: MoneyUtils.dollarsStringToCents(
-              _priceController.text,
-            ),
+            purchasePriceCents: purchasePriceCents,
           );
+      if (!mounted) return;
       _nameController.clear();
       _categoryController.clear();
       _conditionController.clear();
       _priceController.clear();
       ref.invalidate(sellPageProvider);
-    } catch (e) {
-      setState(() => _error = 'Failed to add item: $e');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = userSafeActionError('add this item'));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

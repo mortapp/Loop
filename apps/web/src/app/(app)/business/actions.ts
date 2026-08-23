@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { setActiveAccountId } from "@/lib/active-account";
+import { userSafeServerError } from "@/lib/user-safe-error";
 
 export type CreateBusinessState = { error: string } | null;
 
@@ -40,7 +41,7 @@ export async function createBusiness(
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: userSafeServerError("business:create", error) };
   }
 
   revalidatePath("/business");

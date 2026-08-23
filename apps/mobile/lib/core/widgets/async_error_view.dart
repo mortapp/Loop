@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_spacing.dart';
+export '../utils/user_safe_error.dart';
 
 /// Shared "something went wrong" body used by every feature screen's
-/// [AsyncValue.when] error branch, with a retry action.
+/// [AsyncValue.when] error branch, with a retry action. The underlying error
+/// is intentionally never rendered: PostgREST errors can contain table,
+/// policy, constraint, and internal identifier details.
 class AsyncErrorView extends StatelessWidget {
   const AsyncErrorView({super.key, required this.error, this.onRetry});
 
@@ -22,7 +25,7 @@ class AsyncErrorView extends StatelessWidget {
             Icon(Icons.error_outline, color: theme.colorScheme.error, size: 32),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              '$error',
+              'Something went wrong. Check your connection and try again.',
               style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),

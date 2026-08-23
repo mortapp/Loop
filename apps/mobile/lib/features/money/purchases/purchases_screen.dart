@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/async_error_view.dart';
+import '../money_providers.dart';
 import 'models/purchase.dart';
 import 'models/return_record.dart';
 import 'models/warranty.dart';
@@ -241,6 +242,7 @@ class _CreatePurchaseFormState extends ConsumerState<_CreatePurchaseForm> {
       firstDate: DateTime(now.year - 10),
       lastDate: DateTime(now.year + 10),
     );
+    if (!mounted) return;
     if (picked != null) onPicked(picked);
   }
 
@@ -252,8 +254,18 @@ class _CreatePurchaseFormState extends ConsumerState<_CreatePurchaseForm> {
     final priceCents = priceText.isEmpty
         ? null
         : MoneyUtils.dollarsStringToCents(priceText);
-    if (priceText.isNotEmpty && priceCents == null) {
-      setState(() => _error = 'Price must be a number.');
+    if (priceText.isNotEmpty && (priceCents == null || priceCents < 0)) {
+      setState(() => _error = 'Enter a valid purchase price.');
+      return;
+    }
+    if (_purchaseDate != null &&
+        ((_returnWindowExpiresAt != null &&
+                _returnWindowExpiresAt!.isBefore(_purchaseDate!)) ||
+            (_warrantyExpiresAt != null &&
+                _warrantyExpiresAt!.isBefore(_purchaseDate!)))) {
+      setState(
+        () => _error = 'Protection dates cannot be before the purchase date.',
+      );
       return;
     }
 
@@ -284,6 +296,8 @@ class _CreatePurchaseFormState extends ConsumerState<_CreatePurchaseForm> {
                 : _isoDate(_warrantyExpiresAt!),
           );
 
+      if (!mounted) return;
+
       _vendorController.clear();
       _priceController.clear();
       setState(() {
@@ -293,8 +307,12 @@ class _CreatePurchaseFormState extends ConsumerState<_CreatePurchaseForm> {
         _warrantyExpiresAt = null;
       });
       ref.invalidate(purchasesPageProvider);
-    } catch (e) {
-      setState(() => _error = 'Failed to add purchase: $e');
+      ref.invalidate(moneyEventsProvider);
+      ref.invalidate(moneyTotalsProvider);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = userSafeActionError('add this purchase'));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

@@ -311,11 +311,15 @@ class _LogEventFormState extends ConsumerState<_LogEventForm> {
                 ? null
                 : _descriptionController.text.trim(),
           );
+      if (!mounted) return;
       _amountController.clear();
       _descriptionController.clear();
       ref.invalidate(moneyEventsProvider);
-    } catch (e) {
-      setState(() => _error = 'Failed to log entry: $e');
+      ref.invalidate(moneyTotalsProvider);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = userSafeActionError('log this entry'));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

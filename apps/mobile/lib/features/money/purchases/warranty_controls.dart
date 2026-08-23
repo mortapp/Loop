@@ -73,9 +73,15 @@ class _WarrantyChip extends ConsumerWidget {
                       id: warranty.id,
                       claimStatus: 'filed',
                     );
+                if (!context.mounted) return;
                 ref.invalidate(purchasesPageProvider);
-              } catch (e) {
-                if (context.mounted) showErrorSnackBar(context, 'Failed: $e');
+              } catch (_) {
+                if (context.mounted) {
+                  showErrorSnackBar(
+                    context,
+                    userSafeActionError('file this warranty claim'),
+                  );
+                }
               }
             },
             child: const Text('file claim'),
@@ -125,16 +131,17 @@ class _AddWarrantyControlState extends ConsumerState<_AddWarrantyControl> {
                       '${_expiresAt!.month.toString().padLeft(2, '0')}-'
                       '${_expiresAt!.day.toString().padLeft(2, '0')}',
           );
+      if (!mounted) return;
       ref.invalidate(purchasesPageProvider);
+      setState(() {
+        _open = false;
+        _providerController.clear();
+        _expiresAt = null;
+      });
+    } catch (_) {
       if (mounted) {
-        setState(() {
-          _open = false;
-          _providerController.clear();
-          _expiresAt = null;
-        });
+        showErrorSnackBar(context, userSafeActionError('add this warranty'));
       }
-    } catch (e) {
-      if (mounted) showErrorSnackBar(context, 'Failed to add warranty: $e');
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -173,6 +180,7 @@ class _AddWarrantyControlState extends ConsumerState<_AddWarrantyControl> {
               firstDate: DateTime(now.year - 1),
               lastDate: DateTime(now.year + 20),
             );
+            if (!mounted) return;
             if (picked != null) setState(() => _expiresAt = picked);
           },
           child: InputDecorator(

@@ -3,6 +3,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { AI_MODEL, AI_SYSTEM_PROMPT, createAiClient, isAiConfigured } from "@/lib/ai/client";
 import { AI_TOOLS } from "@/lib/ai/tools";
 import { resolveAiRequest } from "@/lib/ai/auth";
+import { userSafeServerError } from "@/lib/user-safe-error";
 
 export type ChatResponseBody =
   | { type: "text"; text: string; messages: Anthropic.MessageParam[] }
@@ -36,12 +37,18 @@ export async function POST(request: Request) {
   };
   const messages = body.messages ?? [];
   if (messages.length === 0) {
-    return NextResponse.json<ChatResponseBody>({ type: "error", error: "No messages." }, { status: 400 });
+    return NextResponse.json<ChatResponseBody>(
+      { type: "error", error: "No messages." },
+      { status: 400 },
+    );
   }
 
   const auth = await resolveAiRequest(request, body.accountId);
   if ("error" in auth) {
-    return NextResponse.json<ChatResponseBody>({ type: "error", error: auth.error }, { status: auth.status });
+    return NextResponse.json<ChatResponseBody>(
+      { type: "error", error: auth.error },
+      { status: auth.status },
+    );
   }
 
   const client = createAiClient();
@@ -56,7 +63,11 @@ export async function POST(request: Request) {
       messages,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "AI request failed.";
+    const message = userSafeServerError(
+      "ai:chat-provider",
+      error,
+      "LOOP AI is temporarily unavailable. Please try again.",
+    );
     return NextResponse.json<ChatResponseBody>({ type: "error", error: message }, { status: 502 });
   }
 

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { redirectAfterAuth } from "@/lib/auth/post-auth-redirect";
+import { userSafeAuthError } from "@/lib/user-safe-error";
 
 export type AuthActionState = { error: string } | null;
 
@@ -13,7 +14,7 @@ export async function signIn(_prev: AuthActionState, formData: FormData): Promis
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    return { error: error.message };
+    return { error: userSafeAuthError("sign-in", error) };
   }
 
   return redirectAfterAuth(supabase, "/today");
@@ -32,7 +33,7 @@ export async function signUp(_prev: AuthActionState, formData: FormData): Promis
     },
   });
   if (error) {
-    return { error: error.message };
+    return { error: userSafeAuthError("sign-up", error) };
   }
 
   // If the project requires email confirmation, signUp succeeds but

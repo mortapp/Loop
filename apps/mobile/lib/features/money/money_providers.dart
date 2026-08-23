@@ -14,11 +14,14 @@ final moneyEventsProvider = FutureProvider.autoDispose<List<MoneyEvent>>((
   final client = ref.watch(supabaseClientProvider);
   final accountId = ref.watch(activeAccountProvider).id;
 
+  if (accountId.isEmpty) return const [];
+
   final rows = await client
       .from('money_events')
       .select()
       .eq('account_id', accountId)
-      .order('occurred_at', ascending: false);
+      .order('occurred_at', ascending: false)
+      .limit(200);
 
   return rows.map(MoneyEvent.fromJson).toList();
 });

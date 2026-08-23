@@ -615,6 +615,55 @@ document limit, a PDF/image MIME allowlist, fail-closed path parsing for both
 buckets, and matching document metadata/path constraints. The item-photo limit
 remains 8 MiB. Hosted Storage pgTAP passes 18/18.
 
+## ~~Money lifecycle mutations could partially commit~~ — fixed 2026-08-23
+
+Purchases, listings, sales, and refunds previously used two or more client
+requests, so a failure between writes could leave domain state and the money
+ledger inconsistent. Mobile and web now call four authenticated,
+security-invoker RPCs from
+`20260823060632_enforce_atomic_money_lifecycle.sql`. The migration also adds
+integer-cent/state constraints, one sale per item, sourced-event uniqueness,
+legacy direct-write guards, and an idempotent same-amount refund path. The
+focused suite passes 38/38 and the complete database suite passes 166/166.
+
+## ~~Lifecycle trigger order changed the cross-account error contract~~ — fixed 2026-08-23
+
+The first lifecycle migration blocked cross-account writes correctly but its
+new trigger names sorted before the established account-integrity triggers.
+Four existing tests therefore received `23503` instead of the canonical
+`23514`. `20260823062451_order_lifecycle_guards_after_account_integrity.sql`
+renames the lifecycle triggers so account checks execute first; same-account
+relationship checks still retain their more specific errors. All 166 tests pass.
+
+## ~~Fresh local/CI migration replay depended on a hosted-only helper~~ — fixed 2026-08-23
+
+Both CLI `2.108.0` and current `2.115.0` failed a clean reset at the immutable
+account-graph migration because local Supabase images do not contain the
+platform-owned `public.rls_auto_enable()` event-trigger function. Hosted does.
+`supabase/roles.sql` now defines an unattached local compatibility shim before
+migrations; the later hardening migration revokes its client privileges exactly
+as it does hosted. No applied migration was edited. A fresh current-CLI reset,
+seed, and 166/166 pgTAP run pass.
+
+## ~~Web and AI responses exposed raw backend/provider errors~~ — fixed 2026-08-23
+
+Several server actions, direct photo uploads, AI tool results, and AI provider
+catch paths returned `.message` directly. That could reveal SQL, policy,
+provider, or internal schema details to the browser or model. Web mutations now
+use `apps/web/src/lib/user-safe-error.ts`, auth maps only stable error codes,
+photo upload uses fixed actionable copy, and server logs retain only operation,
+code, and numeric status metadata. Static scan, typecheck, ESLint, and production
+build all pass.
+
+## ~~Business-member policies had overlapping permissive paths~~ — fixed 2026-08-23
+
+The owner/admin `FOR ALL` policy overlapped self/peer SELECT and self DELETE,
+causing two advisor warnings and extra policy evaluation. Migration
+`20260823070326_consolidate_business_member_policies.sql` preserves the exact
+authorization model with one SELECT, INSERT, UPDATE, and DELETE policy. The
+17-case escalation suite and full 166-case suite pass; performance advisors now
+report zero multiple-permissive-policy warnings.
+
 ## `@loop/contracts` is hand-synced with migrations
 
 See docs/DECISIONS.md — no automated drift check yet between

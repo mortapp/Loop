@@ -1,5 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { userSafeServerError } from "@/lib/user-safe-error";
 
 /**
  * Phase 8 (AI) tool registry — the "safe actions" Claude is allowed to
@@ -19,7 +20,7 @@ export const AI_TOOLS: Anthropic.Tool[] = [
       properties: {
         title: {
           type: "string",
-          description: "Short description of the task, e.g. \"Follow up with Jane about the quote\".",
+          description: 'Short description of the task, e.g. "Follow up with Jane about the quote".',
         },
       },
       required: ["title"],
@@ -77,7 +78,9 @@ export async function executeTool(
         title,
         created_by: userId,
       });
-      if (error) return { error: error.message };
+      if (error) {
+        return { error: userSafeServerError("ai:add-action", error) };
+      }
       return { summary: `Added "${title}" to Today.` };
     }
 
@@ -101,7 +104,9 @@ export async function executeTool(
         description,
         created_by: userId,
       });
-      if (error) return { error: error.message };
+      if (error) {
+        return { error: userSafeServerError("ai:log-money-event", error) };
+      }
       return { summary: `Logged ${kind} of $${amountDollars.toFixed(2)}.` };
     }
 

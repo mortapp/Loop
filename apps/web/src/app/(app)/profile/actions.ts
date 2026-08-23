@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { userSafeServerError } from "@/lib/user-safe-error";
 
 export type FormState = { error: string } | null;
 
@@ -28,7 +29,7 @@ export async function updateProfile(_prev: FormState, formData: FormData): Promi
     .eq("id", user.id);
 
   if (error) {
-    return { error: error.message };
+    return { error: userSafeServerError("profile:update", error) };
   }
 
   revalidatePath("/profile");

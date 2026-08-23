@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { userSafeServerError } from "@/lib/user-safe-error";
 
 export type FormState = { error: string } | null;
 
@@ -42,7 +43,7 @@ export async function logMoneyEvent(_prev: FormState, formData: FormData): Promi
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: userSafeServerError("money:create-event", error) };
   }
 
   revalidatePath("/money");

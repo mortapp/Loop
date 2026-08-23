@@ -128,10 +128,13 @@ class _QuickAddFormState extends ConsumerState<_QuickAddForm> {
       await ref
           .read(todayActionsRepositoryProvider)
           .quickAdd(accountId: accountId, title: title);
+      if (!mounted) return;
       _controller.clear();
       ref.invalidate(todayActionsProvider);
-    } catch (e) {
-      if (mounted) showErrorSnackBar(context, 'Failed to add: $e');
+    } catch (_) {
+      if (mounted) {
+        showErrorSnackBar(context, userSafeActionError('add this action'));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -186,9 +189,12 @@ class _ActionTile extends ConsumerWidget {
         await ref
             .read(todayActionsRepositoryProvider)
             .setStatus(id: action.id, status: status);
+        if (!context.mounted) return;
         ref.invalidate(todayActionsProvider);
-      } catch (e) {
-        if (context.mounted) showErrorSnackBar(context, 'Failed: $e');
+      } catch (_) {
+        if (context.mounted) {
+          showErrorSnackBar(context, userSafeActionError('update this action'));
+        }
       }
     }
 
@@ -240,9 +246,12 @@ class _DoneActionTile extends ConsumerWidget {
         await ref
             .read(todayActionsRepositoryProvider)
             .setStatus(id: action.id, status: ActionStatus.open);
+        if (!context.mounted) return;
         ref.invalidate(todayActionsProvider);
-      } catch (e) {
-        if (context.mounted) showErrorSnackBar(context, 'Failed: $e');
+      } catch (_) {
+        if (context.mounted) {
+          showErrorSnackBar(context, userSafeActionError('reopen this action'));
+        }
       }
     }
 

@@ -4,12 +4,43 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/account/account_providers.dart';
 import '../../core/supabase/supabase_providers.dart';
+import '../../core/utils/user_safe_error.dart';
 import 'models/item.dart';
 import 'models/listing.dart';
 import 'models/valuation.dart';
 
 const itemPhotosBucket = 'item-photos';
 const _signedUrlTtlSeconds = 60 * 60; // 1 hour — regenerated every fetch
+
+Map<String, dynamic> buildListingRpcParameters({
+  required String accountId,
+  required String itemId,
+  required String marketplace,
+  int? listPriceCents,
+}) {
+  return {
+    'p_account_id': accountId,
+    'p_item_id': itemId,
+    'p_marketplace': marketplace,
+    'p_list_price_cents': listPriceCents,
+  };
+}
+
+Map<String, dynamic> buildSaleRpcParameters({
+  required String accountId,
+  required String itemId,
+  String? listingId,
+  required int salePriceCents,
+  required int feesCents,
+}) {
+  return {
+    'p_account_id': accountId,
+    'p_item_id': itemId,
+    'p_listing_id': listingId,
+    'p_sale_price_cents': salePriceCents,
+    'p_fees_cents': feesCents,
+  };
+}
 
 class SellPageData {
   const SellPageData({
@@ -36,6 +67,15 @@ class SellPageData {
 final sellPageProvider = FutureProvider.autoDispose<SellPageData>((ref) async {
   final client = ref.watch(supabaseClientProvider);
   final accountId = ref.watch(activeAccountProvider).id;
+
+  if (accountId.isEmpty) {
+    return const SellPageData(
+      items: [],
+      latestValuationByItem: {},
+      listingsByItem: {},
+      signedUrlByPath: {},
+    );
+  }
 
   final results = await Future.wait([
     client
@@ -134,18 +174,15 @@ class SellRepository {
     required String marketplace,
     int? listPriceCents,
   }) async {
-    final userId = _client.auth.currentUser?.id;
-    await _client.from('listings').insert({
-      'account_id': accountId,
-      'item_id': itemId,
-      'marketplace': marketplace,
-      'status': 'active',
-      'list_price_cents': listPriceCents,
-      'published_at': DateTime.now().toIso8601String(),
-      'created_by': userId,
-    });
-
-    await _client.from('items').update({'status': 'listed'}).eq('id', itemId);
+    await _client.rpc(
+      'create_listing_and_mark_item',
+      params: buildListingRpcParameters(
+        accountId: accountId,
+        itemId: itemId,
+        marketplace: marketplace,
+        listPriceCents: listPriceCents,
+      ),
+    );
   }
 
   Future<void> recordSale({
@@ -155,36 +192,16 @@ class SellRepository {
     required int salePriceCents,
     int feesCents = 0,
   }) async {
-    final userId = _client.auth.currentUser?.id;
-    final netAmountCents = salePriceCents - feesCents;
-
-    await _client.from('sales').insert({
-      'account_id': accountId,
-      'item_id': itemId,
-      'listing_id': listingId,
-      'sale_price_cents': salePriceCents,
-      'fees_cents': feesCents,
-      'net_amount_cents': netAmountCents,
-      'created_by': userId,
-    });
-
-    await _client.from('items').update({'status': 'sold'}).eq('id', itemId);
-    if (listingId != null) {
-      await _client
-          .from('listings')
-          .update({'status': 'sold'})
-          .eq('id', listingId);
-    }
-
-    await _client.from('money_events').insert({
-      'account_id': accountId,
-      'item_id': itemId,
-      'kind': 'recovered',
-      'amount_cents': netAmountCents,
-      'source_type': 'sale',
-      'description': 'Item sold via RECOVER',
-      'created_by': userId,
-    });
+    await _client.rpc(
+      'record_item_sale',
+      params: buildSaleRpcParameters(
+        accountId: accountId,
+        itemId: itemId,
+        listingId: listingId,
+        salePriceCents: salePriceCents,
+        feesCents: feesCents,
+      ),
+    );
   }
 
   static const _allowedPhotoExtensions = {
@@ -229,8 +246,8 @@ class SellRepository {
       await _client.storage
           .from(itemPhotosBucket)
           .uploadBinary(objectPath, bytes);
-    } catch (e) {
-      return 'Upload failed: $e';
+    } catch (_) {
+      return userSafeActionError('upload this photo');
     }
 
     try {
@@ -247,9 +264,9 @@ class SellRepository {
           })
           .eq('id', itemId);
       return null;
-    } catch (e) {
+    } catch (_) {
       await _client.storage.from(itemPhotosBucket).remove([objectPath]);
-      return 'Failed to save photo: $e';
+      return userSafeActionError('save this photo');
     }
   }
 

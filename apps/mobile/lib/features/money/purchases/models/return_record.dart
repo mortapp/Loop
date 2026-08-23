@@ -8,6 +8,26 @@ ReturnStatus returnStatusFromString(String value) {
   );
 }
 
+/// Forward-only states that can be selected directly. Refund is an amount-
+/// bearing action handled separately, and terminal states have no successors.
+List<ReturnStatus> nextReturnStatuses(ReturnStatus current) {
+  switch (current) {
+    case ReturnStatus.initiated:
+      return const [
+        ReturnStatus.shipped,
+        ReturnStatus.received,
+        ReturnStatus.denied,
+      ];
+    case ReturnStatus.shipped:
+      return const [ReturnStatus.received, ReturnStatus.denied];
+    case ReturnStatus.received:
+      return const [ReturnStatus.denied];
+    case ReturnStatus.refunded:
+    case ReturnStatus.denied:
+      return const [];
+  }
+}
+
 /// A single row from `public.returns`.
 class ReturnRecord {
   const ReturnRecord({
