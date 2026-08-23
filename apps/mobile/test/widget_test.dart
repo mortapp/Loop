@@ -23,6 +23,7 @@ void main() {
       ProviderScope(
         overrides: [
           isAuthenticatedProvider.overrideWith((ref) => true),
+          needsOnboardingProvider.overrideWith((ref) => false),
           todayActionsProvider.overrideWith((ref) async => []),
         ],
         child: const LoopApp(),
@@ -48,6 +49,7 @@ void main() {
       ProviderScope(
         overrides: [
           isAuthenticatedProvider.overrideWith((ref) => true),
+          needsOnboardingProvider.overrideWith((ref) => false),
           todayActionsProvider.overrideWith((ref) async => []),
         ],
         child: const LoopApp(),
@@ -64,7 +66,10 @@ void main() {
   ) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [isAuthenticatedProvider.overrideWith((ref) => false)],
+        overrides: [
+          isAuthenticatedProvider.overrideWith((ref) => false),
+          needsOnboardingProvider.overrideWith((ref) => false),
+        ],
         child: const LoopApp(),
       ),
     );

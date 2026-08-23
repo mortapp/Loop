@@ -22,7 +22,16 @@ setup("authenticate as the QA user", async ({ page }) => {
   await page.getByLabel(/password/i).fill(password);
   await page.getByRole("button", { name: /sign in/i }).click();
 
-  await page.waitForURL("/today");
+  // A brand-new QA account (profiles.display_name still null) lands on
+  // the one-time onboarding step first -- see /auth/complete-profile.
+  // An account that's already been through it once goes straight to
+  // /today. Handle both so this setup doesn't need updating the moment
+  // the QA account first gets created.
+  await page.waitForURL(/\/(today|auth\/complete-profile)$/);
+  if (page.url().includes("/auth/complete-profile")) {
+    await page.getByRole("button", { name: /continue/i }).click();
+    await page.waitForURL("/today");
+  }
   await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
 
   await page.context().storageState({ path: AUTH_FILE });

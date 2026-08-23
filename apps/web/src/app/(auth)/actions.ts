@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { redirectAfterAuth } from "@/lib/auth/post-auth-redirect";
 
 export type AuthActionState = { error: string } | null;
 
@@ -15,7 +16,7 @@ export async function signIn(_prev: AuthActionState, formData: FormData): Promis
     return { error: error.message };
   }
 
-  redirect("/today");
+  return redirectAfterAuth(supabase, "/today");
 }
 
 export async function signUp(_prev: AuthActionState, formData: FormData): Promise<AuthActionState> {
@@ -23,7 +24,7 @@ export async function signUp(_prev: AuthActionState, formData: FormData): Promis
   const password = String(formData.get("password") ?? "");
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -34,7 +35,13 @@ export async function signUp(_prev: AuthActionState, formData: FormData): Promis
     return { error: error.message };
   }
 
-  redirect("/today");
+  // If the project requires email confirmation, signUp succeeds but
+  // returns no session -- there's nothing to redirect into yet.
+  if (!data.session) {
+    redirect("/sign-in?notice=check_email");
+  }
+
+  return redirectAfterAuth(supabase, "/today");
 }
 
 export async function signOut() {

@@ -2,10 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../account/profile_providers.dart';
 import '../supabase/supabase_providers.dart';
 import '../widgets/root_shell.dart';
 import '../../features/ai/ai_screen.dart';
 import '../../features/auth/auth_screen.dart';
+import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/business/business_screen.dart';
 import '../../features/business/contacts/contacts_screen.dart';
 import '../../features/business/leads/leads_screen.dart';
@@ -38,6 +40,7 @@ class AppRoutes {
   static const business = '/business';
   static const ai = '/ai';
   static const signIn = '/sign-in';
+  static const onboarding = '/onboarding';
   static const profile = '/profile';
   static const settings = '/settings';
   static const personalization = '/settings/personalization';
@@ -61,6 +64,26 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
   return Supabase.instance.client.auth.currentSession != null;
 });
 
+/// True once a signed-in user's profile has loaded and confirms they've
+/// never set a display name — true for every brand-new account
+/// regardless of whether they signed up with Google or email/password
+/// (`profiles.display_name` starts null either way — see
+/// `handle_new_user()` in supabase/migrations/20260817000002_identity.sql,
+/// and apps/web's identical `redirectAfterAuth` gate). Stays false while
+/// the profile is still loading (`orElse`) so there's no redirect flash
+/// on cold start; flips true the moment it resolves with a null name,
+/// which is enough for [appRouterProvider] (which watches this) to
+/// re-run its redirect and send the user to onboarding.
+final needsOnboardingProvider = Provider<bool>((ref) {
+  final profileAsync = ref.watch(currentProfileProvider);
+  return profileAsync.maybeWhen(
+    data: (profile) =>
+        profile != null &&
+        (profile.displayName == null || profile.displayName!.trim().isEmpty),
+    orElse: () => false,
+  );
+});
+
 /// The app's single GoRouter instance, exposed as a Riverpod provider.
 ///
 /// Uses a StatefulShellRoute so the bottom navigation bar (built in
@@ -68,15 +91,24 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
 /// navigation stack.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final isAuthenticated = ref.watch(isAuthenticatedProvider);
+  final needsOnboarding = ref.watch(needsOnboardingProvider);
 
   return GoRouter(
     initialLocation: AppRoutes.today,
     redirect: (context, state) {
       final goingToSignIn = state.matchedLocation == AppRoutes.signIn;
+      final goingToOnboarding = state.matchedLocation == AppRoutes.onboarding;
+
       if (!isAuthenticated) {
         return goingToSignIn ? null : AppRoutes.signIn;
       }
       if (goingToSignIn) {
+        return AppRoutes.today;
+      }
+      if (needsOnboarding && !goingToOnboarding) {
+        return AppRoutes.onboarding;
+      }
+      if (!needsOnboarding && goingToOnboarding) {
         return AppRoutes.today;
       }
       return null;
@@ -85,6 +117,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.signIn,
         builder: (context, state) => const AuthScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.onboarding,
+        builder: (context, state) => const OnboardingScreen(),
       ),
       // Account identity — full-screen pushes (with a back button) reached
       // from the account sheet, not new bottom-nav destinations.

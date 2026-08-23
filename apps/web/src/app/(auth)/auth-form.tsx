@@ -8,9 +8,14 @@ import { GoogleSignInButton } from "./google-sign-in-button";
 export function AuthForm({
   mode,
   action,
+  initialMessage = null,
 }: {
   mode: "sign-in" | "sign-up";
   action: (prev: AuthActionState, formData: FormData) => Promise<AuthActionState>;
+  /** From a redirect's ?error=/?notice= query param (e.g. an expired
+   * OAuth callback, or "check your email to confirm") -- shown once,
+   * above the form, distinct from a live submission's own error. */
+  initialMessage?: { kind: "error" | "notice"; text: string } | null;
 }) {
   const [state, formAction, pending] = useActionState<AuthActionState, FormData>(action, null);
 
@@ -24,6 +29,17 @@ export function AuthForm({
       <h1 className="text-xs font-semibold tracking-[0.2em] text-[var(--color-text-secondary)]">
         {(isSignIn ? "Sign in" : "Create your account").toUpperCase()}
       </h1>
+
+      {initialMessage ? (
+        <p
+          className={`text-sm ${
+            initialMessage.kind === "error" ? "text-[var(--color-danger-text)]" : "text-[var(--color-text-secondary)]"
+          }`}
+          role={initialMessage.kind === "error" ? "alert" : "status"}
+        >
+          {initialMessage.text}
+        </p>
+      ) : null}
 
       <GoogleSignInButton />
 

@@ -1,5 +1,90 @@
 # Known Issues
 
+## Mobile OAuth/email-confirmation redirect needs one Supabase dashboard entry — OWNER_ACTION_REQUIRED
+
+Real bug reported live by the owner after the placeholder-config fix
+below: completing Google sign-in on the Galaxy A14 landed on the web
+app's `/auth/callback`, which then failed and bounced back to
+`/sign-in` — asking to log in again, with no explanation.
+
+Root cause, confirmed against Supabase's own docs (not guessed): every
+`redirect_to` a client passes to `signInWithOAuth`/`signUp` must be in
+the project's **Authentication → URL Configuration → Redirect URLs**
+allow-list, or Supabase silently falls back to the project's Site URL
+instead. Mobile's `redirectTo`
+(`com.loop.app.loop_mobile://login-callback`, set in
+`auth_screen.dart` and matching `AndroidManifest.xml`'s intent-filter
+exactly) isn't in that allow-list yet, so every mobile auth attempt
+(Google OAuth *and* email confirmation links, both use the same
+`redirectTo`) falls back to the website instead of handing off to the
+app. Once there, the code exchange fails for a structural reason, not
+a bug: the PKCE `code_verifier` for a flow the mobile app started is
+stored in the app's local storage, which the website's server has no
+access to.
+
+**This setting lives entirely in Supabase's platform config, not the
+Postgres database** — none of this session's tools (`execute_sql`,
+`apply_migration`, or any other) can read or write it; it was
+confirmed absent from every `auth.*` table this session could query.
+**Owner action required:**
+1. Open the Supabase dashboard → this project → Authentication → URL
+   Configuration.
+2. Add `com.loop.app.loop_mobile://login-callback` to **Redirect
+   URLs**.
+
+Once added, both Google OAuth and email-confirmation links on mobile
+will hand off directly to the app via its intent-filter — no website
+page shown at all, not even briefly.
+
+**In the meantime**, `/auth/callback`'s failure path now redirects to
+`/sign-in?error=auth_callback_failed`, and `/sign-in` actually
+displays that (previously the query param was silently ignored — the
+page just showed a plain sign-in form with no explanation of what
+happened, which is the "won't load fully right" the owner reported).
+Real improvement either way, not just a stopgap.
+
+## New: post-auth onboarding (display name) + a real sign-in error/notice banner
+
+Added 2026-08-22, prompted by the owner's request for the Google
+sign-in experience to feel like one step, with a name captured (preset
+from the account's email/Google profile, editable) rather than a
+second, separate account-setup screen. Both platforms, same flow:
+
+- `profiles.display_name` starts null for every account regardless of
+  signup method (see `handle_new_user()`) — that's the "needs
+  onboarding" signal, not a new column. LOOP still deliberately has no
+  public `username` field (see the PROFILE entry in
+  docs/LOOP_COMPLETION_LEDGER.md history) — this is the existing
+  friendly display name, not a reversal of that decision.
+- Web: `/auth/callback` and the `signIn`/`signUp` Server Actions all
+  route through one shared `redirectAfterAuth` helper
+  (`src/lib/auth/post-auth-redirect.ts`) that checks
+  `profiles.display_name` and sends a first-time user to
+  `/auth/complete-profile` (prefilled from Google's `full_name`/`name`
+  claim, else a title-cased guess from the email's local part) before
+  their real `next` destination. An existing account never sees it.
+- Mobile: `needsOnboardingProvider` (`app_router.dart`) does the same
+  check via the existing `currentProfileProvider`/`ProfileRepository`
+  (no new plumbing needed — both already existed for the Profile
+  screen) and redirects to a new `OnboardingScreen`, control-for-control
+  matching the web page.
+- `/sign-in` now actually reads and displays `?error=`/`?notice=`
+  query params (`auth_callback_failed`, `check_email`) instead of
+  silently dropping them — the other half of the "won't load fully
+  right" report above.
+
+Verified: `tsc`/`eslint`/`next build` clean; full Playwright suite
+(25 real passes, 60 correctly gated) unaffected — one earlier run
+showed 7 transient failures from a cold dev-server start right after
+`next build`, confirmed non-reproducible on immediate rerun (25/25
+clean, twice). Mobile: `flutter analyze`/`test` clean (13/13,
+`needsOnboardingProvider` overridden in the existing widget tests the
+same way `isAuthenticatedProvider` already was), debug build installs
+and launches cleanly on the physical Galaxy A14. The onboarding screens
+themselves are not yet exercised end-to-end on a live account on
+either platform — that needs the redirect-URL fix above (mobile) and a
+real first sign-up (both) to reach naturally.
+
 ## ~~Mobile builds silently ran against a placeholder Supabase host~~ — resolved 2026-08-22, found on the real Galaxy A14
 
 A real, live regression, not a hypothetical: on the physical device,
