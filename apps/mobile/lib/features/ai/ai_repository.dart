@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/app_config.dart';
+import '../../core/supabase/supabase_providers.dart';
 
 /// One turn's result from `/api/ai/chat` or `/api/ai/confirm` — mirrors
 /// apps/web/src/app/api/ai/chat/route.ts's `ChatResponseBody` union
@@ -25,11 +27,13 @@ class ChatToolConfirmation extends ChatResponse {
     required this.toolUseId,
     required this.toolName,
     required this.input,
+    required this.confirmationToken,
     required this.messages,
   });
   final String toolUseId;
   final String toolName;
   final Map<String, dynamic> input;
+  final String confirmationToken;
   final List<dynamic> messages;
 }
 
@@ -38,7 +42,22 @@ class ChatErrorResponse extends ChatResponse {
   final String error;
 }
 
-class AiRepository {
+abstract interface class AiGateway {
+  Future<ChatResponse> sendMessage({
+    required List<dynamic> messages,
+    required String accountId,
+  });
+
+  Future<ChatResponse> confirmTool({
+    required List<dynamic> messages,
+    required String toolUseId,
+    required String confirmationToken,
+    required bool approve,
+    required String accountId,
+  });
+}
+
+class AiRepository implements AiGateway {
   AiRepository(this._client);
 
   final SupabaseClient _client;
@@ -54,6 +73,7 @@ class AiRepository {
     };
   }
 
+  @override
   Future<ChatResponse> sendMessage({
     required List<dynamic> messages,
     required String accountId,
@@ -61,15 +81,18 @@ class AiRepository {
     return _post(_chatUri, {'messages': messages, 'accountId': accountId});
   }
 
+  @override
   Future<ChatResponse> confirmTool({
     required List<dynamic> messages,
     required String toolUseId,
+    required String confirmationToken,
     required bool approve,
     required String accountId,
   }) {
     return _post(_confirmUri, {
       'messages': messages,
       'toolUseId': toolUseId,
+      'confirmationToken': confirmationToken,
       'approve': approve,
       'accountId': accountId,
     });
@@ -107,10 +130,17 @@ class AiRepository {
           messages: (json['messages'] as List<dynamic>?) ?? const [],
         );
       case 'tool_confirmation':
+        final confirmationToken = json['confirmationToken'] as String?;
+        if (confirmationToken == null || confirmationToken.isEmpty) {
+          return const ChatErrorResponse(
+            'This pending action is no longer valid. Ask LOOP again.',
+          );
+        }
         return ChatToolConfirmation(
           toolUseId: json['toolUseId'] as String,
           toolName: json['toolName'] as String,
           input: (json['input'] as Map<String, dynamic>?) ?? const {},
+          confirmationToken: confirmationToken,
           messages: (json['messages'] as List<dynamic>?) ?? const [],
         );
       case 'error':
@@ -122,3 +152,7 @@ class AiRepository {
     }
   }
 }
+
+final aiGatewayProvider = Provider<AiGateway>(
+  (ref) => AiRepository(ref.watch(supabaseClientProvider)),
+);

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/account/account_providers.dart';
-import '../../core/supabase/supabase_providers.dart';
+import '../../core/account/account_context.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/account_sheet.dart';
@@ -40,12 +40,64 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   String? _error;
   ChatToolConfirmation? _pendingConfirmation;
   Future<ChatResponse> Function()? _retry;
+  ProviderSubscription<AccountSummary>? _accountSubscription;
+  String _accountId = '';
+  String? _retryAccountId;
+  int _requestGeneration = 0;
+  int? _retryGeneration;
+
+  @override
+  void initState() {
+    super.initState();
+    _accountSubscription = ref.listenManual<AccountSummary>(
+      activeAccountProvider,
+      (_, next) => _handleAccountChange(next.id),
+      fireImmediately: true,
+    );
+  }
 
   @override
   void dispose() {
+    _accountSubscription?.close();
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _handleAccountChange(String nextAccountId) {
+    if (_accountId.isEmpty) {
+      _accountId = nextAccountId;
+      return;
+    }
+    if (_accountId == nextAccountId) return;
+
+    final hadPendingAction = _pendingConfirmation != null || _sending;
+    final hadConversation = hadPendingAction || _messages.isNotEmpty;
+    _accountId = nextAccountId;
+    _requestGeneration += 1;
+    if (!mounted) return;
+    setState(() {
+      _entries.clear();
+      _messages = const [];
+      _sending = false;
+      _error = hadPendingAction
+          ? 'This action was created for another account. Ask LOOP again.'
+          : hadConversation
+          ? 'Ask LOOP was reset because you switched accounts.'
+          : null;
+      _pendingConfirmation = null;
+      _retry = null;
+      _retryAccountId = null;
+      _retryGeneration = null;
+      _controller.clear();
+    });
+  }
+
+  bool _isCurrentRequest(String accountId, int generation) {
+    return mounted &&
+        accountId.isNotEmpty &&
+        accountId == ref.read(activeAccountProvider).id &&
+        generation == _requestGeneration;
   }
 
   void _scrollToBottom() {
@@ -63,8 +115,14 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final text = _controller.text.trim();
     if (text.isEmpty || _sending) return;
 
-    final repo = AiRepository(ref.read(supabaseClientProvider));
+    final repo = ref.read(aiGatewayProvider);
     final accountId = ref.read(activeAccountProvider).id;
+    if (accountId.isEmpty) {
+      setState(() => _error = 'Your account is still loading. Try again.');
+      return;
+    }
+    _accountId = accountId;
+    final generation = _requestGeneration;
     final outgoing = [
       ..._messages,
       {'role': 'user', 'content': text},
@@ -78,19 +136,26 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       _error = null;
       _pendingConfirmation = null;
       _retry = () => repo.sendMessage(messages: outgoing, accountId: accountId);
+      _retryAccountId = accountId;
+      _retryGeneration = generation;
     });
     _scrollToBottom();
 
     final result = await _retry!();
-    _handleResult(result);
+    _handleResult(result, accountId, generation);
   }
 
   Future<void> _respondToConfirmation(bool approve) async {
     final confirmation = _pendingConfirmation;
     if (confirmation == null) return;
 
-    final repo = AiRepository(ref.read(supabaseClientProvider));
-    final accountId = ref.read(activeAccountProvider).id;
+    final repo = ref.read(aiGatewayProvider);
+    final accountId = _accountId;
+    final generation = _requestGeneration;
+    if (!_isCurrentRequest(accountId, generation)) {
+      _handleAccountChange(ref.read(activeAccountProvider).id);
+      return;
+    }
     final outgoingMessages = confirmation.messages;
 
     setState(() {
@@ -108,18 +173,21 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       _retry = () => repo.confirmTool(
         messages: outgoingMessages,
         toolUseId: confirmation.toolUseId,
+        confirmationToken: confirmation.confirmationToken,
         approve: approve,
         accountId: accountId,
       );
+      _retryAccountId = accountId;
+      _retryGeneration = generation;
     });
     _scrollToBottom();
 
     final result = await _retry!();
-    _handleResult(result);
+    _handleResult(result, accountId, generation);
   }
 
-  void _handleResult(ChatResponse result) {
-    if (!mounted) return;
+  void _handleResult(ChatResponse result, String accountId, int generation) {
+    if (!_isCurrentRequest(accountId, generation)) return;
     setState(() {
       _sending = false;
       switch (result) {
@@ -140,12 +208,18 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
   Future<void> _retrySend() async {
     final retry = _retry;
-    if (retry == null) return;
+    final accountId = _retryAccountId;
+    final generation = _retryGeneration;
+    if (retry == null || accountId == null || generation == null) return;
+    if (!_isCurrentRequest(accountId, generation)) {
+      _handleAccountChange(ref.read(activeAccountProvider).id);
+      return;
+    }
     setState(() {
       _sending = true;
       _error = null;
     });
-    _handleResult(await retry());
+    _handleResult(await retry(), accountId, generation);
   }
 
   String _describeTool(ChatToolConfirmation confirmation) {

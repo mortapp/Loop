@@ -66,19 +66,35 @@ export async function executeTool(
   userId: string | null,
   name: string,
   input: Record<string, unknown>,
+  confirmationId: string,
 ): Promise<ToolExecutionResult> {
   switch (name) {
     case "create_action": {
       const title = String(input.title ?? "").trim();
       if (!title) return { error: "Missing title." };
+      if (title.length > 240) return { error: "That title is too long." };
 
       const { error } = await supabase.from("actions").insert({
         account_id: accountId,
         type: "ai",
         title,
+        related_type: "ai_confirmation",
+        related_id: confirmationId,
         created_by: userId,
       });
       if (error) {
+        if (error.code === "23505") {
+          const { data: existing, error: lookupError } = await supabase
+            .from("actions")
+            .select("title")
+            .eq("account_id", accountId)
+            .eq("related_type", "ai_confirmation")
+            .eq("related_id", confirmationId)
+            .maybeSingle();
+          if (!lookupError && existing?.title === title) {
+            return { summary: `Added "${title}" to Today.` };
+          }
+        }
         return { error: userSafeServerError("ai:add-action", error) };
       }
       return { summary: `Added "${title}" to Today.` };
@@ -94,17 +110,38 @@ export async function executeTool(
       if (!Number.isFinite(amountCents) || amountCents <= 0) {
         return { error: "Invalid amount." };
       }
-      const description = input.description ? String(input.description) : null;
+      const description = input.description ? String(input.description).trim() : null;
+      if (description != null && description.length > 500) {
+        return { error: "That description is too long." };
+      }
 
       const { error } = await supabase.from("money_events").insert({
         account_id: accountId,
         kind,
         amount_cents: amountCents,
         source_type: "ai",
+        source_id: confirmationId,
         description,
         created_by: userId,
       });
       if (error) {
+        if (error.code === "23505") {
+          const { data: existing, error: lookupError } = await supabase
+            .from("money_events")
+            .select("kind, amount_cents, description")
+            .eq("account_id", accountId)
+            .eq("source_type", "ai")
+            .eq("source_id", confirmationId)
+            .maybeSingle();
+          if (
+            !lookupError &&
+            existing?.kind === kind &&
+            Number(existing.amount_cents) === amountCents &&
+            (existing.description ?? null) === description
+          ) {
+            return { summary: `Logged ${kind} of $${amountDollars.toFixed(2)}.` };
+          }
+        }
         return { error: userSafeServerError("ai:log-money-event", error) };
       }
       return { summary: `Logged ${kind} of $${amountDollars.toFixed(2)}.` };

@@ -6,6 +6,23 @@ export type AiAuthResult =
   | { supabase: SupabaseClient; userId: string; accountId: string }
   | { error: string; status: number };
 
+async function requireAccountAccess(
+  supabase: SupabaseClient,
+  userId: string,
+  accountId: string,
+): Promise<AiAuthResult> {
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("id")
+    .eq("id", accountId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return { error: "You do not have access to this account.", status: 403 };
+  }
+  return { supabase, userId, accountId };
+}
+
 /**
  * The one auth boundary both AI routes (chat, confirm) go through —
  * deliberately the SAME product contract for web and mobile, not a
@@ -17,11 +34,9 @@ export type AiAuthResult =
  * `supabase_flutter` already attaches to every other request it makes)
  * plus an explicit `accountId` in the request body (mobile tracks its
  * active account in memory, not a cookie) — that combination is
- * verified here and never trusted blindly: `accountId` is only ever
- * used as a query filter, and every downstream read/write still goes
- * through the same RLS policies (`has_account_access`) that protect
- * every other table, so a client-supplied account id a user doesn't
- * actually belong to is rejected by the database, not by this check.
+ * verified here and never trusted blindly: account access is checked through
+ * the RLS-protected accounts table before provider work, and every downstream
+ * write is still independently protected by its account-scoped RLS policy.
  */
 export async function resolveAiRequest(
   request: Request,
@@ -40,7 +55,7 @@ export async function resolveAiRequest(
     } = await supabase.auth.getUser();
     if (!user) return { error: "Not signed in.", status: 401 };
     if (!bodyAccountId) return { error: "No active account.", status: 400 };
-    return { supabase, userId: user.id, accountId: bodyAccountId };
+    return requireAccountAccess(supabase, user.id, bodyAccountId);
   }
 
   const supabase = await createServerClient();
@@ -52,5 +67,5 @@ export async function resolveAiRequest(
   const accountId = bodyAccountId ?? (await getActiveAccountId());
   if (!accountId) return { error: "No active account.", status: 400 };
 
-  return { supabase, userId: user.id, accountId };
+  return requireAccountAccess(supabase, user.id, accountId);
 }

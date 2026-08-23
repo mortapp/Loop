@@ -12,6 +12,7 @@ type PendingConfirmation = {
   toolUseId: string;
   toolName: string;
   input: Record<string, unknown>;
+  confirmationToken: string;
 };
 
 function extractText(content: Anthropic.MessageParam["content"]): string {
@@ -54,7 +55,12 @@ export function ChatUi() {
       setLog((prev) => [...prev, { role: "assistant", text }]);
     }
     if (body.type === "tool_confirmation") {
-      setPending({ toolUseId: body.toolUseId, toolName: body.toolName, input: body.input });
+      setPending({
+        toolUseId: body.toolUseId,
+        toolName: body.toolName,
+        input: body.input,
+        confirmationToken: body.confirmationToken,
+      });
     }
   }
 
@@ -66,7 +72,10 @@ export function ChatUi() {
     setLog((prev) => [...prev, { role: "user", text }]);
     setBusy(true);
 
-    const nextMessages: Anthropic.MessageParam[] = [...rawMessages, { role: "user", content: text }];
+    const nextMessages: Anthropic.MessageParam[] = [
+      ...rawMessages,
+      { role: "user", content: text },
+    ];
     try {
       const res = await fetch("/api/ai/chat", {
         method: "POST",
@@ -89,7 +98,12 @@ export function ChatUi() {
       const res = await fetch("/api/ai/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: rawMessages, toolUseId: pending.toolUseId, approve }),
+        body: JSON.stringify({
+          messages: rawMessages,
+          toolUseId: pending.toolUseId,
+          confirmationToken: pending.confirmationToken,
+          approve,
+        }),
       });
       setPending(null);
       handleChatResponse((await res.json()) as ChatResponseBody);
@@ -169,7 +183,11 @@ export function ChatUi() {
           placeholder={pending ? "Respond to the pending action above first…" : "Message LOOP…"}
           className={`flex-1 ${formInputClass}`}
         />
-        <button type="submit" disabled={busy || Boolean(pending) || !input.trim()} className={formButtonClass}>
+        <button
+          type="submit"
+          disabled={busy || Boolean(pending) || !input.trim()}
+          className={formButtonClass}
+        >
           Send
         </button>
       </form>

@@ -3,12 +3,14 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { AI_MODEL, AI_SYSTEM_PROMPT, createAiClient, isAiConfigured } from "@/lib/ai/client";
 import { AI_TOOLS, executeTool } from "@/lib/ai/tools";
 import { resolveAiRequest } from "@/lib/ai/auth";
+import { verifyAiConfirmationToken } from "@/lib/ai/confirmation-token";
 import { userSafeServerError } from "@/lib/user-safe-error";
 import type { ChatResponseBody } from "../chat/route";
 
 type ConfirmRequestBody = {
   messages: Anthropic.MessageParam[];
   toolUseId: string;
+  confirmationToken: string;
   approve: boolean;
   accountId?: string;
 };
@@ -27,8 +29,32 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json()) as ConfirmRequestBody;
-  const { messages, toolUseId, approve } = body;
+  let body: ConfirmRequestBody;
+  try {
+    body = (await request.json()) as ConfirmRequestBody;
+  } catch {
+    return NextResponse.json<ChatResponseBody>(
+      { type: "error", error: "Invalid request." },
+      { status: 400 },
+    );
+  }
+  const { messages, toolUseId, confirmationToken, approve } = body;
+
+  if (
+    !Array.isArray(messages) ||
+    messages.length === 0 ||
+    messages.length > 100 ||
+    typeof toolUseId !== "string" ||
+    toolUseId.length === 0 ||
+    toolUseId.length > 200 ||
+    typeof approve !== "boolean" ||
+    (body.accountId !== undefined && typeof body.accountId !== "string")
+  ) {
+    return NextResponse.json<ChatResponseBody>(
+      { type: "error", error: "Invalid confirmation request." },
+      { status: 400 },
+    );
+  }
 
   const auth = await resolveAiRequest(request, body.accountId);
   if ("error" in auth) {
@@ -55,6 +81,30 @@ export async function POST(request: Request) {
     );
   }
 
+  if (typeof confirmationToken !== "string") {
+    return NextResponse.json<ChatResponseBody>(
+      { type: "error", error: "This pending action is no longer valid. Ask LOOP again." },
+      { status: 400 },
+    );
+  }
+
+  const verified = verifyAiConfirmationToken(confirmationToken, {
+    userId,
+    accountId,
+    toolUseId,
+    toolName: toolUseBlock.name,
+    input: toolUseBlock.input as Record<string, unknown>,
+  });
+  if (!verified.ok) {
+    return NextResponse.json<ChatResponseBody>(
+      {
+        type: "error",
+        error: "This pending action belongs to another session or account. Ask LOOP again.",
+      },
+      { status: 409 },
+    );
+  }
+
   let toolResultContent: string;
   let isError = false;
 
@@ -67,6 +117,7 @@ export async function POST(request: Request) {
       userId,
       toolUseBlock.name,
       toolUseBlock.input as Record<string, unknown>,
+      verified.confirmationId,
     );
     if ("error" in result) {
       toolResultContent = result.error;
