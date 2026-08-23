@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
 import { userSafeServerError } from "@/lib/user-safe-error";
+import type { ActionResult } from "@/lib/action-result";
 
 export type FormState = { error: string } | null;
 
@@ -62,18 +63,36 @@ export async function createItem(_prev: FormState, formData: FormData): Promise<
  * member the storage policy already authorized for that upload.
  */
 export async function attachItemPhoto(itemId: string, objectPath: string): Promise<FormState> {
+  const accountId = await getActiveAccountId();
+  if (!accountId) {
+    return { error: "No active account." };
+  }
+  if (!itemId || !objectPath.startsWith(`${accountId}/${itemId}/`)) {
+    return { error: "That photo upload is not valid." };
+  }
+
   const supabase = await createClient();
   const { data: item, error: fetchError } = await supabase
     .from("items")
     .select("photos")
     .eq("id", itemId)
+    .eq("account_id", accountId)
     .single();
   if (fetchError) {
     return { error: userSafeServerError("sell:load-item-photos", fetchError) };
   }
 
-  const photos = [...((item?.photos as string[] | null) ?? []), objectPath];
-  const { error } = await supabase.from("items").update({ photos }).eq("id", itemId);
+  const currentPhotos = (item?.photos as string[] | null) ?? [];
+  const photos = currentPhotos.includes(objectPath)
+    ? currentPhotos
+    : [...currentPhotos, objectPath];
+  const { error } = await supabase
+    .from("items")
+    .update({ photos })
+    .eq("id", itemId)
+    .eq("account_id", accountId)
+    .select("id")
+    .single();
   if (error) {
     return { error: userSafeServerError("sell:add-item-photo", error) };
   }
@@ -82,15 +101,74 @@ export async function attachItemPhoto(itemId: string, objectPath: string): Promi
   return null;
 }
 
-export async function removeItemPhoto(itemId: string, objectPath: string) {
-  const supabase = await createClient();
-  const { data: item } = await supabase.from("items").select("photos").eq("id", itemId).single();
-  const photos = ((item?.photos as string[] | null) ?? []).filter((p) => p !== objectPath);
+export async function removeItemPhoto(
+  itemId: string,
+  objectPath: string,
+  _previousState: ActionResult,
+  _formData: FormData,
+): Promise<ActionResult> {
+  void _previousState;
+  void _formData;
 
-  await supabase.from("items").update({ photos }).eq("id", itemId);
-  await supabase.storage.from("item-photos").remove([objectPath]);
+  const accountId = await getActiveAccountId();
+  if (!accountId) {
+    return { error: "No active account." };
+  }
+  if (!itemId || !objectPath.startsWith(`${accountId}/${itemId}/`)) {
+    return { error: "That photo removal is not valid." };
+  }
+
+  const supabase = await createClient();
+  const { data: item, error: fetchError } = await supabase
+    .from("items")
+    .select("photos")
+    .eq("id", itemId)
+    .eq("account_id", accountId)
+    .single();
+  if (fetchError) {
+    return { error: userSafeServerError("sell:load-item-photo", fetchError) };
+  }
+
+  const currentPhotos = (item?.photos as string[] | null) ?? [];
+  if (!currentPhotos.includes(objectPath)) {
+    return { error: "That photo is no longer attached to this item. Refresh and try again." };
+  }
+  const photos = currentPhotos.filter((path) => path !== objectPath);
+
+  const { error: updateError } = await supabase
+    .from("items")
+    .update({ photos })
+    .eq("id", itemId)
+    .eq("account_id", accountId)
+    .select("id")
+    .single();
+  if (updateError) {
+    return { error: userSafeServerError("sell:detach-item-photo", updateError) };
+  }
+
+  const { error: storageError } = await supabase.storage.from("item-photos").remove([objectPath]);
+  if (storageError) {
+    const { error: rollbackError } = await supabase
+      .from("items")
+      .update({ photos: currentPhotos })
+      .eq("id", itemId)
+      .eq("account_id", accountId)
+      .select("id")
+      .single();
+    if (rollbackError) {
+      userSafeServerError("sell:restore-item-photo-after-storage-error", rollbackError);
+    }
+    return {
+      error: userSafeServerError(
+        "sell:remove-item-photo-object",
+        storageError,
+        "We couldn't remove that photo. Refresh and try again.",
+      ),
+    };
+  }
 
   revalidatePath("/sell");
+  return null;
 }
 
 export async function addValuation(_prev: FormState, formData: FormData): Promise<FormState> {

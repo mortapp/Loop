@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { InlineActionForm } from "@/components/ui/inline-action-form";
 import { QuickAddForm } from "./quick-add-form";
 import { setActionStatus } from "./actions";
 
@@ -68,11 +69,15 @@ export default async function TodayPage() {
             return (
               <Card key={action.id} className="flex items-center justify-between px-4 py-3">
                 <div className="flex flex-col gap-0.5">
-                  <p className="text-sm font-medium text-[var(--color-text-primary)]">{action.title}</p>
+                  <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                    {action.title}
+                  </p>
                   {action.due_at ? (
                     <p
                       className={`text-xs ${
-                        overdue ? "font-medium text-[var(--color-danger-text)]" : "text-[var(--color-text-tertiary)]"
+                        overdue
+                          ? "font-medium text-[var(--color-danger-text)]"
+                          : "text-[var(--color-text-tertiary)]"
                       }`}
                     >
                       {overdue ? "Overdue · " : "Due "}
@@ -81,22 +86,16 @@ export default async function TodayPage() {
                   ) : null}
                 </div>
                 <div className="flex items-center gap-3">
-                  <form action={setActionStatus.bind(null, action.id, "done")}>
-                    <button
-                      type="submit"
-                      className="text-xs font-medium text-[var(--color-brand-text)] transition-opacity hover:opacity-70"
-                    >
-                      Done
-                    </button>
-                  </form>
-                  <form action={setActionStatus.bind(null, action.id, "dismissed")}>
-                    <button
-                      type="submit"
-                      className="text-xs text-[var(--color-text-tertiary)] transition-opacity hover:opacity-70"
-                    >
-                      Dismiss
-                    </button>
-                  </form>
+                  <InlineActionForm
+                    action={setActionStatus.bind(null, action.id, "done")}
+                    label="Done"
+                    buttonClassName="text-xs font-medium text-[var(--color-brand-text)] transition-opacity hover:opacity-70"
+                  />
+                  <InlineActionForm
+                    action={setActionStatus.bind(null, action.id, "dismissed")}
+                    label="Dismiss"
+                    buttonClassName="text-xs text-[var(--color-text-tertiary)] transition-opacity hover:opacity-70"
+                  />
                 </div>
               </Card>
             );
@@ -114,15 +113,14 @@ export default async function TodayPage() {
               key={action.id}
               className="flex items-center justify-between rounded-[var(--radius-md)] px-4 py-2"
             >
-              <p className="text-sm text-[var(--color-text-tertiary)] line-through">{action.title}</p>
-              <form action={setActionStatus.bind(null, action.id, "open")}>
-                <button
-                  type="submit"
-                  className="text-xs text-[var(--color-text-tertiary)] transition-opacity hover:opacity-70"
-                >
-                  Reopen
-                </button>
-              </form>
+              <p className="text-sm text-[var(--color-text-tertiary)] line-through">
+                {action.title}
+              </p>
+              <InlineActionForm
+                action={setActionStatus.bind(null, action.id, "open")}
+                label="Reopen"
+                buttonClassName="text-xs text-[var(--color-text-tertiary)] transition-opacity hover:opacity-70"
+              />
             </div>
           ))}
         </div>

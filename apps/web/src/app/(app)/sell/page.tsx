@@ -4,6 +4,7 @@ import { getActiveAccountId } from "@/lib/active-account";
 import { Amount } from "@/components/ui/amount";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { InlineActionForm } from "@/components/ui/inline-action-form";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { LoopSeal } from "@/components/ui/loop-seal";
 import { CreateItemForm } from "./create-item-form";
@@ -120,18 +121,15 @@ export default async function SellPage() {
                     <StatusBadge label={item.status} tone={STATUS_TONE[item.status]} />
                   </div>
                   {heroUrl && item.status !== "sold" ? (
-                    <form
+                    <InlineActionForm
                       action={removeItemPhoto.bind(null, item.id, photoPaths[0])}
-                      className="absolute left-2 top-2"
-                    >
-                      <button
-                        type="submit"
-                        aria-label="Remove photo"
-                        className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-danger)]/90 text-xs text-[var(--color-on-accent)] transition-opacity hover:opacity-90"
-                      >
-                        ×
-                      </button>
-                    </form>
+                      label="×"
+                      pendingLabel="…"
+                      ariaLabel="Remove photo"
+                      formClassName="absolute left-2 top-2"
+                      buttonClassName="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-danger)]/90 text-sm text-[var(--color-on-accent)] transition-opacity hover:opacity-90"
+                      errorClassName="absolute left-0 top-9 z-20 w-52 rounded-[var(--radius-sm)] bg-[var(--color-surface)] p-2 shadow-lg"
+                    />
                   ) : null}
                 </div>
 
@@ -149,18 +147,15 @@ export default async function SellPage() {
                             className="h-full w-full rounded-[var(--radius-sm)] object-cover"
                           />
                           {item.status !== "sold" ? (
-                            <form
+                            <InlineActionForm
                               action={removeItemPhoto.bind(null, item.id, path)}
-                              className="absolute -right-1 -top-1"
-                            >
-                              <button
-                                type="submit"
-                                aria-label="Remove photo"
-                                className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-danger)] text-[9px] text-[var(--color-on-accent)] opacity-0 transition-opacity group-hover:opacity-100"
-                              >
-                                ×
-                              </button>
-                            </form>
+                              label="×"
+                              pendingLabel="…"
+                              ariaLabel="Remove photo"
+                              formClassName="absolute -right-1 -top-1"
+                              buttonClassName="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-danger)] text-xs text-[var(--color-on-accent)] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
+                              errorClassName="absolute right-0 top-7 z-20 w-52 rounded-[var(--radius-sm)] bg-[var(--color-surface)] p-2 shadow-lg"
+                            />
                           ) : null}
                         </div>
                       );
@@ -170,7 +165,9 @@ export default async function SellPage() {
 
                 <div className="flex flex-1 flex-col gap-3 px-4 pb-4">
                   <div>
-                    <p className="text-sm font-medium text-[var(--color-text-primary)]">{item.name}</p>
+                    <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                      {item.name}
+                    </p>
                     <p className="text-xs text-[var(--color-text-tertiary)]">
                       {[item.category, item.condition].filter(Boolean).join(" · ") || "No details"}
                     </p>
@@ -179,7 +176,11 @@ export default async function SellPage() {
                         <span className="text-[10px] font-semibold tracking-[0.1em] text-[var(--color-text-tertiary)]">
                           EST. VALUE
                         </span>
-                        <Amount cents={valuation.estimated_value_cents} tone="opportunity" className="text-sm font-medium" />
+                        <Amount
+                          cents={valuation.estimated_value_cents}
+                          tone="opportunity"
+                          className="text-sm font-medium"
+                        />
                       </p>
                     ) : null}
                   </div>

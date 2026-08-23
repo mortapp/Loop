@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { InlineActionForm } from "@/components/ui/inline-action-form";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { CreateLeadForm } from "./create-lead-form";
 import { setLeadStatus } from "./actions";
@@ -57,7 +58,10 @@ export default async function LeadsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/business" className="text-xs text-[var(--color-text-tertiary)] hover:underline">
+        <Link
+          href="/business"
+          className="text-xs text-[var(--color-text-tertiary)] hover:underline"
+        >
           ← Business
         </Link>
         <h1 className="mt-1 text-xl font-semibold text-[var(--color-text-primary)]">Leads</h1>
@@ -70,7 +74,10 @@ export default async function LeadsPage() {
         {(contacts ?? []).length === 0 ? (
           <p className="text-sm text-[var(--color-text-secondary)]">
             Add a{" "}
-            <Link href="/business/contacts" className="text-[var(--color-brand-text)] hover:underline">
+            <Link
+              href="/business/contacts"
+              className="text-[var(--color-brand-text)] hover:underline"
+            >
               contact
             </Link>{" "}
             first — leads need one.
@@ -103,14 +110,11 @@ export default async function LeadsPage() {
                 <div className="flex flex-wrap items-center gap-3">
                   <StatusBadge label={lead.status} tone={STATUS_TONE[lead.status]} />
                   {next ? (
-                    <form action={setLeadStatus.bind(null, lead.id, next)}>
-                      <button
-                        type="submit"
-                        className="text-xs font-medium text-[var(--color-brand-text)] hover:underline"
-                      >
-                        Mark {next}
-                      </button>
-                    </form>
+                    <InlineActionForm
+                      action={setLeadStatus.bind(null, lead.id, next)}
+                      label={`Mark ${next}`}
+                      buttonClassName="text-xs font-medium text-[var(--color-brand-text)] hover:underline"
+                    />
                   ) : null}
                   {otherStatuses.length > 0 ? (
                     <details className="relative">
@@ -119,14 +123,14 @@ export default async function LeadsPage() {
                       </summary>
                       <div className="absolute right-0 z-10 mt-1 flex flex-col gap-1 rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-2 shadow-lg">
                         {otherStatuses.map((status) => (
-                          <form key={status} action={setLeadStatus.bind(null, lead.id, status)}>
-                            <button
-                              type="submit"
-                              className="w-full whitespace-nowrap rounded px-2 py-1 text-left text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
-                            >
-                              Mark {status}
-                            </button>
-                          </form>
+                          <InlineActionForm
+                            key={status}
+                            action={setLeadStatus.bind(null, lead.id, status)}
+                            label={`Mark ${status}`}
+                            formClassName="w-full"
+                            buttonClassName="w-full whitespace-nowrap rounded px-2 py-1 text-left text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                            errorClassName="w-48 whitespace-normal px-2"
+                          />
                         ))}
                       </div>
                     </details>

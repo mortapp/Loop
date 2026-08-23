@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
+import { InlineActionForm } from "@/components/ui/inline-action-form";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { startReturn, setReturnStatus, refundReturn, type FormState } from "./actions";
 import type { ReturnStatus } from "@loop/contracts";
@@ -18,22 +19,38 @@ const STATUS_TONE: Record<ReturnStatus, "neutral" | "info" | "brand" | "danger">
   denied: "danger",
 };
 
+const FORWARD_RETURN_STATUSES: Partial<Record<ReturnStatus, Array<"shipped" | "received">>> = {
+  initiated: ["shipped", "received"],
+  shipped: ["received"],
+  received: [],
+};
+
 function StartReturnForm({ purchaseId, itemId }: { purchaseId: string; itemId: string | null }) {
   const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction, pending] = useActionState<FormState, FormData>(async (prev, formData) => {
-    const result = await startReturn(prev, formData);
-    if (!result) formRef.current?.reset();
-    return result;
-  }, null);
+  const [state, formAction, pending] = useActionState<FormState, FormData>(
+    async (prev, formData) => {
+      const result = await startReturn(prev, formData);
+      if (!result) formRef.current?.reset();
+      return result;
+    },
+    null,
+  );
 
   if (!itemId) {
-    return <p className="text-xs text-[var(--color-text-tertiary)]">No item linked — can&apos;t start a return.</p>;
+    return (
+      <p className="text-xs text-[var(--color-text-tertiary)]">
+        No item linked — can&apos;t start a return.
+      </p>
+    );
   }
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="text-xs text-[var(--color-text-tertiary)] hover:underline">
+      <button
+        onClick={() => setOpen(true)}
+        className="text-xs text-[var(--color-text-tertiary)] hover:underline"
+      >
         + Start return
       </button>
     );
@@ -47,7 +64,9 @@ function StartReturnForm({ purchaseId, itemId }: { purchaseId: string; itemId: s
       <button type="submit" disabled={pending} className={buttonClass}>
         Start
       </button>
-      {state?.error ? <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span> : null}
+      {state?.error ? (
+        <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span>
+      ) : null}
     </form>
   );
 }
@@ -55,15 +74,21 @@ function StartReturnForm({ purchaseId, itemId }: { purchaseId: string; itemId: s
 function RefundForm({ returnId, itemId }: { returnId: string; itemId: string }) {
   const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction, pending] = useActionState<FormState, FormData>(async (prev, formData) => {
-    const result = await refundReturn(prev, formData);
-    if (!result) formRef.current?.reset();
-    return result;
-  }, null);
+  const [state, formAction, pending] = useActionState<FormState, FormData>(
+    async (prev, formData) => {
+      const result = await refundReturn(prev, formData);
+      if (!result) formRef.current?.reset();
+      return result;
+    },
+    null,
+  );
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="text-xs text-[var(--color-brand-text)] hover:underline">
+      <button
+        onClick={() => setOpen(true)}
+        className="text-xs text-[var(--color-brand-text)] hover:underline"
+      >
         Refund
       </button>
     );
@@ -73,11 +98,20 @@ function RefundForm({ returnId, itemId }: { returnId: string; itemId: string }) 
     <form ref={formRef} action={formAction} className="flex items-center gap-2">
       <input type="hidden" name="returnId" value={returnId} />
       <input type="hidden" name="itemId" value={itemId} />
-      <input name="amount" type="number" step="0.01" min="0" placeholder="$ refunded" className={inputClass} />
+      <input
+        name="amount"
+        type="number"
+        step="0.01"
+        min="0"
+        placeholder="$ refunded"
+        className={inputClass}
+      />
       <button type="submit" disabled={pending} className={buttonClass}>
         Confirm
       </button>
-      {state?.error ? <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span> : null}
+      {state?.error ? (
+        <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span>
+      ) : null}
     </form>
   );
 }
@@ -95,33 +129,29 @@ export function ReturnControls({
     return <StartReturnForm purchaseId={purchaseId} itemId={itemId} />;
   }
 
-  const simpleStatuses: Array<"initiated" | "shipped" | "received" | "denied"> = [
-    "initiated",
-    "shipped",
-    "received",
-    "denied",
-  ];
-  const nextSimpleStatuses = simpleStatuses.filter((s) => s !== existingReturn.status);
+  const nextSimpleStatuses = FORWARD_RETURN_STATUSES[existingReturn.status] ?? [];
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <StatusBadge label={`Return: ${existingReturn.status}`} tone={STATUS_TONE[existingReturn.status]} />
+      <StatusBadge
+        label={`Return: ${existingReturn.status}`}
+        tone={STATUS_TONE[existingReturn.status]}
+      />
       {existingReturn.status !== "refunded" && existingReturn.status !== "denied" ? (
         <>
-          {nextSimpleStatuses
-            .filter((s) => s !== "denied")
-            .map((status) => (
-              <form key={status} action={setReturnStatus.bind(null, existingReturn.id, status)}>
-                <button type="submit" className="text-xs text-[var(--color-text-tertiary)] hover:underline">
-                  {status}
-                </button>
-              </form>
-            ))}
-          <form action={setReturnStatus.bind(null, existingReturn.id, "denied")}>
-            <button type="submit" className="text-xs text-[var(--color-danger-text)] hover:underline">
-              deny
-            </button>
-          </form>
+          {nextSimpleStatuses.map((status) => (
+            <InlineActionForm
+              key={status}
+              action={setReturnStatus.bind(null, existingReturn.id, status)}
+              label={status}
+              buttonClassName="text-xs text-[var(--color-text-tertiary)] hover:underline"
+            />
+          ))}
+          <InlineActionForm
+            action={setReturnStatus.bind(null, existingReturn.id, "denied")}
+            label="deny"
+            buttonClassName="text-xs text-[var(--color-danger-text)] hover:underline"
+          />
           {itemId ? <RefundForm returnId={existingReturn.id} itemId={itemId} /> : null}
         </>
       ) : null}

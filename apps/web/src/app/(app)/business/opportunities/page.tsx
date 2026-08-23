@@ -5,6 +5,7 @@ import { getActiveAccountId } from "@/lib/active-account";
 import { Amount } from "@/components/ui/amount";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { InlineActionForm } from "@/components/ui/inline-action-form";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { CreateOpportunityForm } from "./create-opportunity-form";
 import { setOpportunityStage } from "./actions";
@@ -17,9 +18,19 @@ type OpportunityRow = {
   contacts: { id: string; display_name: string } | null;
 };
 
-const STAGE_OPTIONS: OpportunityStage[] = ["new", "qualifying", "quoted", "negotiating", "won", "lost"];
+const STAGE_OPTIONS: OpportunityStage[] = [
+  "new",
+  "qualifying",
+  "quoted",
+  "negotiating",
+  "won",
+  "lost",
+];
 
-const STAGE_TONE: Record<OpportunityStage, "neutral" | "info" | "opportunity" | "warning" | "brand" | "danger"> = {
+const STAGE_TONE: Record<
+  OpportunityStage,
+  "neutral" | "info" | "opportunity" | "warning" | "brand" | "danger"
+> = {
   new: "neutral",
   qualifying: "info",
   quoted: "opportunity",
@@ -61,10 +72,15 @@ export default async function OpportunitiesPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/business" className="text-xs text-[var(--color-text-tertiary)] hover:underline">
+        <Link
+          href="/business"
+          className="text-xs text-[var(--color-text-tertiary)] hover:underline"
+        >
           ← Business
         </Link>
-        <h1 className="mt-1 text-xl font-semibold text-[var(--color-text-primary)]">Opportunities</h1>
+        <h1 className="mt-1 text-xl font-semibold text-[var(--color-text-primary)]">
+          Opportunities
+        </h1>
         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
           MAKE / QuoteCloser. Once qualified, an opportunity is worth writing a{" "}
           <Link href="/business/quotes" className="text-[var(--color-brand-text)] hover:underline">
@@ -78,7 +94,10 @@ export default async function OpportunitiesPage() {
         {(contacts ?? []).length === 0 ? (
           <p className="text-sm text-[var(--color-text-secondary)]">
             Add a{" "}
-            <Link href="/business/contacts" className="text-[var(--color-brand-text)] hover:underline">
+            <Link
+              href="/business/contacts"
+              className="text-[var(--color-brand-text)] hover:underline"
+            >
               contact
             </Link>{" "}
             first — opportunities need one.
@@ -90,7 +109,10 @@ export default async function OpportunitiesPage() {
 
       <div className="flex flex-col gap-2">
         {(opportunities ?? []).length === 0 ? (
-          <EmptyState title="No active opportunities" description="Add one above to start tracking it." />
+          <EmptyState
+            title="No active opportunities"
+            description="Add one above to start tracking it."
+          />
         ) : (
           (opportunities ?? []).map((opp) => {
             const next = NEXT_STAGE[opp.stage];
@@ -101,7 +123,9 @@ export default async function OpportunitiesPage() {
                 className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
-                  <p className="text-sm font-medium text-[var(--color-text-primary)]">{opp.title}</p>
+                  <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                    {opp.title}
+                  </p>
                   <p className="text-xs text-[var(--color-text-tertiary)]">
                     {opp.contacts?.display_name ?? "Unknown contact"}
                     {opp.estimated_value_cents !== null ? (
@@ -115,14 +139,11 @@ export default async function OpportunitiesPage() {
                 <div className="flex flex-wrap items-center gap-3">
                   <StatusBadge label={opp.stage} tone={STAGE_TONE[opp.stage]} />
                   {next ? (
-                    <form action={setOpportunityStage.bind(null, opp.id, next)}>
-                      <button
-                        type="submit"
-                        className="text-xs font-medium text-[var(--color-brand-text)] hover:underline"
-                      >
-                        Mark {next}
-                      </button>
-                    </form>
+                    <InlineActionForm
+                      action={setOpportunityStage.bind(null, opp.id, next)}
+                      label={`Mark ${next}`}
+                      buttonClassName="text-xs font-medium text-[var(--color-brand-text)] hover:underline"
+                    />
                   ) : null}
                   {otherStages.length > 0 ? (
                     <details className="relative">
@@ -131,14 +152,14 @@ export default async function OpportunitiesPage() {
                       </summary>
                       <div className="absolute right-0 z-10 mt-1 flex flex-col gap-1 rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-2 shadow-lg">
                         {otherStages.map((stage) => (
-                          <form key={stage} action={setOpportunityStage.bind(null, opp.id, stage)}>
-                            <button
-                              type="submit"
-                              className="w-full whitespace-nowrap rounded px-2 py-1 text-left text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
-                            >
-                              Mark {stage}
-                            </button>
-                          </form>
+                          <InlineActionForm
+                            key={stage}
+                            action={setOpportunityStage.bind(null, opp.id, stage)}
+                            label={`Mark ${stage}`}
+                            formClassName="w-full"
+                            buttonClassName="w-full whitespace-nowrap rounded px-2 py-1 text-left text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                            errorClassName="w-48 whitespace-normal px-2"
+                          />
                         ))}
                       </div>
                     </details>

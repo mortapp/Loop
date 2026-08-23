@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
+import { InlineActionForm } from "@/components/ui/inline-action-form";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { addWarranty, setWarrantyClaimStatus, type FormState } from "./actions";
 
@@ -9,20 +10,31 @@ const inputClass =
 const buttonClass =
   "rounded-[var(--radius-sm)] bg-[var(--color-brand)] px-3 py-1.5 text-xs font-medium text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-brand-hover)] disabled:opacity-50";
 
-type Warranty = { id: string; provider: string | null; expires_at: string | null; claim_status: string | null };
+type Warranty = {
+  id: string;
+  provider: string | null;
+  expires_at: string | null;
+  claim_status: string | null;
+};
 
 function AddWarrantyForm({ itemId }: { itemId: string }) {
   const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction, pending] = useActionState<FormState, FormData>(async (prev, formData) => {
-    const result = await addWarranty(prev, formData);
-    if (!result) formRef.current?.reset();
-    return result;
-  }, null);
+  const [state, formAction, pending] = useActionState<FormState, FormData>(
+    async (prev, formData) => {
+      const result = await addWarranty(prev, formData);
+      if (!result) formRef.current?.reset();
+      return result;
+    },
+    null,
+  );
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="text-xs text-[var(--color-text-tertiary)] hover:underline">
+      <button
+        onClick={() => setOpen(true)}
+        className="text-xs text-[var(--color-text-tertiary)] hover:underline"
+      >
         + Warranty
       </button>
     );
@@ -36,12 +48,20 @@ function AddWarrantyForm({ itemId }: { itemId: string }) {
       <button type="submit" disabled={pending} className={buttonClass}>
         Save
       </button>
-      {state?.error ? <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span> : null}
+      {state?.error ? (
+        <span className="text-xs text-[var(--color-danger-text)]">{state.error}</span>
+      ) : null}
     </form>
   );
 }
 
-export function WarrantyControls({ itemId, warranties }: { itemId: string | null; warranties: Warranty[] }) {
+export function WarrantyControls({
+  itemId,
+  warranties,
+}: {
+  itemId: string | null;
+  warranties: Warranty[];
+}) {
   if (!itemId) return null;
 
   return (
@@ -51,15 +71,17 @@ export function WarrantyControls({ itemId, warranties }: { itemId: string | null
           <StatusBadge
             tone="info"
             label={`${warranty.provider ?? "Warranty"}${
-              warranty.expires_at ? ` until ${new Date(warranty.expires_at).toLocaleDateString()}` : ""
+              warranty.expires_at
+                ? ` until ${new Date(warranty.expires_at).toLocaleDateString()}`
+                : ""
             }${warranty.claim_status ? ` · ${warranty.claim_status}` : ""}`}
           />
           {!warranty.claim_status ? (
-            <form action={setWarrantyClaimStatus.bind(null, warranty.id, "filed")}>
-              <button type="submit" className="text-xs text-[var(--color-info-text)] hover:underline">
-                file claim
-              </button>
-            </form>
+            <InlineActionForm
+              action={setWarrantyClaimStatus.bind(null, warranty.id, "filed")}
+              label="file claim"
+              buttonClassName="text-xs text-[var(--color-info-text)] hover:underline"
+            />
           ) : null}
         </div>
       ))}

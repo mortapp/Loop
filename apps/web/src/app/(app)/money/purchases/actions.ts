@@ -4,8 +4,16 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
 import { userSafeServerError } from "@/lib/user-safe-error";
+import type { ActionResult } from "@/lib/action-result";
 
 export type FormState = { error: string } | null;
+
+const ALLOWED_DIRECT_RETURN_STATUSES = new Set([
+  "initiated",
+  "shipped",
+  "received",
+  "denied",
+] as const);
 
 export async function createPurchase(_prev: FormState, formData: FormData): Promise<FormState> {
   const itemId = String(formData.get("itemId") ?? "").trim() || null;
@@ -83,14 +91,46 @@ export async function startReturn(_prev: FormState, formData: FormData): Promise
 export async function setReturnStatus(
   id: string,
   status: "initiated" | "shipped" | "received" | "denied",
-) {
+  _previousState: ActionResult,
+  _formData: FormData,
+): Promise<ActionResult> {
+  void _previousState;
+  void _formData;
+
+  if (!id || !ALLOWED_DIRECT_RETURN_STATUSES.has(status)) {
+    return { error: "That return status is not valid." };
+  }
+
+  const accountId = await getActiveAccountId();
+  if (!accountId) {
+    return { error: "No active account." };
+  }
+
   const supabase = await createClient();
   const patch: Record<string, unknown> = { status };
   if (status === "denied") {
     patch.resolved_at = new Date().toISOString();
   }
-  await supabase.from("returns").update(patch).eq("id", id);
+  const { error } = await supabase
+    .from("returns")
+    .update(patch)
+    .eq("id", id)
+    .eq("account_id", accountId)
+    .select("id")
+    .single();
+
+  if (error) {
+    return {
+      error: userSafeServerError(
+        "returns:set-status",
+        error,
+        "We couldn't update that return. Refresh and try again.",
+      ),
+    };
+  }
+
   revalidatePath("/money/purchases");
+  return null;
 }
 
 export async function refundReturn(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -166,8 +206,43 @@ export async function addWarranty(_prev: FormState, formData: FormData): Promise
   return null;
 }
 
-export async function setWarrantyClaimStatus(id: string, claimStatus: string) {
+export async function setWarrantyClaimStatus(
+  id: string,
+  claimStatus: "filed",
+  _previousState: ActionResult,
+  _formData: FormData,
+): Promise<ActionResult> {
+  void _previousState;
+  void _formData;
+
+  if (!id || claimStatus !== "filed") {
+    return { error: "That warranty change is not valid." };
+  }
+
+  const accountId = await getActiveAccountId();
+  if (!accountId) {
+    return { error: "No active account." };
+  }
+
   const supabase = await createClient();
-  await supabase.from("warranties").update({ claim_status: claimStatus }).eq("id", id);
+  const { error } = await supabase
+    .from("warranties")
+    .update({ claim_status: claimStatus })
+    .eq("id", id)
+    .eq("account_id", accountId)
+    .select("id")
+    .single();
+
+  if (error) {
+    return {
+      error: userSafeServerError(
+        "warranties:file-claim",
+        error,
+        "We couldn't file that warranty claim. Refresh and try again.",
+      ),
+    };
+  }
+
   revalidatePath("/money/purchases");
+  return null;
 }

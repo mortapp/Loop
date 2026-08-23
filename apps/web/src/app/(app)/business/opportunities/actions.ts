@@ -4,8 +4,18 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
 import { userSafeServerError } from "@/lib/user-safe-error";
+import type { ActionResult } from "@/lib/action-result";
 
 export type CreateOpportunityState = { error: string } | null;
+
+const ALLOWED_OPPORTUNITY_STAGES = new Set([
+  "new",
+  "qualifying",
+  "quoted",
+  "negotiating",
+  "won",
+  "lost",
+] as const);
 
 export async function createOpportunity(
   _prev: CreateOpportunityState,
@@ -56,8 +66,40 @@ export async function createOpportunity(
 export async function setOpportunityStage(
   id: string,
   stage: "new" | "qualifying" | "quoted" | "negotiating" | "won" | "lost",
-) {
+  _previousState: ActionResult,
+  _formData: FormData,
+): Promise<ActionResult> {
+  void _previousState;
+  void _formData;
+
+  if (!id || !ALLOWED_OPPORTUNITY_STAGES.has(stage)) {
+    return { error: "That opportunity stage is not valid." };
+  }
+
+  const accountId = await getActiveAccountId();
+  if (!accountId) {
+    return { error: "No active account." };
+  }
+
   const supabase = await createClient();
-  await supabase.from("opportunities").update({ stage }).eq("id", id);
+  const { error } = await supabase
+    .from("opportunities")
+    .update({ stage })
+    .eq("id", id)
+    .eq("account_id", accountId)
+    .select("id")
+    .single();
+
+  if (error) {
+    return {
+      error: userSafeServerError(
+        "opportunities:set-stage",
+        error,
+        "We couldn't update that opportunity. Refresh and try again.",
+      ),
+    };
+  }
+
   revalidatePath("/business/opportunities");
+  return null;
 }

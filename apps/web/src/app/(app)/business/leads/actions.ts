@@ -4,8 +4,17 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
 import { userSafeServerError } from "@/lib/user-safe-error";
+import type { ActionResult } from "@/lib/action-result";
 
 export type CreateLeadState = { error: string } | null;
+
+const ALLOWED_LEAD_STATUSES = new Set([
+  "new",
+  "contacted",
+  "qualified",
+  "disqualified",
+  "converted",
+] as const);
 
 export async function createLead(
   _prev: CreateLeadState,
@@ -48,8 +57,40 @@ export async function createLead(
 export async function setLeadStatus(
   id: string,
   status: "new" | "contacted" | "qualified" | "disqualified" | "converted",
-) {
+  _previousState: ActionResult,
+  _formData: FormData,
+): Promise<ActionResult> {
+  void _previousState;
+  void _formData;
+
+  if (!id || !ALLOWED_LEAD_STATUSES.has(status)) {
+    return { error: "That lead status is not valid." };
+  }
+
+  const accountId = await getActiveAccountId();
+  if (!accountId) {
+    return { error: "No active account." };
+  }
+
   const supabase = await createClient();
-  await supabase.from("leads").update({ status }).eq("id", id);
+  const { error } = await supabase
+    .from("leads")
+    .update({ status })
+    .eq("id", id)
+    .eq("account_id", accountId)
+    .select("id")
+    .single();
+
+  if (error) {
+    return {
+      error: userSafeServerError(
+        "leads:set-status",
+        error,
+        "We couldn't update that lead. Refresh and try again.",
+      ),
+    };
+  }
+
   revalidatePath("/business/leads");
+  return null;
 }

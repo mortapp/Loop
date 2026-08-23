@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { userSafeServerError } from "@/lib/user-safe-error";
 
-export type FormState = { error: string } | null;
+export type FormState = { error: string } | { success: true } | null;
 
 export async function updateProfile(_prev: FormState, formData: FormData): Promise<FormState> {
   const displayName = String(formData.get("displayName") ?? "").trim();
@@ -26,7 +26,9 @@ export async function updateProfile(_prev: FormState, formData: FormData): Promi
   const { error } = await supabase
     .from("profiles")
     .update({ display_name: displayName })
-    .eq("id", user.id);
+    .eq("id", user.id)
+    .select("id")
+    .single();
 
   if (error) {
     return { error: userSafeServerError("profile:update", error) };
@@ -34,5 +36,5 @@ export async function updateProfile(_prev: FormState, formData: FormData): Promi
 
   revalidatePath("/profile");
   revalidatePath("/", "layout");
-  return null;
+  return { success: true };
 }

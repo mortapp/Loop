@@ -3,8 +3,23 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { userSafeServerError } from "@/lib/user-safe-error";
+import type { ActionResult } from "@/lib/action-result";
 
 export type CreateQuoteState = { error: string } | null;
+
+const MAX_QUOTE_LINES = 100;
+const MAX_QUANTITY = 1_000_000;
+const MAX_UNIT_PRICE_CENTS = 100_000_000_000;
+
+const ALLOWED_QUOTE_STATUSES = new Set([
+  "draft",
+  "sent",
+  "viewed",
+  "accepted",
+  "declined",
+  "expired",
+] as const);
 
 function generateQuoteNumber(): string {
   const year = new Date().getFullYear();
@@ -27,22 +42,55 @@ export async function createQuote(
   const quantities = formData.getAll("lineQuantity").map(String);
   const unitPrices = formData.getAll("lineUnitPrice").map(String);
 
-  const lineItems = descriptions
-    .map((description, i) => ({
-      description: description.trim(),
-      quantity: Number(quantities[i] ?? "1") || 0,
-      unitPriceCents: Math.round(Number(unitPrices[i] ?? "0") * 100) || 0,
-    }))
-    .filter((line) => line.description.length > 0 && line.quantity > 0);
-
-  if (lineItems.length === 0) {
-    return { error: "Add at least one line item with a description and quantity." };
+  if (descriptions.length > MAX_QUOTE_LINES) {
+    return { error: `A quote can contain at most ${MAX_QUOTE_LINES} lines.` };
   }
 
-  const subtotalCents = lineItems.reduce(
-    (sum, line) => sum + Math.round(line.quantity * line.unitPriceCents),
-    0,
-  );
+  const lineItems: Array<{
+    description: string;
+    quantity: number;
+    unitPriceCents: number;
+  }> = [];
+
+  for (let index = 0; index < descriptions.length; index += 1) {
+    const description = descriptions[index].trim();
+    const quantity = Number(quantities[index] ?? "");
+    const unitPrice = Number(unitPrices[index] ?? "");
+    const unitPriceCents = Math.round(unitPrice * 100);
+
+    if (!description) {
+      return { error: `Line ${index + 1} needs a description.` };
+    }
+    if (description.length > 500) {
+      return { error: `Line ${index + 1} must be 500 characters or fewer.` };
+    }
+    if (!Number.isSafeInteger(quantity) || quantity <= 0 || quantity > MAX_QUANTITY) {
+      return { error: `Line ${index + 1} needs a whole-number quantity greater than zero.` };
+    }
+    if (
+      !Number.isFinite(unitPrice) ||
+      unitPrice < 0 ||
+      !Number.isSafeInteger(unitPriceCents) ||
+      unitPriceCents > MAX_UNIT_PRICE_CENTS
+    ) {
+      return { error: `Line ${index + 1} needs a valid non-negative unit price.` };
+    }
+
+    lineItems.push({ description, quantity, unitPriceCents });
+  }
+
+  if (lineItems.length === 0) {
+    return { error: "Add at least one line item." };
+  }
+
+  let subtotalCents = 0;
+  for (const line of lineItems) {
+    const lineTotal = line.quantity * line.unitPriceCents;
+    if (!Number.isSafeInteger(lineTotal) || !Number.isSafeInteger(subtotalCents + lineTotal)) {
+      return { error: "The quote total is too large. Reduce a quantity or unit price." };
+    }
+    subtotalCents += lineTotal;
+  }
 
   // No tax logic yet — total tracks subtotal until PROTECT/tax rules exist.
   const accountId = await getActiveAccountId();
@@ -84,12 +132,44 @@ export async function createQuote(
 export async function setQuoteStatus(
   id: string,
   status: "draft" | "sent" | "viewed" | "accepted" | "declined" | "expired",
-) {
+  _previousState: ActionResult,
+  _formData: FormData,
+): Promise<ActionResult> {
+  void _previousState;
+  void _formData;
+
+  if (!id || !ALLOWED_QUOTE_STATUSES.has(status)) {
+    return { error: "That quote status is not valid." };
+  }
+
+  const accountId = await getActiveAccountId();
+  if (!accountId) {
+    return { error: "No active account." };
+  }
+
   const supabase = await createClient();
   const patch: Record<string, unknown> = { status };
   if (status === "sent") patch.sent_at = new Date().toISOString();
   if (status === "accepted") patch.accepted_at = new Date().toISOString();
 
-  await supabase.from("quotes").update(patch).eq("id", id);
+  const { error } = await supabase
+    .from("quotes")
+    .update(patch)
+    .eq("id", id)
+    .eq("account_id", accountId)
+    .select("id")
+    .single();
+
+  if (error) {
+    return {
+      error: userSafeServerError(
+        "quotes:set-status",
+        error,
+        "We couldn't update that quote. Refresh and try again.",
+      ),
+    };
+  }
+
   revalidatePath("/business/quotes");
+  return null;
 }
