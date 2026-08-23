@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:loop_mobile/core/auth/google_oauth_controller.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
   test(
@@ -148,6 +149,50 @@ void main() {
       GoogleOAuthPhase.idle,
     );
   });
+
+  test(
+    'handles a Google cancellation stream error without an unhandled error',
+    () async {
+      final gateway = _FakeGoogleOAuthGateway();
+      final container = _containerFor(gateway);
+      addTearDown(() async {
+        container.dispose();
+        await gateway.dispose();
+      });
+
+      final controller = container.read(googleOAuthControllerProvider.notifier);
+      final launch = controller.start();
+      gateway.completeLaunch(true);
+      await launch;
+
+      gateway.emitError(
+        const AuthException('cancelled', code: 'access_denied'),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(googleOAuthControllerProvider);
+      expect(state.phase, GoogleOAuthPhase.failed);
+      expect(state.message, contains('canceled'));
+    },
+  );
+
+  test('consumes unrelated auth stream errors while OAuth is idle', () async {
+    final gateway = _FakeGoogleOAuthGateway();
+    final container = _containerFor(gateway);
+    addTearDown(() async {
+      container.dispose();
+      await gateway.dispose();
+    });
+
+    container.read(googleOAuthControllerProvider);
+    gateway.emitError(const AuthException('offline'));
+    await Future<void>.delayed(Duration.zero);
+
+    expect(
+      container.read(googleOAuthControllerProvider).phase,
+      GoogleOAuthPhase.idle,
+    );
+  });
 }
 
 ProviderContainer _containerFor(
@@ -188,6 +233,8 @@ class _FakeGoogleOAuthGateway implements GoogleOAuthGateway {
   void completeLaunch(bool launched) => _launch.complete(launched);
 
   void emit(MobileAuthSignal signal) => _signals.add(signal);
+
+  void emitError(Object error) => _signals.addError(error, StackTrace.current);
 
   Future<void> dispose() => _signals.close();
 }

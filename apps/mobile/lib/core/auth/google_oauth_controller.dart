@@ -99,7 +99,14 @@ class GoogleOAuthController extends Notifier<GoogleOAuthState> {
     _disposed = false;
     _gateway = ref.watch(googleOAuthGatewayProvider);
     _timeout = ref.watch(googleOAuthTimeoutProvider);
-    _subscription = _gateway.authSignals.listen(_handleAuthSignal);
+    // Supabase reports OAuth callback failures (including a user cancelling
+    // Google) as errors on onAuthStateChange. Dart treats a stream error with
+    // no handler as an unhandled zone exception, so keep that expected path
+    // inside the controller's visible failure state.
+    _subscription = _gateway.authSignals.listen(
+      _handleAuthSignal,
+      onError: _handleAuthError,
+    );
     ref.onDispose(_dispose);
     return const GoogleOAuthState.idle();
   }
@@ -191,6 +198,19 @@ class GoogleOAuthController extends Notifier<GoogleOAuthState> {
         message: 'LOOP could not verify this session. Please sign in again.',
       );
     }
+  }
+
+  void _handleAuthError(Object error, StackTrace stackTrace) {
+    if (_disposed || !state.isBusy) return;
+
+    _attempt++;
+    _timeoutTimer?.cancel();
+    state = GoogleOAuthState(
+      phase: GoogleOAuthPhase.failed,
+      message: error is AuthException && error.code == 'access_denied'
+          ? 'Google sign-in was canceled. You can try again.'
+          : 'Google sign-in was not completed. Try again.',
+    );
   }
 
   void _complete() {
