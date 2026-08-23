@@ -1,63 +1,68 @@
 # Known Issues
 
-## Mobile OAuth/email-confirmation redirect needs one Supabase dashboard entry — OWNER_ACTION_REQUIRED
+## RESOLVED (pending one dashboard entry + one physical retest) — Mobile OAuth redirect URI restructured to scheme+host+path — OWNER_ACTION_REQUIRED
 
-Real bug reported live by the owner after the placeholder-config fix
-below: completing Google sign-in on the Galaxy A14 landed on the web
-app's `/auth/callback`, which then failed and bounced back to
-`/sign-in` — asking to log in again, with no explanation.
+Real bug, live-debugged across multiple physical Galaxy A14 attempts.
+Timeline of what was ruled out first, with direct evidence for each:
 
-Root cause, confirmed against Supabase's own docs (not guessed): every
-`redirect_to` a client passes to `signInWithOAuth`/`signUp` must be in
-the project's **Authentication → URL Configuration → Redirect URLs**
-allow-list, or Supabase silently falls back to the project's Site URL
-instead. Mobile's `redirectTo`
-(`com.loop.app.loop_mobile://login-callback`, set in
-`auth_screen.dart` and matching `AndroidManifest.xml`'s intent-filter
-exactly) isn't in that allow-list yet, so every mobile auth attempt
-(Google OAuth *and* email confirmation links, both use the same
-`redirectTo`) falls back to the website instead of handing off to the
-app. Once there, the code exchange fails for a structural reason, not
-a bug: the PKCE `code_verifier` for a flow the mobile app started is
-stored in the app's local storage, which the website's server has no
-access to.
+1. **Android intent-filter routing**: proven correct via
+   `adb shell am start -a android.intent.action.VIEW -d
+   "com.loop.app.loop_mobile://login-callback"` with LOOP backgrounded
+   — Android brought LOOP's own task to the foreground, never Chrome.
+2. **The Flutter client's OAuth request itself**: proven correct by
+   reading the installed `gotrue-2.27.2` package source
+   (`_getUrlForProvider`) — `redirect_to` is forwarded verbatim, PKCE
+   is active.
+3. **The Supabase Redirect URLs allow-list containing the mobile
+   entry**: confirmed present, byte-for-byte, via a dashboard
+   screenshot — yet the bug still happened on the very next live
+   attempt. This ruled out "just add the URL to the allow-list" as a
+   complete fix.
+4. **Supabase logs for a real successful sign-in**
+   (`query_logs` on `auth_logs`/`edge_logs`) showed GoTrue's redirect
+   actually landed on LOOP's own web `/auth/callback` route — not a
+   generic Site-URL fallback, but a *different, also-allow-listed*
+   entry being chosen over the mobile one.
 
-**This setting lives entirely in Supabase's platform config, not the
-Postgres database** — none of this session's tools (`execute_sql`,
-`apply_migration`, or any other) can read or write it; it was
-confirmed absent from every `auth.*` table this session could query.
-**Owner action required:**
+**Actual root cause**: every other entry in the allow-list (all the
+`https://...` ones) has the shape `scheme://host/path`. Mobile's entry
+was `scheme://host` only —
+`com.loop.app.loop_mobile://login-callback`, with `login-callback`
+parsed as the *host* and no path at all
+(`AndroidManifest.xml`'s intent-filter used
+`android:host="login-callback"` with no `android:path`). A working
+reference implementation (a separate proven app, architecture-only
+comparison, no code/credentials copied) uses `scheme://host/path` for
+every one of its custom-scheme entries. LOOP's host-only shape is the
+one structural outlier — the fix is to give it the same shape, not to
+touch the Google/Supabase provider config.
+
+**Fix applied**: mobile's redirect URI is now
+`com.loop.app.loop_mobile://app/login-callback`
+(`app` host + `/login-callback` path), consistently in:
+- `apps/mobile/lib/features/auth/auth_screen.dart` (`_oauthRedirectUrl`)
+- `apps/mobile/android/app/src/main/AndroidManifest.xml` (intent-filter
+  now declares `android:host="app" android:path="/login-callback"`)
+- iOS needs no change — `Info.plist`'s `CFBundleURLTypes` only
+  registers the bare scheme; host/path matching happens Dart-side via
+  the SDK, not at the OS level.
+
+**Owner action required** (this setting lives entirely in Supabase's
+platform config, not the Postgres database — no MCP tool here can
+read or write it):
 1. Open the Supabase dashboard → this project → Authentication → URL
    Configuration.
-2. Add `com.loop.app.loop_mobile://login-callback` to **Redirect
-   URLs**.
+2. Add `com.loop.app.loop_mobile://app/login-callback` to **Redirect
+   URLs** (the old host-only entry can stay or be removed — harmless
+   either way, it just won't be matched by the app anymore since the
+   app itself now requests the new URI).
+3. Retest on-device: tap Continue with Google, pick account. Expect
+   the app to reopen directly (no website tab) into onboarding for a
+   new account, or straight to Today for a returning one.
 
-Once added, both Google OAuth and email-confirmation links on mobile
-will hand off directly to the app via its intent-filter — no website
-page shown at all, not even briefly.
-
-**In the meantime**, `/auth/callback`'s failure path now redirects to
-`/sign-in?error=auth_callback_failed`, and `/sign-in` actually
-displays that (previously the query param was silently ignored — the
-page just showed a plain sign-in form with no explanation of what
-happened, which is the "won't load fully right" the owner reported).
-Real improvement either way, not just a stopgap.
-
-## Root-cause confirmed live: Android intent-filter routing is correct, proving the redirect-URL allow-list is the one remaining gap
-
-Direct on-device proof, not inference: with LOOP backgrounded,
-`adb shell am start -a android.intent.action.VIEW -d
-"com.loop.app.loop_mobile://login-callback"` brought LOOP's own task
-to the foreground (confirmed by screenshot) -- Android correctly
-resolves this custom URI to LOOP and only LOOP, never Chrome. This
-rules out the Android manifest/intent-filter as a suspect entirely and
-narrows the remaining gap to exactly one place: whether Supabase's
-GoTrue server actually issues its redirect to this URI after Google
-auth completes, which depends solely on the Redirect URLs allow-list
-entry described above. Full physical completion (an owner actually
-finishing a Google sign-in on-device once that's added) is still
-needed to confirm `FLUTTER_SESSION_ESTABLISHED`, since this session
-does not select a Google account or complete auth itself.
+Not marked verified until that physical retest confirms
+`FLUTTER_SESSION_ESTABLISHED` for real — this session never selects a
+Google account or completes auth itself.
 
 ## New: @username handles + optional Google-account password linking, on top of display-name onboarding
 
@@ -236,10 +241,12 @@ Findings:
   the Dart-side `redirectTo` never has to branch by platform (see
   `auth_screen.dart` and the Info.plist's own comment).
 - **OAuth/deep-link redirect**: Android's intent-filter matches
-  `scheme + host` (`com.loop.app.loop_mobile://login-callback`)
+  `scheme + host + path` (`com.loop.app.loop_mobile://app/login-callback`)
   exactly; iOS's `CFBundleURLTypes` only needs the bare scheme
   registered (iOS routes all URLs with that scheme to the app; host/
   path parsing happens in app code) — both correctly wired, not a gap.
+  (Originally host-only, no path — see the redirect-URI-shape fix
+  above.)
   `SceneDelegate.swift` subclasses `FlutterSceneDelegate` (stock,
   correct for the UIScene-based `Main.storyboard` lifecycle this
   project uses per `Info.plist`'s `UIApplicationSceneManifest`) — no

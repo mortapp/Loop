@@ -12,7 +12,7 @@ import '../../core/widgets/loop_seal.dart';
 /// screen. Must match an intent-filter registered in AndroidManifest.xml
 /// (and, when a real iOS build exists, the URL scheme in Info.plist) —
 /// see docs/KNOWN_ISSUES.md.
-const _oauthRedirectUrl = 'com.loop.app.loop_mobile://login-callback';
+const _oauthRedirectUrl = 'com.loop.app.loop_mobile://app/login-callback';
 
 /// Sign in / sign up, combined into one screen with a mode toggle —
 /// mirrors apps/web's (auth) group so the two platforms feel like the same

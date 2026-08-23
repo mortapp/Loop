@@ -9,13 +9,14 @@ import { createClient } from "@/lib/supabase/server";
  *
  * This route is web-only. Mobile's OAuth/email-confirmation redirect
  * points at the app's own custom URL scheme
- * (com.loop.app.loop_mobile://login-callback), never here — the PKCE
+ * (com.loop.app.loop_mobile://app/login-callback), never here — the PKCE
  * code_verifier for a mobile-initiated flow lives in the app's local
  * storage, which this server has no access to, so it could never
- * complete that exchange anyway. If that scheme isn't in the Supabase
- * project's Auth > URL Configuration > Redirect URLs allow-list,
- * Supabase falls back to the Site URL and a mobile user ends up here
- * instead, where the exchange fails as expected -- see
+ * complete that exchange anyway. If that entry isn't (byte-for-byte,
+ * including the host+path shape) in the Supabase project's
+ * Auth > URL Configuration > Redirect URLs allow-list, Supabase falls
+ * back to a different allow-listed entry and a mobile user ends up
+ * here instead, where the exchange fails as expected -- see
  * docs/KNOWN_ISSUES.md for the real bug this was found from and the
  * exact owner action that fixes it at the source.
  *
