@@ -24,6 +24,7 @@ class AccountAvatarButton extends ConsumerWidget {
     final initials = email.isEmpty ? '?' : initialsFor(displayName, email);
 
     return IconButton(
+      tooltip: 'Account menu',
       onPressed: () => showAccountSheet(context),
       icon: CircleAvatar(
         radius: 14,

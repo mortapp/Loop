@@ -573,6 +573,7 @@ class _LineItemRowState extends State<_LineItemRow> {
           ),
           if (widget.onRemove != null)
             IconButton(
+              tooltip: 'Remove quote line',
               icon: const Icon(Icons.close, size: 18),
               onPressed: widget.onRemove,
             ),

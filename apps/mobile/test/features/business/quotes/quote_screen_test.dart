@@ -123,6 +123,17 @@ void main() {
     expect(repository.submittedLines, hasLength(1));
     expect(repository.submittedLines!.single.unitPriceCents, 0);
   });
+
+  testWidgets('removable quote lines expose an accessible control name', (
+    tester,
+  ) async {
+    await _pumpQuotesScreen(tester, _RecordingQuotesRepository());
+
+    await tester.tap(find.text('+ Add line'));
+    await tester.pump();
+
+    expect(find.byTooltip('Remove quote line'), findsNWidgets(2));
+  });
 }
 
 Finder _textFieldWithHint(String hint) => find.byWidgetPredicate(
