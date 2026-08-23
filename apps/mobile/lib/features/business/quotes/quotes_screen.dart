@@ -41,6 +41,92 @@ Color _statusColor(QuoteStatus status) {
   }
 }
 
+typedef QuoteLinePreparation = ({
+  String? error,
+  List<PreparedLine> lines,
+  int? totalCents,
+});
+
+/// Validates and converts editable quote rows without coercing missing or
+/// malformed values to zero. An untouched extra row is ignored, while a
+/// populated row must be complete. An explicitly entered zero remains a
+/// valid unit price.
+QuoteLinePreparation prepareQuoteLines(List<QuoteLineDraft> drafts) {
+  QuoteLinePreparation invalid(String message) =>
+      (error: message, lines: const <PreparedLine>[], totalCents: null);
+
+  final prepared = <PreparedLine>[];
+  var totalCents = 0;
+
+  for (var index = 0; index < drafts.length; index++) {
+    final draft = drafts[index];
+    final description = draft.description.trim();
+    final quantityText = draft.quantity.trim();
+    final unitPriceText = draft.unitPrice.trim();
+    final lineNumber = index + 1;
+    final isUntouched =
+        description.isEmpty &&
+        unitPriceText.isEmpty &&
+        (quantityText.isEmpty || quantityText == '1');
+
+    if (isUntouched) continue;
+    if (description.isEmpty) {
+      return invalid('Line $lineNumber: add a description.');
+    }
+
+    final quantity = double.tryParse(quantityText);
+    if (quantity == null || !quantity.isFinite || quantity <= 0) {
+      return invalid(
+        'Line $lineNumber: enter a valid quantity greater than zero.',
+      );
+    }
+
+    if (unitPriceText.isEmpty) {
+      return invalid(
+        'Line $lineNumber: enter a unit price. Use 0 for a free line item.',
+      );
+    }
+
+    final unitPrice = double.tryParse(unitPriceText);
+    final scaledUnitPrice = unitPrice == null ? null : unitPrice * 100;
+    if (unitPrice == null ||
+        !unitPrice.isFinite ||
+        unitPrice < 0 ||
+        scaledUnitPrice == null ||
+        !scaledUnitPrice.isFinite) {
+      return invalid(
+        'Line $lineNumber: enter a valid non-negative unit price. '
+        'Use 0 for a free line item.',
+      );
+    }
+
+    final unitPriceCents = scaledUnitPrice.round();
+    final unroundedLineTotal = quantity * unitPriceCents;
+    if (!unroundedLineTotal.isFinite) {
+      return invalid('Line $lineNumber: the line total is too large.');
+    }
+
+    prepared.add(
+      PreparedLine(
+        description: description,
+        quantity: quantity,
+        unitPriceCents: unitPriceCents,
+      ),
+    );
+    totalCents += unroundedLineTotal.round();
+  }
+
+  if (prepared.isEmpty) {
+    return invalid('Add at least one complete line item.');
+  }
+
+  return (
+    error: null,
+    lines: List<PreparedLine>.unmodifiable(prepared),
+    totalCents: totalCents,
+  );
+}
+
 /// MAKE / QuoteCloser: line items, totals, and status — the close.
 /// Mirrors `apps/web/src/app/(app)/business/quotes/page.tsx`.
 class QuotesScreen extends ConsumerWidget {
@@ -246,15 +332,7 @@ class _CreateQuoteFormState extends ConsumerState<_CreateQuoteForm> {
   bool _submitting = false;
   String? _error;
 
-  double get _total {
-    var total = 0.0;
-    for (final line in _lines) {
-      final qty = double.tryParse(line.quantity) ?? 0;
-      final price = double.tryParse(line.unitPrice) ?? 0;
-      total += qty * price;
-    }
-    return total;
-  }
+  int? get _totalCents => prepareQuoteLines(_lines).totalCents;
 
   Future<void> _submit() async {
     final contactId = _contactId;
@@ -263,30 +341,12 @@ class _CreateQuoteFormState extends ConsumerState<_CreateQuoteForm> {
       return;
     }
 
-    final prepared = <PreparedLine>[];
-    for (final line in _lines) {
-      final description = line.description.trim();
-      final quantity = double.tryParse(line.quantity) ?? 0;
-      final unitPriceCents =
-          MoneyUtils.dollarsStringToCents(line.unitPrice) ?? 0;
-      if (description.isNotEmpty && quantity > 0 && unitPriceCents >= 0) {
-        prepared.add(
-          PreparedLine(
-            description: description,
-            quantity: quantity,
-            unitPriceCents: unitPriceCents,
-          ),
-        );
-      }
-    }
-
-    if (prepared.isEmpty) {
-      setState(
-        () => _error =
-            'Add at least one line item with a description and quantity.',
-      );
+    final preparation = prepareQuoteLines(_lines);
+    if (preparation.error != null) {
+      setState(() => _error = preparation.error);
       return;
     }
+    final prepared = preparation.lines;
 
     setState(() {
       _submitting = true;
@@ -326,6 +386,8 @@ class _CreateQuoteFormState extends ConsumerState<_CreateQuoteForm> {
 
   @override
   Widget build(BuildContext context) {
+    final totalCents = _totalCents;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -390,7 +452,7 @@ class _CreateQuoteFormState extends ConsumerState<_CreateQuoteForm> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Total: ${MoneyUtils.formatCents((_total * 100).round())}',
+                  'Total: ${totalCents == null ? '—' : MoneyUtils.formatCents(totalCents)}',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 FilledButton(

@@ -55,6 +55,33 @@ void main() {
       );
     });
 
+    test('preserves an explicit zero unit price', () {
+      final parameters = buildCreateQuoteRpcParameters(
+        accountId: 'account',
+        contactId: 'contact',
+        opportunityId: null,
+        userId: 'user',
+        quoteNumber: 'Q-TEST',
+        lines: const [
+          PreparedLine(
+            description: 'Complimentary setup',
+            quantity: 1,
+            unitPriceCents: 0,
+          ),
+        ],
+      );
+
+      expect(parameters['p_subtotal_cents'], 0);
+      expect(parameters['p_total_cents'], 0);
+      expect(parameters['p_line_items'], [
+        {
+          'description': 'Complimentary setup',
+          'quantity': 1.0,
+          'unit_price_cents': 0,
+        },
+      ]);
+    });
+
     test('rejects non-finite quantities and negative prices', () {
       for (final line in [
         const PreparedLine(
