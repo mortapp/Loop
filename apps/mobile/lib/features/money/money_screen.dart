@@ -46,6 +46,7 @@ class MoneyScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final eventsAsync = ref.watch(moneyEventsProvider);
     final totalsAsync = ref.watch(moneyTotalsProvider);
+    final activeAccountId = ref.watch(activeAccountProvider).id;
 
     return Scaffold(
       appBar: AppBar(
@@ -61,14 +62,19 @@ class MoneyScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         child: eventsAsync.when(
-          data: (events) => totalsAsync.when(
-            data: (totals) => _MoneyBody(events: events, totals: totals),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => AsyncErrorView(
-              error: error,
-              onRetry: () => ref.invalidate(moneyTotalsProvider),
-            ),
-          ),
+          data: (history) {
+            if (history.accountId != activeAccountId) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return totalsAsync.when(
+              data: (totals) => _MoneyBody(history: history, totals: totals),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => AsyncErrorView(
+                error: error,
+                onRetry: () => ref.invalidate(moneyTotalsProvider),
+              ),
+            );
+          },
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => AsyncErrorView(
             error: error,
@@ -96,15 +102,16 @@ int _centsForKind(MoneyTotals totals, MoneyEventKind kind) {
 }
 
 class _MoneyBody extends ConsumerWidget {
-  const _MoneyBody({required this.events, required this.totals});
+  const _MoneyBody({required this.history, required this.totals});
 
-  final List<MoneyEvent> events;
+  final MoneyEventsPageState history;
   final MoneyTotals totals;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final net = totals.netCents;
+    final events = history.events;
 
     // One dominant Net figure, not six equally-weighted boxes — Net is
     // what answers "how am I doing," everything else is supporting
@@ -173,10 +180,84 @@ class _MoneyBody extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
           if (events.isEmpty)
             const Text('No recorded value yet.')
-          else
+          else ...[
             ...events.map((event) => _MoneyEventTile(event: event)),
+            const SizedBox(height: AppSpacing.sm),
+            _MoneyHistoryFooter(history: history),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _MoneyHistoryFooter extends ConsumerWidget {
+  const _MoneyHistoryFooter({required this.history});
+
+  final MoneyEventsPageState history;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (history.isLoadingMore) {
+      return Semantics(
+        liveRegion: true,
+        label: 'Loading more money history',
+        child: const Padding(
+          padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: AppSpacing.sm),
+              Text('Loading more history…'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (history.loadMoreError != null) {
+      return Semantics(
+        liveRegion: true,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+          child: Column(
+            children: [
+              Text(
+                'Could not load more history. Check your connection and '
+                'try again.',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+                textAlign: TextAlign.center,
+              ),
+              TextButton(
+                onPressed: () =>
+                    ref.read(moneyEventsProvider.notifier).loadMore(),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (history.hasMore) {
+      return Center(
+        child: OutlinedButton.icon(
+          onPressed: () => ref.read(moneyEventsProvider.notifier).loadMore(),
+          icon: const Icon(Icons.expand_more),
+          label: const Text('Load more'),
+        ),
+      );
+    }
+
+    return Text(
+      'All history loaded.',
+      style: Theme.of(context).textTheme.bodyMedium,
+      textAlign: TextAlign.center,
     );
   }
 }
