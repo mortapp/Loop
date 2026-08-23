@@ -1,0 +1,130 @@
+name: Quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  web-and-database:
+    name: Web and database
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.108.0
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Replay all migrations from zero
+        run: supabase db reset --local
+
+      - name: Run database security and integrity tests
+        run: supabase test db --local supabase/tests/database
+
+      - name: Configure web tests for local Supabase
+        shell: bash
+        run: |
+          set -euo pipefail
+          status_file="$(mktemp)"
+          supabase status -o env > "$status_file"
+          api_url="$(sed -n 's/^API_URL="\(.*\)"$/\1/p' "$status_file")"
+          anon_key="$(sed -n 's/^ANON_KEY="\(.*\)"$/\1/p' "$status_file")"
+          rm -f "$status_file"
+          test -n "$api_url"
+          test -n "$anon_key"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$api_url"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$anon_key"
+          } >> "$GITHUB_ENV"
+
+      - name: Type-check web app
+        run: npm run typecheck --workspace apps/web
+
+      - name: Lint web app
+        run: npm run lint --workspace apps/web
+
+      - name: Build web app
+        run: npm run build --workspace apps/web
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run public and guard web tests
+        run: npx playwright test --config apps/web/playwright.config.ts --workers=1
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
+
+  mobile:
+    name: Flutter mobile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.2
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Check Dart formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze Flutter source
+        run: flutter analyze --no-pub
+
+      - name: Run Flutter tests
+        run: flutter test --no-pub --concurrency=1
+
+      - name: Build fail-closed debug APK
+        run: flutter build apk --debug --no-pub
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: loop-unconfigured-debug-apk
+          path: apps/mobile/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
