@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../auth/mobile_auth_contract.dart';
 import 'supabase_config.dart';
 
 /// Riverpod provider exposing the app-wide Supabase client.
@@ -45,6 +46,13 @@ Future<void> bootstrapSupabase({
     // `anonKey` parameter name on bootstrapSupabase since it maps directly
     // to the SUPABASE_ANON_KEY --dart-define flag documented in the README.
     publishableKey: anonKey,
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.pkce,
+      autoRefreshToken: true,
+      detectSessionInUri: true,
+      detectSessionInUriPredicate: MobileAuthContract.shouldHandleCallback,
+      persistSession: true,
+    ),
     debug: false,
   );
 }

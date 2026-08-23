@@ -1,70 +1,51 @@
 # Known Issues
 
-## RESOLVED (pending one dashboard entry + one physical retest) — Mobile OAuth redirect URI restructured to scheme+host+path — OWNER_ACTION_REQUIRED
+## OPEN (code and platform config repaired; owner callback completion pending) — Mobile OAuth used an invalid URI scheme
 
-Real bug, live-debugged across multiple physical Galaxy A14 attempts.
-Timeline of what was ruled out first, with direct evidence for each:
+Real bug reproduced on the physical Samsung. Google authentication opened in
+Chrome, but Flutter never received a usable callback/session.
 
-1. **Android intent-filter routing**: proven correct via
-   `adb shell am start -a android.intent.action.VIEW -d
-   "com.loop.app.loop_mobile://login-callback"` with LOOP backgrounded
-   — Android brought LOOP's own task to the foreground, never Chrome.
-2. **The Flutter client's OAuth request itself**: proven correct by
-   reading the installed `gotrue-2.27.2` package source
-   (`_getUrlForProvider`) — `redirect_to` is forwarded verbatim, PKCE
-   is active.
-3. **The Supabase Redirect URLs allow-list containing the mobile
-   entry**: confirmed present, byte-for-byte, via a dashboard
-   screenshot — yet the bug still happened on the very next live
-   attempt. This ruled out "just add the URL to the allow-list" as a
-   complete fix.
-4. **Supabase logs for a real successful sign-in**
-   (`query_logs` on `auth_logs`/`edge_logs`) showed GoTrue's redirect
-   actually landed on LOOP's own web `/auth/callback` route — not a
-   generic Site-URL fallback, but a *different, also-allow-listed*
-   entry being chosen over the mobile one.
+**Root cause**: LOOP reused the Android application id
+`com.loop.app.loop_mobile` as a custom URI scheme. The application id is valid,
+but RFC 3986 URI schemes may contain letters, digits, `+`, `-`, and `.` only;
+the underscore is illegal. Dart's `Uri.tryParse` returns null for the old
+callback, so `app_links`/Supabase Flutter cannot parse it and perform the PKCE
+code exchange. The previous report blamed the host-only versus host-plus-path
+shape. Supabase's documented custom-scheme examples and a direct parser
+regression test disproved that diagnosis.
 
-**Actual root cause**: every other entry in the allow-list (all the
-`https://...` ones) has the shape `scheme://host/path`. Mobile's entry
-was `scheme://host` only —
-`com.loop.app.loop_mobile://login-callback`, with `login-callback`
-parsed as the *host* and no path at all
-(`AndroidManifest.xml`'s intent-filter used
-`android:host="login-callback"` with no `android:path`). A working
-reference implementation (a separate proven app, architecture-only
-comparison, no code/credentials copied) uses `scheme://host/path` for
-every one of its custom-scheme entries. LOOP's host-only shape is the
-one structural outlier — the fix is to give it the same shape, not to
-touch the Google/Supabase provider config.
+**Repair applied**:
 
-**Fix applied**: mobile's redirect URI is now
-`com.loop.app.loop_mobile://app/login-callback`
-(`app` host + `/login-callback` path), consistently in:
-- `apps/mobile/lib/features/auth/auth_screen.dart` (`_oauthRedirectUrl`)
-- `apps/mobile/android/app/src/main/AndroidManifest.xml` (intent-filter
-  now declares `android:host="app" android:path="/login-callback"`)
-- iOS needs no change — `Info.plist`'s `CFBundleURLTypes` only
-  registers the bare scheme; host/path matching happens Dart-side via
-  the SDK, not at the OS level.
+- Canonical callback is now
+  `com.loop.app.loop-mobile://app/login-callback`.
+- `MobileAuthContract` owns the callback and accepts only its exact PKCE
+  code/error result shape; token-bearing and unrelated deep links are rejected.
+- Android and iOS register the same standards-valid scheme.
+- Supabase initializes explicitly with PKCE, session persistence, automatic
+  refresh, deep-link detection, and the callback predicate.
+- Google browser launch, callback wait, timeout, cancellation, duplicate-launch
+  prevention, and session/current-user id consistency now have a tested state
+  machine. Browser launch is no longer treated as authentication success.
+- The exact valid callback was added and verified in the hosted Supabase Auth
+  redirect allow-list through the Management API. Legacy entries were retained
+  temporarily so already-installed evidence builds were not broken.
+- A configured debug-QA APK containing the repair was built and installed over
+  the prior app without clearing data. Its compiled Dart snapshot contains the
+  valid callback and no legacy callback; the merged manifest matches it.
 
-**Owner action required** (this setting lives entirely in Supabase's
-platform config, not the Postgres database — no MCP tool here can
-read or write it):
-1. Open the Supabase dashboard → this project → Authentication → URL
-   Configuration.
-2. Add `com.loop.app.loop_mobile://app/login-callback` to **Redirect
-   URLs** (the old host-only entry can stay or be removed — harmless
-   either way, it just won't be matched by the app anymore since the
-   app itself now requests the new URI).
-3. Retest on-device: tap Continue with Google, pick account. Expect
-   the app to reopen directly (no website tab) into onboarding for a
-   new account, or straight to Today for a returning one.
+**Verification so far**:
 
-Not marked verified until that physical retest confirms
-`FLUTTER_SESSION_ESTABLISHED` for real — this session never selects a
-Google account or completes auth itself.
+- Focused callback/controller/profile/platform tests: pass.
+- Full Flutter suite: 38/38 pass when run serially (OneDrive caused a generated
+  test-cache collision in the parallel runner; no product assertion failed).
+- Flutter analyzer: pass.
+- Web TypeScript, ESLint, and production Next build: pass after parity changes.
+- Physical secure startup and Google PKCE browser launch: pass.
+- `FLUTTER_SESSION_ESTABLISHED`: pending owner account selection on the physical
+  phone. Do not mark this issue resolved until the callback returns to LOOP and
+  a cold restart restores the same valid session.
 
-## New: @username handles + optional Google-account password linking, on top of display-name onboarding
+## New: @username handles + required Google-account backup password, on top of display-name onboarding
 
 Extends the display-name onboarding above (same session, owner asked
 for a fuller native account-setup step). Both platforms:
@@ -80,57 +61,45 @@ for a fuller native account-setup step). Both platforms:
   now also collects a username with live available/taken/invalid
   feedback (400ms debounce against the RPC above), and -- only for an
   account with no password identity yet (Google-only signup, detected
-  via `user.identities`) -- an optional password + confirm, linked to
+  from signed Supabase identity/provider data) -- a required password + confirm, linked to
   the SAME auth user via Supabase's own `auth.updateUser({password})`.
   Never a second account: same `auth.users.id` either way.
-- Verified: web `tsc`/`eslint`/`next build` clean, full Playwright
-  suite unaffected (25/25 real passes); mobile `flutter analyze`/`test`
-  clean (13/13), debug build installs and launches cleanly on the
-  physical Galaxy A14 with a clean logcat. The onboarding screens
-  themselves still aren't exercised against a real completed sign-up on
-  either platform -- same redirect-URL blocker above.
+- Profile completion now writes display name and username atomically, and both
+  fields are required by the web and mobile routing gates. The previous two-step
+  mobile write could save a name, fail the username, and then route past setup.
+- Verified: web `tsc`/`eslint`/`next build` clean; mobile analyzer clean and full
+  Flutter suite 38/38. Physical completed-sign-up/onboarding proof remains
+  pending the owner-operated Google callback above.
 
-## New: post-auth onboarding (display name) + a real sign-in error/notice banner
+## Post-auth onboarding (display name + username) + a real sign-in error/notice banner
 
 Added 2026-08-22, prompted by the owner's request for the Google
 sign-in experience to feel like one step, with a name captured (preset
 from the account's email/Google profile, editable) rather than a
 second, separate account-setup screen. Both platforms, same flow:
 
-- `profiles.display_name` starts null for every account regardless of
-  signup method (see `handle_new_user()`) — that's the "needs
-  onboarding" signal, not a new column. LOOP still deliberately has no
-  public `username` field (see the PROFILE entry in
-  docs/LOOP_COMPLETION_LEDGER.md history) — this is the existing
-  friendly display name, not a reversal of that decision.
+- `profiles.display_name` and `profiles.username` start null. The pair is the
+  cross-platform completion signal; either missing field keeps the account in
+  onboarding.
 - Web: `/auth/callback` and the `signIn`/`signUp` Server Actions all
   route through one shared `redirectAfterAuth` helper
   (`src/lib/auth/post-auth-redirect.ts`) that checks
-  `profiles.display_name` and sends a first-time user to
+  both required profile fields and sends an incomplete user to
   `/auth/complete-profile` (prefilled from Google's `full_name`/`name`
   claim, else a title-cased guess from the email's local part) before
   their real `next` destination. An existing account never sees it.
-- Mobile: `needsOnboardingProvider` (`app_router.dart`) does the same
-  check via the existing `currentProfileProvider`/`ProfileRepository`
-  (no new plumbing needed — both already existed for the Profile
-  screen) and redirects to a new `OnboardingScreen`, control-for-control
-  matching the web page.
+- Mobile: `profileGateProvider` (`app_router.dart`) exposes loading, error,
+  incomplete, and complete states. Today remains unreachable until the hosted
+  profile has loaded and both fields are present.
 - `/sign-in` now actually reads and displays `?error=`/`?notice=`
   query params (`auth_callback_failed`, `check_email`) instead of
   silently dropping them — the other half of the "won't load fully
   right" report above.
 
-Verified: `tsc`/`eslint`/`next build` clean; full Playwright suite
-(25 real passes, 60 correctly gated) unaffected — one earlier run
-showed 7 transient failures from a cold dev-server start right after
-`next build`, confirmed non-reproducible on immediate rerun (25/25
-clean, twice). Mobile: `flutter analyze`/`test` clean (13/13,
-`needsOnboardingProvider` overridden in the existing widget tests the
-same way `isAuthenticatedProvider` already was), debug build installs
-and launches cleanly on the physical Galaxy A14. The onboarding screens
-themselves are not yet exercised end-to-end on a live account on
-either platform — that needs the redirect-URL fix above (mobile) and a
-real first sign-up (both) to reach naturally.
+Current verification: `tsc`, ESLint, and `next build` pass. Flutter analyzer
+passes; 38/38 tests pass, including required-password, retry, no-private-error,
+late-async-disposal, Samsung-resolution large-text, and atomic completion-gate
+coverage. Physical end-to-end onboarding remains pending owner OAuth completion.
 
 ## ~~Mobile builds silently ran against a placeholder Supabase host~~ — resolved 2026-08-22, found on the real Galaxy A14
 
@@ -236,12 +205,12 @@ Findings:
 - **Bundle identifiers intentionally differ in format**:
   `com.loop.app.loopMobile` (iOS) vs `com.loop.app.loop_mobile`
   (Android) — normal per-platform convention, not a bug. The OAuth
-  redirect URL scheme (`com.loop.app.loop_mobile`) is deliberately the
-  *same literal string* on both platforms regardless of bundle id, so
+  redirect URL scheme (`com.loop.app.loop-mobile`) is deliberately the
+  *same standards-valid literal string* on both platforms regardless of bundle id, so
   the Dart-side `redirectTo` never has to branch by platform (see
   `auth_screen.dart` and the Info.plist's own comment).
 - **OAuth/deep-link redirect**: Android's intent-filter matches
-  `scheme + host + path` (`com.loop.app.loop_mobile://app/login-callback`)
+  `scheme + host + path` (`com.loop.app.loop-mobile://app/login-callback`)
   exactly; iOS's `CFBundleURLTypes` only needs the bare scheme
   registered (iOS routes all URLs with that scheme to the app; host/
   path parsing happens in app code) — both correctly wired, not a gap.

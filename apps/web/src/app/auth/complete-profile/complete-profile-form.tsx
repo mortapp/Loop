@@ -22,16 +22,19 @@ export function CompleteProfileForm({
   suggestedUsername,
   next,
   email,
-  offerPasswordSetup,
+  requirePasswordSetup,
 }: {
   suggestedName: string;
   suggestedUsername: string;
   next: string;
   email: string;
-  offerPasswordSetup: boolean;
+  requirePasswordSetup: boolean;
 }) {
   const boundAction = completeProfile.bind(null, next);
-  const [state, formAction, pending] = useActionState<CompleteProfileState, FormData>(boundAction, null);
+  const [state, formAction, pending] = useActionState<CompleteProfileState, FormData>(
+    boundAction,
+    null,
+  );
 
   const [username, setUsername] = useState(suggestedUsername);
   const candidate = username.trim().toLowerCase();
@@ -41,18 +44,18 @@ export function CompleteProfileForm({
   // state -- "idle"/"invalid" are derived above, at render time, so the
   // effect below never needs to setState synchronously in its body, only
   // from the debounced RPC callback.
-  const [checkResult, setCheckResult] = useState<{ candidate: string; available: boolean } | null>(null);
+  const [checkResult, setCheckResult] = useState<{ candidate: string; available: boolean } | null>(
+    null,
+  );
 
   useEffect(() => {
     if (syncStatus !== "checkable") return;
 
     const timer = setTimeout(() => {
       const supabase = createClient();
-      supabase
-        .rpc("is_username_available", { candidate })
-        .then(({ data, error }) => {
-          if (!error) setCheckResult({ candidate, available: Boolean(data) });
-        });
+      supabase.rpc("is_username_available", { candidate }).then(({ data, error }) => {
+        if (!error) setCheckResult({ candidate, available: Boolean(data) });
+      });
     }, 400);
 
     return () => clearTimeout(timer);
@@ -69,7 +72,10 @@ export function CompleteProfileForm({
             : "taken"
           : "checking";
 
-  const usernameHint: Record<UsernameStatus, { text: string; tone: "muted" | "success" | "danger" } | null> = {
+  const usernameHint: Record<
+    UsernameStatus,
+    { text: string; tone: "muted" | "success" | "danger" } | null
+  > = {
     idle: null,
     checking: { text: "Checking…", tone: "muted" },
     available: { text: "Available", tone: "success" },
@@ -87,8 +93,12 @@ export function CompleteProfileForm({
         <div className="flex flex-col items-center gap-3 text-center">
           <LoopSeal size={32} />
           <p className="text-xs font-medium text-[var(--color-brand-text)]">✓ Verified</p>
-          <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">Welcome to LOOP</h1>
-          <p className="text-sm text-[var(--color-text-secondary)]">Let&apos;s finish setting up your account.</p>
+          <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">
+            Welcome to LOOP
+          </h1>
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            Let&apos;s finish setting up your account.
+          </p>
         </div>
 
         <label className="flex flex-col gap-1.5">
@@ -145,15 +155,18 @@ export function CompleteProfileForm({
           ) : null}
         </label>
 
-        {offerPasswordSetup ? (
+        {requirePasswordSetup ? (
           <>
             <label className="flex flex-col gap-1.5">
               <span className="text-[10px] font-semibold tracking-[0.15em] text-[var(--color-text-secondary)]">
-                PASSWORD <span className="text-[var(--color-text-tertiary)]">(optional -- to also sign in without Google)</span>
+                CREATE PASSWORD{" "}
+                <span className="text-[var(--color-text-tertiary)]">(required)</span>
               </span>
               <input
                 name="password"
                 type="password"
+                required
+                minLength={8}
                 autoComplete="new-password"
                 placeholder="••••••••"
                 className="rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-brand)]"
@@ -166,6 +179,8 @@ export function CompleteProfileForm({
               <input
                 name="confirmPassword"
                 type="password"
+                required
+                minLength={8}
                 autoComplete="new-password"
                 placeholder="••••••••"
                 className="rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-brand)]"

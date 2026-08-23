@@ -3,16 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/auth/google_oauth_controller.dart';
+import '../../core/auth/mobile_auth_contract.dart';
 import '../../core/supabase/supabase_providers.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/loop_seal.dart';
-
-/// The redirect Supabase's OAuth flow lands back on after Google's consent
-/// screen. Must match an intent-filter registered in AndroidManifest.xml
-/// (and, when a real iOS build exists, the URL scheme in Info.plist) —
-/// see docs/KNOWN_ISSUES.md.
-const _oauthRedirectUrl = 'com.loop.app.loop_mobile://app/login-callback';
 
 /// Sign in / sign up, combined into one screen with a mode toggle —
 /// mirrors apps/web's (auth) group so the two platforms feel like the same
@@ -40,8 +36,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   bool _isSignIn = true;
   bool _submitting = false;
-  bool _googleSubmitting = false;
   String? _error;
+  String? _notice;
 
   @override
   void dispose() {
@@ -56,6 +52,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     setState(() {
       _submitting = true;
       _error = null;
+      _notice = null;
     });
 
     final client = ref.read(supabaseClientProvider);
@@ -69,59 +66,75 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         await client.auth.signUp(
           email: email,
           password: password,
-          emailRedirectTo: _oauthRedirectUrl,
+          emailRedirectTo: MobileAuthContract.callbackUrl,
         );
       }
       // On success the router's redirect (keyed off authStateChangesProvider)
       // takes over — no manual navigation needed here.
+      if (mounted && client.auth.currentSession == null) {
+        setState(() {
+          _notice = 'Check your email to finish creating your account.';
+        });
+      }
     } on AuthException catch (error) {
-      setState(() => _error = error.message);
+      if (mounted) setState(() => _error = _safeAuthMessage(error));
     } catch (_) {
-      setState(
-        () => _error =
-            'Something went wrong. Check your connection and try again.',
-      );
+      if (mounted) {
+        setState(
+          () => _error =
+              'Something went wrong. Check your connection and try again.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
   }
 
   Future<void> _submitGoogle() async {
-    setState(() {
-      _googleSubmitting = true;
-      _error = null;
-    });
-
-    final client = ref.read(supabaseClientProvider);
-    try {
-      await client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: _oauthRedirectUrl,
-        authScreenLaunchMode: LaunchMode.externalApplication,
-      );
-    } on AuthException catch (error) {
-      setState(() => _error = error.message);
-    } catch (_) {
-      setState(
-        () => _error =
-            'Could not open Google sign-in. Check your connection and try again.',
-      );
-    } finally {
-      if (mounted) setState(() => _googleSubmitting = false);
+    if (mounted) {
+      setState(() {
+        _error = null;
+        _notice = null;
+      });
     }
+    await ref.read(googleOAuthControllerProvider.notifier).start();
   }
 
   void _toggleMode() {
     setState(() {
       _isSignIn = !_isSignIn;
       _error = null;
+      _notice = null;
     });
+    ref.read(googleOAuthControllerProvider.notifier).clearError();
+  }
+
+  String _safeAuthMessage(AuthException error) {
+    final message = error.message.toLowerCase();
+    if (message.contains('invalid login credentials')) {
+      return 'Email or password is incorrect.';
+    }
+    if (message.contains('email not confirmed')) {
+      return 'Confirm your email before signing in.';
+    }
+    if (message.contains('already registered') ||
+        message.contains('already exists')) {
+      return 'An account already uses this email. Try signing in.';
+    }
+    if (message.contains('rate limit') || message.contains('too many')) {
+      return 'Too many attempts. Wait a moment and try again.';
+    }
+    return _isSignIn
+        ? 'We could not sign you in. Check your details and try again.'
+        : 'We could not create your account. Check your details and try again.';
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final busy = _submitting || _googleSubmitting;
+    final googleState = ref.watch(googleOAuthControllerProvider);
+    final googleBusy = googleState.isBusy;
+    final busy = _submitting || googleBusy;
 
     return Scaffold(
       body: Stack(
@@ -186,7 +199,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         height: 52,
                         child: OutlinedButton.icon(
                           onPressed: busy ? null : _submitGoogle,
-                          icon: _googleSubmitting
+                          icon: googleBusy
                               ? const SizedBox.square(
                                   dimension: 16,
                                   child: CircularProgressIndicator(
@@ -194,11 +207,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   ),
                                 )
                               : const _GoogleGlyph(),
-                          label: Text(
-                            _googleSubmitting
-                                ? 'Redirecting…'
-                                : 'Continue with Google',
-                          ),
+                          label: Text(switch (googleState.phase) {
+                            GoogleOAuthPhase.launchingBrowser =>
+                              'Opening Google…',
+                            GoogleOAuthPhase.awaitingCallback =>
+                              'Waiting for Google…',
+                            _ => 'Continue with Google',
+                          }),
                           style: OutlinedButton.styleFrom(
                             backgroundColor: AppColors.murexInk,
                             foregroundColor: AppColors.textPrimary,
@@ -213,6 +228,25 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           ),
                         ),
                       ),
+                      if (googleState.phase ==
+                          GoogleOAuthPhase.awaitingCallback) ...[
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          'Finish sign-in in your browser, then return to LOOP.',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                        Center(
+                          child: TextButton(
+                            onPressed: () => ref
+                                .read(googleOAuthControllerProvider.notifier)
+                                .cancel(),
+                            child: const Text('Cancel Google sign-in'),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: AppSpacing.lg),
                       const _EngravedDivider(),
                       const SizedBox(height: AppSpacing.lg),
@@ -268,6 +302,24 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               const SizedBox(height: AppSpacing.sm),
                               Text(
                                 _error!,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.dangerText,
+                                ),
+                              ),
+                            ],
+                            if (_notice != null) ...[
+                              const SizedBox(height: AppSpacing.sm),
+                              Text(
+                                _notice!,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.tyrianText,
+                                ),
+                              ),
+                            ],
+                            if (googleState.message != null) ...[
+                              const SizedBox(height: AppSpacing.sm),
+                              Text(
+                                googleState.message!,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: AppColors.dangerText,
                                 ),

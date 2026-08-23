@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../account/profile_providers.dart';
+import '../auth/mobile_auth_contract.dart';
 import '../supabase/supabase_providers.dart';
 import '../widgets/root_shell.dart';
 import '../../features/ai/ai_screen.dart';
@@ -39,6 +41,7 @@ class AppRoutes {
   static const sell = '/sell';
   static const business = '/business';
   static const ai = '/ai';
+  static const accountGate = '/account-gate';
   static const signIn = '/sign-in';
   static const onboarding = '/onboarding';
   static const profile = '/profile';
@@ -61,28 +64,52 @@ class AppRoutes {
 /// first builds.
 final isAuthenticatedProvider = Provider<bool>((ref) {
   ref.watch(authStateChangesProvider);
-  return Supabase.instance.client.auth.currentSession != null;
-});
-
-/// True once a signed-in user's profile has loaded and confirms they've
-/// never set a display name — true for every brand-new account
-/// regardless of whether they signed up with Google or email/password
-/// (`profiles.display_name` starts null either way — see
-/// `handle_new_user()` in supabase/migrations/20260817000002_identity.sql,
-/// and apps/web's identical `redirectAfterAuth` gate). Stays false while
-/// the profile is still loading (`orElse`) so there's no redirect flash
-/// on cold start; flips true the moment it resolves with a null name,
-/// which is enough for [appRouterProvider] (which watches this) to
-/// re-run its redirect and send the user to onboarding.
-final needsOnboardingProvider = Provider<bool>((ref) {
-  final profileAsync = ref.watch(currentProfileProvider);
-  return profileAsync.maybeWhen(
-    data: (profile) =>
-        profile != null &&
-        (profile.displayName == null || profile.displayName!.trim().isEmpty),
-    orElse: () => false,
+  final auth = Supabase.instance.client.auth;
+  return MobileAuthContract.hasConsistentSession(
+    sessionUserId: auth.currentSession?.user.id,
+    currentUserId: auth.currentUser?.id,
   );
 });
+
+enum ProfileGateState {
+  notAuthenticated,
+  loading,
+  requiresOnboarding,
+  complete,
+  error,
+}
+
+/// Server-authoritative profile gate. Loading and errors are explicit states,
+/// so a signed-in account can never briefly reach Today while its profile is
+/// unresolved. Both display name and username are required for completion.
+final profileGateProvider = Provider<ProfileGateState>((ref) {
+  if (!ref.watch(isAuthenticatedProvider)) {
+    return ProfileGateState.notAuthenticated;
+  }
+
+  return ref
+      .watch(currentProfileProvider)
+      .when(
+        data: (profile) {
+          if (profile == null) return ProfileGateState.error;
+          return profile.hasCompletedOnboarding
+              ? ProfileGateState.complete
+              : ProfileGateState.requiresOnboarding;
+        },
+        error: (_, _) => ProfileGateState.error,
+        loading: () => ProfileGateState.loading,
+      );
+});
+
+/// Compatibility wrapper retained for focused widget overrides and consumers
+/// that only need the yes/no answer.
+final needsOnboardingProvider = Provider<bool>((ref) {
+  return ref.watch(profileGateProvider) == ProfileGateState.requiresOnboarding;
+});
+
+class _RouterRefreshNotifier extends ChangeNotifier {
+  void refresh() => notifyListeners();
+}
 
 /// The app's single GoRouter instance, exposed as a Riverpod provider.
 ///
@@ -90,30 +117,50 @@ final needsOnboardingProvider = Provider<bool>((ref) {
 /// [RootShell]) persists across tab switches while each tab keeps its own
 /// navigation stack.
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final isAuthenticated = ref.watch(isAuthenticatedProvider);
-  final needsOnboarding = ref.watch(needsOnboardingProvider);
+  final refreshNotifier = _RouterRefreshNotifier();
+  ref.listen<bool>(
+    isAuthenticatedProvider,
+    (_, _) => refreshNotifier.refresh(),
+  );
+  ref.listen<ProfileGateState>(
+    profileGateProvider,
+    (_, _) => refreshNotifier.refresh(),
+  );
+  ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
-    initialLocation: AppRoutes.today,
+    initialLocation: AppRoutes.accountGate,
+    refreshListenable: refreshNotifier,
     redirect: (context, state) {
+      final isAuthenticated = ref.read(isAuthenticatedProvider);
+      final profileGate = ref.read(profileGateProvider);
+      final goingToAccountGate = state.matchedLocation == AppRoutes.accountGate;
       final goingToSignIn = state.matchedLocation == AppRoutes.signIn;
       final goingToOnboarding = state.matchedLocation == AppRoutes.onboarding;
 
       if (!isAuthenticated) {
         return goingToSignIn ? null : AppRoutes.signIn;
       }
-      if (goingToSignIn) {
-        return AppRoutes.today;
+
+      switch (profileGate) {
+        case ProfileGateState.loading:
+        case ProfileGateState.error:
+        case ProfileGateState.notAuthenticated:
+          return goingToAccountGate ? null : AppRoutes.accountGate;
+        case ProfileGateState.requiresOnboarding:
+          return goingToOnboarding ? null : AppRoutes.onboarding;
+        case ProfileGateState.complete:
+          if (goingToAccountGate || goingToSignIn || goingToOnboarding) {
+            return AppRoutes.today;
+          }
+          return null;
       }
-      if (needsOnboarding && !goingToOnboarding) {
-        return AppRoutes.onboarding;
-      }
-      if (!needsOnboarding && goingToOnboarding) {
-        return AppRoutes.today;
-      }
-      return null;
     },
     routes: [
+      GoRoute(
+        path: AppRoutes.accountGate,
+        builder: (context, state) => const _AccountGateScreen(),
+      ),
       GoRoute(
         path: AppRoutes.signIn,
         builder: (context, state) => const AuthScreen(),
@@ -216,3 +263,47 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+class _AccountGateScreen extends ConsumerWidget {
+  const _AccountGateScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final gate = ref.watch(profileGateProvider);
+    final hasError = gate == ProfileGateState.error;
+
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!hasError)
+                  const CircularProgressIndicator()
+                else ...[
+                  Text(
+                    'LOOP could not verify your account.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Check your connection, then try again.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: () => ref.invalidate(currentProfileProvider),
+                    child: const Text('Try again'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

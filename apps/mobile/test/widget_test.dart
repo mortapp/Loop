@@ -7,9 +7,11 @@
 // Today's Supabase-backed provider needs overriding here to keep this
 // test hermetic; the other tabs never touch the network in this test.
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:loop_mobile/core/auth/google_oauth_controller.dart';
 import 'package:loop_mobile/core/router/app_router.dart';
 import 'package:loop_mobile/core/utils/money.dart';
 import 'package:loop_mobile/features/today/today_providers.dart';
@@ -23,7 +25,7 @@ void main() {
       ProviderScope(
         overrides: [
           isAuthenticatedProvider.overrideWith((ref) => true),
-          needsOnboardingProvider.overrideWith((ref) => false),
+          profileGateProvider.overrideWith((ref) => ProfileGateState.complete),
           todayActionsProvider.overrideWith((ref) async => []),
         ],
         child: const LoopApp(),
@@ -49,7 +51,7 @@ void main() {
       ProviderScope(
         overrides: [
           isAuthenticatedProvider.overrideWith((ref) => true),
-          needsOnboardingProvider.overrideWith((ref) => false),
+          profileGateProvider.overrideWith((ref) => ProfileGateState.complete),
           todayActionsProvider.overrideWith((ref) async => []),
         ],
         child: const LoopApp(),
@@ -68,7 +70,12 @@ void main() {
       ProviderScope(
         overrides: [
           isAuthenticatedProvider.overrideWith((ref) => false),
-          needsOnboardingProvider.overrideWith((ref) => false),
+          profileGateProvider.overrideWith(
+            (ref) => ProfileGateState.notAuthenticated,
+          ),
+          googleOAuthGatewayProvider.overrideWithValue(
+            const _UnavailableOAuthGateway(),
+          ),
         ],
         child: const LoopApp(),
       ),
@@ -77,6 +84,24 @@ void main() {
 
     expect(find.text('Sign in'), findsWidgets);
     expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Nothing open. Add something above.'), findsNothing);
+  });
+
+  testWidgets('Signed-in users cannot reach Today while profile is loading', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          isAuthenticatedProvider.overrideWith((ref) => true),
+          profileGateProvider.overrideWith((ref) => ProfileGateState.loading),
+        ],
+        child: const LoopApp(),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.text('Nothing open. Add something above.'), findsNothing);
   });
 
@@ -94,4 +119,20 @@ void main() {
       expect(MoneyUtils.formatCents(null), '—');
     });
   });
+}
+
+class _UnavailableOAuthGateway implements GoogleOAuthGateway {
+  const _UnavailableOAuthGateway();
+
+  @override
+  Stream<MobileAuthSignal> get authSignals => const Stream.empty();
+
+  @override
+  String? get currentSessionUserId => null;
+
+  @override
+  String? get currentUserId => null;
+
+  @override
+  Future<bool> launchGoogle() async => false;
 }

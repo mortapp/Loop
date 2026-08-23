@@ -4,12 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 /**
  * PKCE callback for Supabase Auth (email confirmation links, web's own
  * Google OAuth). Exchanges the `code` query param for a session, then
- * either redirects into the app or, for a brand-new account (no
- * display_name set yet), through /auth/complete-profile first.
+ * either redirects into the app or, for a new/incomplete account, through
+ * /auth/complete-profile first.
  *
  * This route is web-only. Mobile's OAuth/email-confirmation redirect
  * points at the app's own custom URL scheme
- * (com.loop.app.loop_mobile://app/login-callback), never here — the PKCE
+ * (com.loop.app.loop-mobile://app/login-callback), never here — the PKCE
  * code_verifier for a mobile-initiated flow lives in the app's local
  * storage, which this server has no access to, so it could never
  * complete that exchange anyway. If that entry isn't (byte-for-byte,
@@ -40,11 +40,11 @@ export async function GET(request: Request) {
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("display_name")
+          .select("display_name, username")
           .eq("id", user.id)
-          .maybeSingle<{ display_name: string | null }>();
+          .maybeSingle<{ display_name: string | null; username: string | null }>();
 
-        if (!profile?.display_name) {
+        if (!profile?.display_name?.trim() || !profile.username?.trim()) {
           return NextResponse.redirect(
             `${origin}/auth/complete-profile?next=${encodeURIComponent(next)}`,
           );

@@ -5,7 +5,9 @@ OWNER_ACTION_REQUIRED, ACCEPTED_WITH_EVIDENCE, NOT_RUN. Never converted
 to PASS to reach a prettier percentage — see docs/AUTONOMOUS_BUILD_STATUS.md
 and docs/KNOWN_ISSUES.md for full evidence behind every row below.
 
-Rewritten 2026-08-22 (LOOP — FINAL RELEASE-CANDIDATE COMPLETION session,
+Updated 2026-08-23 during the native OAuth/onboarding remediation. Historical
+passes remain recorded, but current rows are not promoted until this source is
+committed, pushed, and physically retested. Originally rewritten 2026-08-22,
 continuing from checkpoint `b12c6b8` after a usage-limit pause). This
 replaces the prior version, which predated this session's mobile AI
 client, Today automation, Money integrity, Playwright E2E harness,
@@ -14,8 +16,8 @@ and the iOS parity audit.
 
 | Area | Status | Note |
 |---|---|---|
-| REPOSITORY | PASS | Clean working tree at every checkpoint this session; `git status`/`log`/`fetch` re-verified at session start per the Checkpoint Law, never assumed. |
-| GITHUB | PASS | Every commit this session pushed to `origin/main`, fast-forward only, verified via `git ls-remote` after each push. Chain: `a0ab6fd`→`756500c`→`0a9fde0`→`3f89a31`→`c96370d`→`055da3f`→`b12c6b8`→`ca3fc42`. |
+| REPOSITORY | IN_PROGRESS | Started from `40692e8fdb22284b57b0a8e0742e585b1f177e4e`; current OAuth/onboarding repairs are intentionally uncommitted until the physical callback checkpoint. No resets or unrelated reversions. |
+| GITHUB | PARTIAL | Local `main` began one commit ahead of `origin/main`. No force push; current remediation has not been pushed yet. |
 | MUREX_NOIR | PASS | Unchanged this session — full token replacement on both platforms from an earlier session, physically confirmed on the real Galaxy A14. Not re-touched; no regression introduced by this session's changes (all additive: new screens/migrations/tests reuse existing `AppColors`/`AppSpacing`/`var(--color-*)` tokens). |
 | WEB_UI | PASS | `next build`/`lint`/`typecheck` clean after every phase this session; live production smoke test (see PRODUCTION_WEB) confirms no visual/hydration regression. |
 | MOBILE_UI | PASS | `flutter analyze`/`format --set-exit-if-changed` clean after every phase; debug and release APKs both build and launch cleanly on the physical Galaxy A14 with clean logcat. |
@@ -31,9 +33,9 @@ and the iOS parity audit.
 | ASK_LOOP_WEB | PASS | Unchanged this session — chat UI, confirm/decline tool-registry flow. |
 | ASK_LOOP_ANDROID | PASS | New this session. Real Flutter chat client (`apps/mobile/lib/features/ai/ai_repository.dart` + rewritten `ai_screen.dart`) calling the exact same `/api/ai/chat`+`/api/ai/confirm` endpoints web uses — not a parallel architecture. Full text/loading/retry/error UX, pending tool-confirmation cards with Confirm/Decline, Murex Noir styling with the Double Loop Seal marking assistant output. `flutter analyze` clean, debug APK built and launched cleanly on the physical Galaxy A14. Marked PASS for client completeness — see AI_BACKEND for the separate provider-credential gate. |
 | AI_BACKEND | OWNER_ACTION_REQUIRED | `ANTHROPIC_API_KEY` remains unset. The cross-platform auth boundary (`apps/web/src/lib/ai/auth.ts`'s `resolveAiRequest` — cookie session for web, `Authorization: Bearer <supabase JWT>` + explicit `accountId` for mobile) was built and verified (`tsc`/`eslint` clean, both routes preserve existing web behavior) this session specifically so the mobile client would have a real backend to call the moment the key is set. Cannot be live-verified end-to-end without the key. |
-| AUTH | PASS | Unchanged this session. Production auth guard re-verified live this session (see PRODUCTION_WEB): unauthenticated `/today` correctly redirects to `/sign-in?next=%2Ftoday` on the real deployment, not just locally. |
+| AUTH | IN_PROGRESS | Web guard remains verified. Mobile now has explicit PKCE/deep-link policy, launch-to-session coordination, timeout/cancel/retry, and session/current-user consistency. Physical session establishment is still owner-gated. |
 | GOOGLE_AUTH_WEB | PASS | Unchanged this session, previously verified live. |
-| GOOGLE_AUTH_ANDROID | PASS | Unchanged this session, previously verified on the real Galaxy A14. |
+| GOOGLE_AUTH_ANDROID | IN_PROGRESS | The prior callback scheme was invalid because it contained an underscore. Valid-scheme APK is installed and reaches hosted Google PKCE; owner account selection and callback/session restoration remain pending. |
 | DATABASE | PASS | 4 new migrations this session (`today_automation`, `money_integrity`, `fix_business_members_self_escalation`, plus the 3 from the prior continuation), all applied to the real hosted project and tracked in `supabase/migrations/`. |
 | MIGRATIONS | PASS | Local `supabase/migrations/` and the hosted project confirmed to match after every `apply_migration` call this session. |
 | RLS | PASS | Every table still has RLS enabled. This session's `business_members` fix is the headline change — see BUSINESS_MEMBERS_SECURITY. All other `for all`/`with check` policies across every migration file were re-read this session specifically looking for the same class of bug (a `WITH CHECK` that verifies identity but not scope) — none found; every other policy either uses `has_account_access(account_id)` (account_id itself RLS-protected) or a same-identity self-only pattern with no privilege implication (`created_by = auth.uid()`, `id = auth.uid()`). |
@@ -41,21 +43,21 @@ and the iOS parity audit.
 | STORAGE | PASS | Unchanged this session — `documents` + `item-photos` buckets, reviewed again during this session's security pass, both correctly path-partitioned and RLS-scoped. |
 | WEB_E2E | PASS / OWNER_ACTION_REQUIRED | New this session. Playwright harness (`apps/web/playwright.config.ts`, `apps/web/e2e/`), the smallest framework that can actually exercise SSR Server Components + cookie auth + real navigation. 45 tests across 10 files. 25 run for real with no credentials needed (16 auth-guard tests covering every `(app)/**` route + `/`, 7 responsive breakpoint checks, 2 axe accessibility scans) — all pass against both a local dev server and, for the guard behavior, live production. The remaining 20 (nav/Today/Money/Sell/Business/AI/account-menu/personalization/accessibility on authenticated pages) are real, complete test code that `test.skip`s itself without `QA_TEST_EMAIL`/`QA_TEST_PASSWORD` — creating that account is outside what this session can do (account creation is a prohibited action even for an isolated QA user). See docs/KNOWN_ISSUES.md for the exact 2-step owner action. |
 | ACCESSIBILITY_WEB | PASS | Scoped, not exhaustive — see docs/KNOWN_ISSUES.md for exactly what's still open (manual keyboard pass, touch-target sizing, text-scaling stress test). This session: fixed 2 real bugs (account-menu trigger had no accessible name at some breakpoints; a duplicate `id="account-menu"` since two menu instances render simultaneously) and 3 forms with no field labels at all (Money/Sell/Today). Automated axe-core WCAG2A/2AA scans added and run live against `/sign-in`/`/sign-up`: zero violations. 7 more page scans wired the same way, gated on WEB_E2E's QA-credential blocker. |
-| ACCESSIBILITY_MOBILE | FAIL | Not started this session or any prior one. No Flutter `Semantics`/focus/touch-target audit has been done. Recorded honestly rather than inferred from the web pass. |
+| ACCESSIBILITY_MOBILE | PARTIAL | Onboarding now has semantics, focus order, 48px controls, live status/error regions, and Samsung-resolution 2x-text coverage. A full-app TalkBack/focus audit remains open. |
 | RESPONSIVE_WEB | PASS | New this session, and a real answer to the prior session's `resize_window` tool-limitation blocker: Playwright's `setViewportSize` is the working alternative (resizes before navigation, so layout is correct from first paint). All 7 named breakpoints (360/390/430/768/1024/1280/1440) verified live against `/sign-in` with zero horizontal overflow at any width. The equivalent authenticated-page checks are wired the same QA-credential-gated way as WEB_E2E. |
 | ANDROID_BUILD | PASS | Both debug and, new this session, **release** builds succeed. The release build surfaced a real bug this session found via the iOS parity audit (missing `INTERNET` permission — see below); a second real bug (every prior build silently missing `--dart-define`, see ANDROID_SUPABASE_CONFIG) was found afterward on the physical device and is also fixed. `dart_define.json` (gitignored) is now the one correct, remembered way to build. |
 | GALAXY_A14_CONNECTION | PASS | Reconnected cleanly this session via `adb connect` after a brief `offline` state; device visible throughout. |
 | ANDROID_SUPABASE_CONFIG | PASS | Real regression found and fixed this session (see docs/KNOWN_ISSUES.md): every mobile build was silently running against `placeholder.supabase.co` because `--dart-define-from-file` was never passed. Fixed with a real startup validation (`SupabaseConfig.isValidConfig`) plus a durable `dart_define.json` build path. 8 new unit tests; verified live on the Galaxy A14 both ways (misconfigured build shows a clean "can't start" screen, correctly-configured build reaches real Google OAuth). |
 | PLACEHOLDER_URL_REJECTED | PASS | `main.dart` gates on `SupabaseConfig.isConfigured` before Supabase is ever initialized; `bootstrapSupabase` no longer has a silent fallback. Live-verified on-device: a build with no dart-defines renders `ConfigurationErrorApp` with a clean logcat, never reaches the sign-in screen. |
 | GOOGLE_OAUTH_HANDOFF | PASS | Live-verified on the Galaxy A14 with the corrected build: **Continue with Google** correctly opens `accounts.google.com`, "Choose an account to continue to zqalnvfwxmfrnyjcuehq.supabase.co" (the real project, confirmed by screenshot) — not `placeholder.supabase.co`. |
-| MOBILE_CALLBACK | OWNER_ACTION_REQUIRED | Root cause found after the allow-list entry was confirmed present and the bug still reproduced live: the mobile redirect URI was `scheme://host` only (`com.loop.app.loop_mobile://login-callback`), the one structural outlier against every other `scheme://host/path`-shaped entry in the allow-list. Fixed in source: URI is now `com.loop.app.loop_mobile://app/login-callback` (`auth_screen.dart` + Android manifest intent-filter, both updated together). Owner still needs to add the new URI to Supabase's Auth > URL Configuration > Redirect URLs (platform config, not reachable via any tool this session has) and retest live. See docs/KNOWN_ISSUES.md. |
-| ONBOARDING | PASS | New this session, from a direct owner request: post-auth display-name capture (prefilled from Google's name claim or the email, editable) on both platforms, reusing `profiles.display_name`. `/sign-in` now surfaces `?error=`/`?notice=` instead of silently dropping them. Web: `tsc`/`eslint`/`next build` clean, full Playwright suite unaffected (25/25 real passes). Mobile: `flutter analyze`/`test` clean (13/13), debug build installs and launches cleanly on the Galaxy A14. Not yet exercised end-to-end on a live account on either platform — needs the redirect-URL fix (mobile) and a real first sign-up (both) to reach naturally. |
-| USERNAME | PASS | New this session, extending ONBOARDING per a follow-up owner request: real `profiles.username` with a database-authoritative unique index + format/reserved-name constraints (`20260822180000_usernames.sql`), a `is_username_available()` pre-check RPC for live UI feedback, live available/taken/invalid state in both onboarding screens, and optional password-linking for a Google-only account via `auth.updateUser` (same auth user id either way, never a duplicate account). 11 pgTAP assertions (`006_usernames.sql`). Web/mobile builds and tests clean, same not-yet-live-exercised caveat as ONBOARDING. |
-| ANDROID_INTENT_FILTER | PASS | Directly verified live via `adb shell am start -a android.intent.action.VIEW -d "com.loop.app.loop_mobile://login-callback"` (the old host-only URI) with LOOP backgrounded first — Android correctly brought LOOP's task to the foreground (confirmed by screenshot), not Chrome. Confirmed Android's own URI-to-app resolution was never the bug; the manifest has since been updated to the new `app`-host `/login-callback`-path shape alongside the redirect-URI-shape fix (see MOBILE_CALLBACK) — that structural change, not app resolution, was the real gap. |
-| GALAXY_A14_RETEST | PASS | Full reproduce-fix-verify cycle completed live on the physical device this session: confirmed the bug, fixed root cause, rebuilt both ways (misconfigured and correct), reinstalled, relaunched, reached the real OAuth chooser, backed out cleanly, left the device on a correctly-configured, crash-free build. |
+| MOBILE_CALLBACK | IN_PROGRESS | Reproducible root cause: `com.loop.app.loop_mobile` is not a parseable URI scheme. Canonical callback is now `com.loop.app.loop-mobile://app/login-callback`; Android/iOS/source/compiled snapshot agree and the exact redirect is live in Supabase. Physical session callback remains pending owner account selection. |
+| ONBOARDING | IN_PROGRESS | Web/mobile gates require both display name and username. Mobile profile fields save atomically; Google-only users must create and confirm a backup password; errors are sanitized and async races covered. Analyzer, 38/38 Flutter tests, web typecheck/lint/build pass. Physical completion remains pending OAuth. |
+| USERNAME | PASS | `profiles.username` remains database-authoritative through unique/format/reserved constraints and `is_username_available()`. Both onboarding clients require it; mobile no longer performs the name and username writes separately. |
+| ANDROID_INTENT_FILTER | PASS | The configured APK's merged manifest registers the exact standards-valid callback and a parity test locks Android/iOS/source agreement. Actual post-Google delivery is tracked separately under MOBILE_CALLBACK. |
+| GALAXY_A14_RETEST | IN_PROGRESS | Exact configured APK installed without clearing data; secure startup and hosted Google PKCE launch pass. Callback, onboarding, cold-session restore, and post-auth traversal await owner account selection. |
 | GALAXY_A14_AUTHENTICATED_QA | OWNER_ACTION_REQUIRED | The Google OAuth path now reaches the real project (see above) rather than being silently unreachable, which was itself a plausible explanation for the device sitting on the sign-in screen through most of this session. The owner still needs to complete account selection/sign-in themselves — this session does not select a Google account or type a password into any field, on-device or in-browser. The full authenticated matrix (Today/Money/Sell/Business/Protect/Ask LOOP/account menu/general nav) is ready to run the moment a session exists. |
 | GALAXY_A14_PERFORMANCE | OWNER_ACTION_REQUIRED | Same blocker — meaningful performance observation (scrolling, image rendering, tab switching) needs authenticated screens with real data. Launch-only logcat inspection (below) is clean but is not a performance signal on its own. |
-| LOGCAT | PASS | Cleared and inspected after every install this session (debug and release both) — clean, no `FATAL EXCEPTION`/`AndroidRuntime`/`ANR`/`Unhandled Exception` in any run. |
+| LOGCAT | IN_PROGRESS | Cleared before the current configured install/launch. Final sanitized post-callback crash scan remains pending the owner-operated OAuth step. |
 | IOS_SOURCE_PARITY | PASS | Full audit this session (docs/KNOWN_ISSUES.md has the complete breakdown): `Info.plist` vs `AndroidManifest.xml`, bundle identifiers, OAuth/deep-link redirect handling, photo-library permission, ATS, Google auth architecture, deployment target vs. every plugin in use, launch-screen branding parity (both equally unbranded — real parity, just not yet Murex Noir), and the (expected, non-issue) absence of a `Podfile`. Static/config review only — no Xcode available. |
 | IOS_REAL_BUILD | EXTERNAL_BLOCKER | Unchanged — Windows environment, no Xcode/macOS. |
 | SECRET_SCAN | PASS | Re-run this session against the full tracked tree (patterns for `sk-`/`ghp_`/`AIza`/PEM private keys/generic `password=`/`token=`/`secret=`/`api_key=` literals, plus a check for any committed `.env`/`.env.local`) — clean; the only `.env`-shaped tracked file is the intentional empty `.env.local.example` template. |
@@ -68,42 +70,16 @@ and the iOS parity audit.
 | DOCUMENTATION | PASS | This file, docs/KNOWN_ISSUES.md, and docs/TEST_MATRIX.md all rewritten/updated this session to match live, verified reality — stale claims (mobile AI missing, Today manual-only, Money integrity untested, no Playwright, responsive QA untested, business_members escalation unresolved) removed. |
 | EXTERNAL_BLOCKERS | — | See below. |
 
-## LOOP_FINAL_STATE=PRODUCTION_READY_EXTERNALLY_BLOCKED
+## LOOP_FINAL_STATE=IN_PROGRESS_NOT_RELEASE_READY
 
-All engineering work this session set out to do is complete: mobile AI
-client, idempotent Today automation, canonical Money integrity, a real
-Playwright E2E harness, real (scoped) accessibility fixes + automated
-scanning, responsive QA across all 7 breakpoints, a genuine security
-vulnerability found and fixed in `business_members` RLS with exhaustive
-regression coverage, a full iOS source-parity audit (which surfaced and
-fixed a real Android release-build bug along the way), a full internal
-regression pass (web lint/typecheck/build/E2E, mobile format/analyze/
-test/build×2), and a verified-live production deployment on the
-existing Vercel project.
+The mobile callback parser defect and onboarding partial-write defect are fixed
+in source and covered by focused tests. The configured QA APK is installed on
+the physical Samsung and reaches hosted Google OAuth. This is not a release
+verdict: callback/session establishment, onboarding completion, cold-session
+restore, authenticated traversal, and sanitized post-auth logcat still require
+the owner to select the Google account on the phone.
 
-**Owner-only / external (cannot be done by this session):**
-- `ANTHROPIC_API_KEY` — Ask LOOP cannot be live-verified on either
-  platform without it. Both clients are engineered and ready.
-- Leaked-password protection toggle (Supabase Auth dashboard setting).
-- A dedicated QA Supabase Auth account + `QA_TEST_EMAIL`/
-  `QA_TEST_PASSWORD` as GitHub Actions secrets — creating an account is
-  a prohibited action for this session, even a low-stakes isolated one.
-  20 real Playwright specs are ready and waiting.
-- A live sign-in on the physical Galaxy A14, and equally on the live
-  production web app — this session's safety rules correctly refuse to
-  type a password into any field, on-device or in-browser, checked
-  repeatedly via read-only screenshot rather than assumed. The full
-  authenticated QA matrix (both platforms) is ready to run the moment
-  a session exists.
-- iOS real build/TestFlight — needs macOS/Xcode, unavailable on
-  Windows. Source parity is PASS; the real build is the only thing
-  blocked.
-
-No internally controllable engineering work is known to remain
-undone. `ACCESSIBILITY_MOBILE=FAIL` is the one item on this ledger that
-is genuine unstarted engineering, not an owner/external gate — recorded
-honestly rather than folded into the externally-blocked story; see
-docs/KNOWN_ISSUES.md.
-
-See docs/LOOP_CONTINUATION_PROMPT.md for the exact next-session
-starting point.
+Other external gates remain unchanged: Anthropic provider credentials, a real
+iOS/macOS/Xcode build and TestFlight, and any provider/legal approvals. Full-app
+mobile accessibility remains engineering work; only onboarding has focused
+coverage in this remediation.

@@ -10,9 +10,11 @@
          behind a manifest-style permission the way Android does. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="loop_mobile"
+        android:label="LOOP"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true"
+        android:usesCleartextTraffic="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -34,20 +36,16 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Supabase Auth OAuth redirect (Google sign-in, and email
-                 confirmation links) lands here — must match the
-                 redirectTo passed to signInWithOAuth/signUp in
-                 lib/features/auth/auth_screen.dart. Uses an explicit
-                 host+path (not scheme+host alone) so this entry has the
-                 same scheme://host/path shape as every https:// entry in
-                 Supabase's Redirect URLs allow-list — a host-only custom
-                 URI was found not to be honored on the success path even
-                 though it was present in the list. -->
+            <!-- Supabase Auth OAuth and email-confirmation callbacks land
+                 here. The exact URI is centralized in
+                 lib/core/auth/mobile_auth_contract.dart and allow-listed
+                 in Supabase. Supabase Flutter owns the PKCE code exchange;
+                 this activity only receives the approved deep link. -->
             <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="com.loop.app.loop_mobile" android:host="app" android:path="/login-callback"/>
+                <data android:scheme="com.loop.app.loop-mobile" android:host="app" android:path="/login-callback"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

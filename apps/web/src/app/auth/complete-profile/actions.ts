@@ -9,7 +9,7 @@ export type CompleteProfileState = { error: string } | null;
  * One-time onboarding step: set the display name and username every
  * account starts with as null (see redirectAfterAuth), and -- only for
  * accounts with no password identity yet (Google-only signups) --
- * optionally link a password via Supabase's own updateUser, so the
+ * require and link a password via Supabase's own updateUser, so the
  * SAME auth user (same id) can also sign in with email/password
  * afterward. Never a second account. Bound with the target `next` path
  * from the calling page via `.bind(null, next)`.
@@ -19,6 +19,7 @@ export async function completeProfile(
   _prev: CompleteProfileState,
   formData: FormData,
 ): Promise<CompleteProfileState> {
+  const nextPath = next.startsWith("/") && !next.startsWith("//") ? next : "/today";
   const displayName = String(formData.get("displayName") ?? "").trim();
   const username = String(formData.get("username") ?? "")
     .trim()
@@ -33,7 +34,9 @@ export async function completeProfile(
     return { error: "Choose a username." };
   }
   if (!/^[a-z0-9_]{3,20}$/.test(username)) {
-    return { error: "Usernames are 3-20 characters: lowercase letters, numbers, and underscores only." };
+    return {
+      error: "Usernames are 3-20 characters: lowercase letters, numbers, and underscores only.",
+    };
   }
 
   const supabase = await createClient();
@@ -44,11 +47,12 @@ export async function completeProfile(
     redirect("/sign-in");
   }
 
-  // Only ask for/accept a password when there's genuinely no password
-  // identity yet -- an account that already has one shouldn't have its
-  // password silently changed by this step.
-  const hasPasswordIdentity = user.identities?.some((identity) => identity.provider === "email") ?? false;
-  if (!hasPasswordIdentity && (password || confirmPassword)) {
+  // Only accept a new password when there's genuinely no password identity.
+  // For an OAuth-only account it is required; an existing password must never
+  // be silently changed by this form.
+  const hasPasswordIdentity =
+    user.identities?.some((identity) => identity.provider === "email") ?? false;
+  if (!hasPasswordIdentity) {
     if (password.length < 8) {
       return { error: "Password must be at least 8 characters." };
     }
@@ -57,14 +61,16 @@ export async function completeProfile(
     }
     const { error: passwordError } = await supabase.auth.updateUser({ password });
     if (passwordError) {
-      return { error: passwordError.message };
+      return { error: "LOOP could not save your password. Try again." };
     }
   }
 
   const { error } = await supabase
     .from("profiles")
     .update({ display_name: displayName, username })
-    .eq("id", user.id);
+    .eq("id", user.id)
+    .select("id")
+    .single();
 
   if (error) {
     if (error.code === "23505") {
@@ -73,8 +79,8 @@ export async function completeProfile(
     if (error.code === "23514") {
       return { error: "That username isn't allowed. Try a different one." };
     }
-    return { error: error.message };
+    return { error: "LOOP could not finish your profile. Try again." };
   }
 
-  redirect(next);
+  redirect(nextPath);
 }

@@ -3,11 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { CompleteProfileForm } from "./complete-profile-form";
 
 /**
- * One-time onboarding step reached only when profiles.display_name is
- * still null (see /auth/callback and (auth)/actions.ts's
- * redirectAfterAuth) -- true for every brand-new account regardless of
- * whether they signed up with Google or email/password. An existing
- * account with a name already set never sees this page.
+ * One-time onboarding step reached when either required profile identity
+ * field is missing (see /auth/callback and redirectAfterAuth).
  */
 export default async function CompleteProfilePage({
   searchParams,
@@ -27,24 +24,25 @@ export default async function CompleteProfilePage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("display_name, username")
     .eq("id", user.id)
-    .maybeSingle<{ display_name: string | null }>();
+    .maybeSingle<{ display_name: string | null; username: string | null }>();
 
-  if (profile?.display_name) {
+  if (profile?.display_name?.trim() && profile.username?.trim()) {
     redirect(nextPath);
   }
 
   const metaName =
-    (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined);
+    (user.user_metadata?.full_name as string | undefined) ??
+    (user.user_metadata?.name as string | undefined);
   const suggestedName = metaName || titleCaseFromEmail(user.email?.split("@")[0] ?? "");
   const suggestedUsername = usernameFromEmail(user.email?.split("@")[0] ?? "");
 
-  // Google (or any OAuth-only) sign-up has no password identity yet --
-  // offer to set one so the same account can also sign in with email/
-  // password later. An account that already has one (signed up with
-  // email/password originally, or already linked one) skips this.
-  const hasPasswordIdentity = user.identities?.some((identity) => identity.provider === "email") ?? false;
+  // Google (or any OAuth-only) sign-up has no password identity yet. LOOP
+  // requires one during initial completion so the same account has a backup
+  // email/password sign-in path. Existing password accounts skip the fields.
+  const hasPasswordIdentity =
+    user.identities?.some((identity) => identity.provider === "email") ?? false;
 
   return (
     <CompleteProfileForm
@@ -52,7 +50,7 @@ export default async function CompleteProfilePage({
       suggestedUsername={suggestedUsername}
       next={nextPath}
       email={user.email ?? ""}
-      offerPasswordSetup={!hasPasswordIdentity}
+      requirePasswordSetup={!hasPasswordIdentity}
     />
   );
 }
@@ -72,6 +70,9 @@ function titleCaseFromEmail(localPart: string): string {
  * the email's local part can't produce a valid guess (too short after
  * stripping disallowed characters); the field just starts blank then. */
 function usernameFromEmail(localPart: string): string {
-  const cleaned = localPart.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20);
+  const cleaned = localPart
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "")
+    .slice(0, 20);
   return cleaned.length >= 3 ? cleaned : "";
 }

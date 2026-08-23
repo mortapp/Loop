@@ -6,19 +6,30 @@ import '../supabase/supabase_providers.dart';
 /// The signed-in user's own `profiles` row — mirrors
 /// apps/web/src/lib/profile.ts's `getCurrentProfile`.
 class Profile {
-  const Profile({required this.id, required this.email, this.displayName});
+  const Profile({
+    required this.id,
+    required this.email,
+    this.displayName,
+    this.username,
+  });
 
   factory Profile.fromJson(Map<String, dynamic> json) {
     return Profile(
       id: json['id'] as String,
       email: json['email'] as String,
       displayName: json['display_name'] as String?,
+      username: json['username'] as String?,
     );
   }
 
   final String id;
   final String email;
   final String? displayName;
+  final String? username;
+
+  bool get hasCompletedOnboarding =>
+      displayName?.trim().isNotEmpty == true &&
+      username?.trim().isNotEmpty == true;
 }
 
 /// Deterministic initials from a display name or email — never a random
@@ -49,7 +60,7 @@ final currentProfileProvider = FutureProvider.autoDispose<Profile?>((
 
   final row = await client
       .from('profiles')
-      .select('id, email, display_name')
+      .select('id, email, display_name, username')
       .eq('id', userId)
       .single();
   return Profile.fromJson(row);
@@ -65,6 +76,21 @@ class ProfileRepository {
         .from('profiles')
         .update({'display_name': displayName})
         .eq('id', userId);
+  }
+
+  /// Completes the profile in one statement so the router can never observe
+  /// a saved display name with a missing username and route past onboarding.
+  Future<void> completeProfile({
+    required String userId,
+    required String displayName,
+    required String username,
+  }) async {
+    await _client
+        .from('profiles')
+        .update({'display_name': displayName, 'username': username})
+        .eq('id', userId)
+        .select('id')
+        .single();
   }
 }
 
