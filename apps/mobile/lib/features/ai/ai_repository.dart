@@ -116,40 +116,73 @@ class AiRepository implements AiGateway {
       );
     }
 
-    Map<String, dynamic> json;
-    try {
-      json = jsonDecode(response.body) as Map<String, dynamic>;
-    } catch (_) {
-      return ChatErrorResponse('Unexpected response (${response.statusCode}).');
-    }
+    return parseAiGatewayResponse(response.statusCode, response.body);
+  }
+}
 
-    switch (json['type']) {
-      case 'text':
-        return ChatTextResponse(
-          text: json['text'] as String? ?? '',
-          messages: (json['messages'] as List<dynamic>?) ?? const [],
+ChatResponse parseAiGatewayResponse(int statusCode, String responseBody) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(responseBody);
+  } catch (_) {
+    return ChatErrorResponse('Unexpected response ($statusCode).');
+  }
+  if (decoded is! Map<String, dynamic>) {
+    return ChatErrorResponse('Unexpected response ($statusCode).');
+  }
+
+  final type = decoded['type'];
+  if (type == 'error') {
+    final error = decoded['error'];
+    return ChatErrorResponse(
+      error is String && error.trim().isNotEmpty
+          ? error
+          : 'Something went wrong. Try again.',
+    );
+  }
+  if (statusCode < 200 || statusCode >= 300) {
+    return ChatErrorResponse('Unexpected response ($statusCode).');
+  }
+
+  switch (type) {
+    case 'text':
+      final text = decoded['text'];
+      final messages = decoded['messages'];
+      if (text is! String || messages is! List<dynamic>) {
+        return const ChatErrorResponse(
+          'LOOP returned an invalid response. Try again.',
         );
-      case 'tool_confirmation':
-        final confirmationToken = json['confirmationToken'] as String?;
-        if (confirmationToken == null || confirmationToken.isEmpty) {
-          return const ChatErrorResponse(
-            'This pending action is no longer valid. Ask LOOP again.',
-          );
-        }
-        return ChatToolConfirmation(
-          toolUseId: json['toolUseId'] as String,
-          toolName: json['toolName'] as String,
-          input: (json['input'] as Map<String, dynamic>?) ?? const {},
-          confirmationToken: confirmationToken,
-          messages: (json['messages'] as List<dynamic>?) ?? const [],
+      }
+      return ChatTextResponse(text: text, messages: messages);
+    case 'tool_confirmation':
+      final toolUseId = decoded['toolUseId'];
+      final toolName = decoded['toolName'];
+      final input = decoded['input'];
+      final confirmationToken = decoded['confirmationToken'];
+      final messages = decoded['messages'];
+      if (toolUseId is! String ||
+          toolUseId.trim().isEmpty ||
+          toolName is! String ||
+          toolName.trim().isEmpty ||
+          input is! Map<String, dynamic> ||
+          confirmationToken is! String ||
+          confirmationToken.trim().isEmpty ||
+          messages is! List<dynamic>) {
+        return const ChatErrorResponse(
+          'This pending action is no longer valid. Ask LOOP again.',
         );
-      case 'error':
-        return ChatErrorResponse(
-          json['error'] as String? ?? 'Something went wrong.',
-        );
-      default:
-        return const ChatErrorResponse('Unexpected response.');
-    }
+      }
+      return ChatToolConfirmation(
+        toolUseId: toolUseId,
+        toolName: toolName,
+        input: input,
+        confirmationToken: confirmationToken,
+        messages: messages,
+      );
+    default:
+      return const ChatErrorResponse(
+        'LOOP returned an invalid response. Try again.',
+      );
   }
 }
 

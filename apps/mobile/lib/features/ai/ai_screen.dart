@@ -141,8 +141,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     });
     _scrollToBottom();
 
-    final result = await _retry!();
-    _handleResult(result, accountId, generation);
+    await _runRequest(_retry!, accountId, generation);
   }
 
   Future<void> _respondToConfirmation(bool approve) async {
@@ -182,7 +181,22 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     });
     _scrollToBottom();
 
-    final result = await _retry!();
+    await _runRequest(_retry!, accountId, generation);
+  }
+
+  Future<void> _runRequest(
+    Future<ChatResponse> Function() request,
+    String accountId,
+    int generation,
+  ) async {
+    ChatResponse result;
+    try {
+      result = await request();
+    } catch (_) {
+      result = const ChatErrorResponse(
+        'LOOP hit an unexpected problem. Try again.',
+      );
+    }
     _handleResult(result, accountId, generation);
   }
 
@@ -219,7 +233,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       _sending = true;
       _error = null;
     });
-    _handleResult(await retry(), accountId, generation);
+    await _runRequest(retry, accountId, generation);
   }
 
   String _describeTool(ChatToolConfirmation confirmation) {

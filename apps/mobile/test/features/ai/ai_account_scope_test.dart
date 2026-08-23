@@ -101,6 +101,55 @@ void main() {
     expect(find.textContaining('LOOP wants to create an action'), findsNothing);
     expect(find.text('Ask LOOP'), findsOneWidget);
   });
+
+  testWidgets(
+    'unexpected gateway failure clears loading and remains retryable',
+    (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          activeAccountProvider.overrideWith(
+            () => _TestActiveAccountNotifier(_personal),
+          ),
+          availableAccountsProvider.overrideWith(
+            (ref) async => const [_personal],
+          ),
+          aiGatewayProvider.overrideWithValue(_ThrowingAiGateway()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(home: AiScreen()),
+        ),
+      );
+      await tester.enterText(find.byType(TextField), 'Add a follow-up');
+      await tester.tap(find.byIcon(Icons.arrow_upward));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.text('LOOP hit an unexpected problem. Try again.'),
+        findsOneWidget,
+      );
+      expect(tester.widget<TextField>(find.byType(TextField)).enabled, isTrue);
+      expect(
+        tester
+            .widget<TextButton>(find.widgetWithText(TextButton, 'Retry'))
+            .onPressed,
+        isNotNull,
+      );
+
+      await tester.tap(find.widgetWithText(TextButton, 'Retry'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(
+        find.text('LOOP hit an unexpected problem. Try again.'),
+        findsOneWidget,
+      );
+    },
+  );
 }
 
 ChatToolConfirmation _confirmation() => const ChatToolConfirmation(
@@ -130,6 +179,23 @@ class _FakeAiGateway implements AiGateway {
     required bool approve,
     required String accountId,
   }) async => const ChatTextResponse(text: 'Done', messages: []);
+}
+
+class _ThrowingAiGateway implements AiGateway {
+  @override
+  Future<ChatResponse> sendMessage({
+    required List<dynamic> messages,
+    required String accountId,
+  }) => Future<ChatResponse>.error(StateError('synthetic gateway failure'));
+
+  @override
+  Future<ChatResponse> confirmTool({
+    required List<dynamic> messages,
+    required String toolUseId,
+    required String confirmationToken,
+    required bool approve,
+    required String accountId,
+  }) => Future<ChatResponse>.error(StateError('synthetic gateway failure'));
 }
 
 class _TestActiveAccountNotifier extends ActiveAccountNotifier {
