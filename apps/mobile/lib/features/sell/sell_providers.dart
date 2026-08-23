@@ -42,6 +42,18 @@ Map<String, dynamic> buildSaleRpcParameters({
   };
 }
 
+Map<String, dynamic> buildItemPhotoRpcParameters({
+  required String accountId,
+  required String itemId,
+  required String objectPath,
+}) {
+  return {
+    'p_account_id': accountId,
+    'p_item_id': itemId,
+    'p_object_path': objectPath,
+  };
+}
+
 class SellPageData {
   const SellPageData({
     required this.items,
@@ -218,7 +230,7 @@ class SellRepository {
   /// the private `item-photos` Storage bucket (RLS-scoped by
   /// `has_account_access` — see
   /// supabase/migrations/20260822145553_item_photos_storage.sql), and
-  /// appends the resulting object path to `items.photos`. Mirrors
+  /// atomically appends the resulting object path to `items.photos`. Mirrors
   /// `AddPhotoControl` in
   /// apps/web/src/app/(app)/sell/item-actions.tsx control-for-control.
   /// Returns null if the user cancelled the picker, or an error message.
@@ -251,40 +263,50 @@ class SellRepository {
     }
 
     try {
-      final row = await _client
-          .from('items')
-          .select('photos')
-          .eq('id', itemId)
-          .single();
-      final photos = ((row['photos'] as List<dynamic>?) ?? []).cast<String>();
-      await _client
-          .from('items')
-          .update({
-            'photos': [...photos, objectPath],
-          })
-          .eq('id', itemId);
+      await _client.rpc(
+        'attach_item_photo',
+        params: buildItemPhotoRpcParameters(
+          accountId: accountId,
+          itemId: itemId,
+          objectPath: objectPath,
+        ),
+      );
       return null;
     } catch (_) {
-      await _client.storage.from(itemPhotosBucket).remove([objectPath]);
+      try {
+        await _client.storage.from(itemPhotosBucket).remove([objectPath]);
+      } catch (_) {
+        // The upload is private and account-scoped. A later cleanup can remove
+        // an orphan if the network also failed during this best-effort rollback.
+      }
       return userSafeActionError('save this photo');
     }
   }
 
   Future<void> removePhoto({
+    required String accountId,
     required String itemId,
     required String objectPath,
   }) async {
-    final row = await _client
-        .from('items')
-        .select('photos')
-        .eq('id', itemId)
-        .single();
-    final photos = ((row['photos'] as List<dynamic>?) ?? [])
-        .cast<String>()
-        .where((p) => p != objectPath)
-        .toList();
-    await _client.from('items').update({'photos': photos}).eq('id', itemId);
-    await _client.storage.from(itemPhotosBucket).remove([objectPath]);
+    final params = buildItemPhotoRpcParameters(
+      accountId: accountId,
+      itemId: itemId,
+      objectPath: objectPath,
+    );
+    await _client.rpc('detach_item_photo', params: params);
+    try {
+      await _client.storage.from(itemPhotosBucket).remove([objectPath]);
+    } catch (error, stackTrace) {
+      // Restore only this path. The atomic RPC preserves any concurrent photo
+      // changes instead of writing back a stale whole-array snapshot.
+      try {
+        await _client.rpc('attach_item_photo', params: params);
+      } catch (_) {
+        // Keep reporting the original Storage failure. The guarded attach RPC
+        // refuses to recreate metadata for an object that is already gone.
+      }
+      Error.throwWithStackTrace(error, stackTrace);
+    }
   }
 }
 

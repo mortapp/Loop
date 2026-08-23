@@ -125,7 +125,11 @@ class _ItemTile extends ConsumerWidget {
       try {
         await ref
             .read(sellRepositoryProvider)
-            .removePhoto(itemId: item.id, objectPath: objectPath);
+            .removePhoto(
+              accountId: item.accountId,
+              itemId: item.id,
+              objectPath: objectPath,
+            );
         if (!context.mounted) return;
         ref.invalidate(sellPageProvider);
       } catch (_) {

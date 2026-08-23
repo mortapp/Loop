@@ -59,8 +59,9 @@ export async function createItem(_prev: FormState, formData: FormData): Promise<
  * `AddPhotoControl` in `item-actions.tsx` -- because streaming a file
  * through a Server Action isn't the right tool for that; this just appends
  * the resulting object path to `items.photos` under RLS). `objectPath` is
- * always `<accountId>/<itemId>/<uuid>.<ext>`, written by the same account
- * member the storage policy already authorized for that upload.
+ * always `<accountId>/<itemId>/<uuid>.<ext>`. The RPC validates the account,
+ * item, path, and Storage object, then appends under a row lock so concurrent
+ * uploads cannot overwrite each other.
  */
 export async function attachItemPhoto(itemId: string, objectPath: string): Promise<FormState> {
   const accountId = await getActiveAccountId();
@@ -72,27 +73,11 @@ export async function attachItemPhoto(itemId: string, objectPath: string): Promi
   }
 
   const supabase = await createClient();
-  const { data: item, error: fetchError } = await supabase
-    .from("items")
-    .select("photos")
-    .eq("id", itemId)
-    .eq("account_id", accountId)
-    .single();
-  if (fetchError) {
-    return { error: userSafeServerError("sell:load-item-photos", fetchError) };
-  }
-
-  const currentPhotos = (item?.photos as string[] | null) ?? [];
-  const photos = currentPhotos.includes(objectPath)
-    ? currentPhotos
-    : [...currentPhotos, objectPath];
-  const { error } = await supabase
-    .from("items")
-    .update({ photos })
-    .eq("id", itemId)
-    .eq("account_id", accountId)
-    .select("id")
-    .single();
+  const { error } = await supabase.rpc("attach_item_photo", {
+    p_account_id: accountId,
+    p_item_id: itemId,
+    p_object_path: objectPath,
+  });
   if (error) {
     return { error: userSafeServerError("sell:add-item-photo", error) };
   }
@@ -119,42 +104,19 @@ export async function removeItemPhoto(
   }
 
   const supabase = await createClient();
-  const { data: item, error: fetchError } = await supabase
-    .from("items")
-    .select("photos")
-    .eq("id", itemId)
-    .eq("account_id", accountId)
-    .single();
-  if (fetchError) {
-    return { error: userSafeServerError("sell:load-item-photo", fetchError) };
-  }
-
-  const currentPhotos = (item?.photos as string[] | null) ?? [];
-  if (!currentPhotos.includes(objectPath)) {
-    return { error: "That photo is no longer attached to this item. Refresh and try again." };
-  }
-  const photos = currentPhotos.filter((path) => path !== objectPath);
-
-  const { error: updateError } = await supabase
-    .from("items")
-    .update({ photos })
-    .eq("id", itemId)
-    .eq("account_id", accountId)
-    .select("id")
-    .single();
+  const rpcParams = {
+    p_account_id: accountId,
+    p_item_id: itemId,
+    p_object_path: objectPath,
+  };
+  const { error: updateError } = await supabase.rpc("detach_item_photo", rpcParams);
   if (updateError) {
     return { error: userSafeServerError("sell:detach-item-photo", updateError) };
   }
 
   const { error: storageError } = await supabase.storage.from("item-photos").remove([objectPath]);
   if (storageError) {
-    const { error: rollbackError } = await supabase
-      .from("items")
-      .update({ photos: currentPhotos })
-      .eq("id", itemId)
-      .eq("account_id", accountId)
-      .select("id")
-      .single();
+    const { error: rollbackError } = await supabase.rpc("attach_item_photo", rpcParams);
     if (rollbackError) {
       userSafeServerError("sell:restore-item-photo-after-storage-error", rollbackError);
     }
