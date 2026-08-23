@@ -4,8 +4,8 @@ Updated: 2026-08-23
 
 ## Current State
 
-The tested source/workflow checkpoint is
-`03d6c5412be85beadbaf458aa922b3be2bdce97b` on `main`. All discovered
+The tested runtime checkpoint is
+`6c908668b6ef50ef1499e48f2270d8484dd4ae14` on `main`. All discovered
 Critical and High code-controlled findings are repaired and covered. The
 repository, hosted database, web deployment, and configured QA APK are
 verified to the extent available without the missing external gates.
@@ -16,15 +16,15 @@ build, or live Anthropic behavior has passed.
 ## Current Evidence
 
 - Database: 24 migrations aligned; fresh replay and 185/185 pgTAP pass.
-- Flutter: format clean, analyzer clean, 85/85 tests pass.
+- Flutter: format clean, analyzer clean, 87/87 tests pass.
 - Web: typecheck, ESLint, optimized build pass.
 - Playwright: 29 pass, 60 credential-gated skips, 0 failures.
-- Production: Vercel deployment for `73ffb41` succeeded; canonical sign-in
+- Production: Vercel deployment `6053890989` for `6c90866` succeeded; canonical sign-in
   smoke has no captured console errors.
-- Android artifact: configured debug QA APK built from `58e3b8e`, package
+- Android artifact: configured debug QA APK built from `6c90866`, package
   `com.loop.app.loop_mobile`, version `1.0.0+1`, v2 debug signature verified.
 - Security: no privileged secret found in tracked source or the configured APK.
-- CI: GitHub Quality run `32667680943` passed both jobs on `03d6c54`.
+- CI: GitHub Quality run `32673029762` passed both jobs on `6c90866`.
 
 ## External Gates
 

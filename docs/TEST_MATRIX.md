@@ -11,9 +11,9 @@ Updated: 2026-08-23
 | Item photos                   | pgTAP `011_atomic_item_photos.sql`                                       | PASS - atomic attach/detach and cross-account denial                 |
 | Private Storage               | pgTAP `008_private_storage.sql`                                          | PASS - private buckets, paths, MIME, size, isolation                 |
 | Money lifecycle               | pgTAP `009_atomic_money_lifecycle.sql`                                   | PASS - atomic purchase/listing/sale/refund                           |
-| Flutter format                | `dart format --output=none --set-exit-if-changed lib test`               | PASS - 82 files, 0 changes                                           |
+| Flutter format                | `dart format --output=none --set-exit-if-changed lib test`               | PASS - 83 files, 0 changes                                           |
 | Flutter analysis              | `flutter analyze --no-pub`                                               | PASS - no issues                                                     |
-| Flutter tests                 | `flutter test --no-pub --concurrency=1`                                  | PASS - 85/85                                                         |
+| Flutter tests                 | `flutter test --no-pub --concurrency=1`                                  | PASS - 87/87                                                         |
 | Ask LOOP mobile failures      | Account scope plus repository focused tests                              | PASS - 11/11                                                         |
 | Web typecheck                 | `npm run typecheck --workspace apps/web`                                 | PASS                                                                 |
 | Web lint                      | `npm run lint --workspace apps/web`                                      | PASS                                                                 |
@@ -21,19 +21,19 @@ Updated: 2026-08-23
 | Web E2E                       | `npx playwright test --config apps/web/playwright.config.ts --workers=1` | PASS - 29 pass, 60 credential-gated skips, 0 fail                    |
 | Public accessibility          | axe WCAG 2 A/AA specs                                                    | PASS on public auth surfaces                                         |
 | Responsive web                | Playwright at 360/390/430/768/1024/1280/1440                             | PASS on public surfaces                                              |
-| Production Vercel             | GitHub deployment plus real browser smoke                                | PASS - source `73ffb41`, sign-in visible, no captured console errors |
-| Android APK build             | Configured debug build from `58e3b8e`                                    | PASS - 157,674,808 bytes                                             |
+| Production Vercel             | GitHub deployment plus real browser smoke                                | PASS - source `6c90866`, sign-in visible, no captured console errors |
+| Android APK build             | Configured debug build from `6c90866`                                    | PASS - 157,674,984 bytes                                             |
 | Android APK signature         | `apksigner verify --verbose --print-certs`                               | PASS - v2, Android debug certificate                                 |
 | Android APK identity          | `apkanalyzer manifest`                                                   | PASS - `com.loop.app.loop_mobile`, `1.0.0+1`                         |
 | Android config audit          | Compiled public project reference and callback plus config unit tests    | PASS - no privileged key included                                    |
 | Galaxy secure startup         | Prior configured APK wireless retest                                     | PASS for prior checkpoint `228679e`                                  |
-| Galaxy final APK              | `adb devices -l` then install/traverse exact final APK                   | EXTERNAL_BLOCKER - no authorized device currently listed             |
+| Galaxy final APK              | `adb devices -l` then install/traverse exact final APK                   | EXTERNAL_BLOCKER - no ADB or mDNS device currently listed             |
 | Native Google login           | Owner physical confirmation                                              | PASS for authentication capability; preserve callback architecture   |
 | Authenticated Galaxy gauntlet | Today, Money, Sell, Business, Protect, AI, account, sign-out/sign-in     | EXTERNAL_BLOCKER - device unavailable                                |
 | Live AI provider              | Controlled provider request                                              | OWNER_ACTION_REQUIRED - key unavailable                              |
 | iOS source/config parity      | Static Android/iOS/shared-source audit                                   | PASS                                                                 |
 | Native iOS build              | Xcode build and device/TestFlight                                        | EXTERNAL_BLOCKER - macOS/Xcode required                              |
-| GitHub CI                     | Quality run `32667680943` on `03d6c54`                                   | PASS - both jobs, every executed step                                |
+| GitHub CI                     | Quality run `32673029762` on `6c90866`                                   | PASS - both jobs, every executed step                                |
 
 ## Notes
 

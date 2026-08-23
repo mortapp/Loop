@@ -10,8 +10,11 @@ The owner has physically confirmed that native Google login works and reaches
 authenticated LOOP. The working callback is
 `com.loop.app.loop-mobile://app/login-callback` and must not be changed.
 
-Wireless `adb devices -l` currently returns no authorized device. The final
-configured APK therefore has not been installed or traversed. Do not mark the
+Wireless `adb devices -l` and `adb mdns services` currently return no device.
+The exact configured QA APK built from `6c90866` is
+`artifacts/final-head-6c90866/loop-6c90866-final-head-configured-debug-qa.apk`
+(SHA-256 `57FC377A9AF83F7A574AD11D89A09EDE370E58433BCE15F474F71D61473980B4`).
+It therefore has not been installed or traversed. Do not mark the
 following complete until the exact APK is tested without clearing the owner's
 session: Today, Money, Sell/photo picker, Business/quotes, Protect, Ask LOOP,
 account switching, background/resume, logcat, sign-out last, then Google
@@ -92,6 +95,8 @@ spend money solely from this task.
 - Mobile business creation is real; the dead join/create card is gone.
 - Clean-checkout web typecheck no longer depends on generated Next globals.
 - CI is one authoritative workflow rather than three overlapping workflows.
+- Icon-only account and quote-line controls now expose accessible names, with
+  focused widget regression coverage.
 
 ## Security Hygiene
 

@@ -7,12 +7,12 @@ was silently assumed.
 
 | Area                         | Status                 | Evidence                                                                                    |
 | ---------------------------- | ---------------------- | ------------------------------------------------------------------------------------------- |
-| REPOSITORY                   | PASS                   | `main`; tested source/workflow checkpoint `03d6c54`; ordinary fast-forward pushes only      |
+| REPOSITORY                   | PASS                   | `main`; tested runtime checkpoint `6c90866`; ordinary fast-forward pushes only               |
 | GITHUB                       | PASS                   | Unified Quality workflow is tracked and running on source changes                           |
 | SOURCE                       | PASS                   | All discovered Critical/High findings repaired; `git diff --check` clean                    |
 | MUREX_NOIR                   | PASS                   | Existing design system preserved; no broad redesign in this pass                            |
 | WEB                          | PASS                   | Typecheck, ESLint, production build, and public Playwright pass                             |
-| MOBILE                       | PASS                   | Format clean, analyzer clean, 85/85 Flutter tests                                           |
+| MOBILE                       | PASS                   | Format clean, analyzer clean, 87/87 Flutter tests                                           |
 | AUTH                         | PASS                   | Email/Google/session gates covered; owner confirms native Google login works                |
 | GOOGLE_AUTH_WEB              | PASS                   | Existing hosted flow preserved                                                              |
 | GOOGLE_AUTH_ANDROID          | PASS                   | Physical owner confirmation; callback architecture regression-locked                        |
@@ -47,7 +47,7 @@ was silently assumed.
 | RPC_SECURITY                 | PASS                   | Invoker RPCs, explicit grants, auth/account binding                                         |
 | PRIVATE_STORAGE              | PASS                   | Private buckets, bounded signed URLs, account/path/MIME/size policy                         |
 | DATABASE_TESTS               | PASS                   | 11 files, 185 assertions                                                                    |
-| FLUTTER_TESTS                | PASS                   | 85/85                                                                                       |
+| FLUTTER_TESTS                | PASS                   | 87/87                                                                                       |
 | WEB_TYPECHECK                | PASS                   | Clean checkout no longer needs generated `LayoutProps`                                      |
 | WEB_LINT                     | PASS                   | ESLint clean                                                                                |
 | WEB_BUILD                    | PASS                   | Next production build, 24 routes                                                            |
@@ -58,19 +58,21 @@ was silently assumed.
 | OFFLINE_RETRY                | PASS                   | Atomic writes, safe retry/error states, no raw provider errors                              |
 | FAIL_CLOSED                  | PASS                   | Missing config/provider/authorization never becomes fake success                            |
 | SECRET_SCAN                  | PASS                   | No privileged credential in tracked source or configured APK                                |
-| CI                           | PASS                   | Unified Quality run `32667680943` passed both jobs on `03d6c54`                             |
+| CI                           | PASS                   | Unified Quality run `32673029762` passed both jobs on `6c90866`                             |
 | MIGRATION_PARITY             | PASS                   | 24 local and hosted migrations match exactly                                                |
 | SUPABASE_SECURITY_ADVISOR    | ACCEPTED_WITH_EVIDENCE | Five intentional helpers plus plan-limited Auth enhancement                                 |
 | SUPABASE_PERFORMANCE_ADVISOR | ACCEPTED_WITH_EVIDENCE | Unused-index INFO only on low-traffic dataset                                               |
 | LEAKED_PASSWORD_PROTECTION   | OWNER_ACTION_REQUIRED  | `DEFERRED - PLAN-LIMITED SECURITY ENHANCEMENT`                                              |
-| GALAXY_A14_CONNECTION        | FAIL                   | Wireless ADB currently lists no device                                                      |
-| GALAXY_A14_AUTHENTICATED_QA  | PARTIAL                | Google auth owner-confirmed; full final APK journey not run                                 |
+| GALAXY_A14_CONNECTION        | FAIL                   | Wireless ADB and mDNS discovery currently list no device                                    |
+| FINAL_HEAD_APK_INSTALLED     | FAIL                   | Exact `6c90866` configured QA APK awaits wireless reconnect                                 |
+| GALAXY_A14_AUTHENTICATED_QA  | PARTIAL                | Google auth owner-confirmed; exact `6c90866` APK journey not run                            |
 | GALAXY_A14_PERFORMANCE       | PARTIAL                | Prior unauthenticated stress pass; authenticated final APK pass not run                     |
 | LOGCAT                       | PARTIAL                | Prior configured APK clean; exact final APK logcat unavailable                              |
 | IOS_SOURCE_PARITY            | PASS                   | Static config/shared-source audit clean                                                     |
 | IOS_REAL_BUILD               | EXTERNAL_BLOCKER       | macOS/Xcode required                                                                        |
-| VERCEL                       | PASS                   | Production deployment for `73ffb41` succeeded                                               |
+| VERCEL                       | PASS                   | Production deployment `6053890989` for `6c90866` succeeded                                 |
 | PRODUCTION_WEB               | PASS                   | Canonical sign-in renders; Google CTA visible; no captured console errors                   |
+| FINAL_QA_APK                 | PASS                   | `6c90866`; 157,674,984 bytes; SHA-256 `57FC377A...73980B4`                                 |
 | DOCUMENTATION                | PASS                   | Canonical status/test/issue/handoff docs updated                                            |
 
 ## External Blockers

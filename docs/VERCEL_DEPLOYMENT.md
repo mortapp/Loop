@@ -7,8 +7,8 @@ Updated: 2026-08-23
 - Existing project: `loop`
 - Canonical URL: `https://loop-teal-rho.vercel.app`
 - GitHub repository: `mortapp/Loop`
-- Latest verified web source commit: `73ffb41aa800112703a278afa23ad53af5bed0ea`
-- GitHub deployment ID: `6052979664`
+- Latest verified runtime commit: `6c908668b6ef50ef1499e48f2270d8484dd4ae14`
+- GitHub deployment ID: `6053890989`
 - Deployment status: `success`
 
 The canonical URL redirects unauthenticated visitors to `/sign-in`. A real

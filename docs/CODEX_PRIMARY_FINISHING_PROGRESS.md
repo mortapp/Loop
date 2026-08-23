@@ -6,7 +6,7 @@ Updated: 2026-08-23T21:35:00Z
 
 - Repository: `C:\Users\micha\OneDrive\Desktop\Loop`
 - Branch: `main`
-- Tested source/workflow checkpoint: `03d6c5412be85beadbaf458aa922b3be2bdce97b`
+- Tested runtime checkpoint: `6c908668b6ef50ef1499e48f2270d8484dd4ae14`
 - Remote: `git@github.com:mortapp/Loop.git`
 - Source version: `1.0.0+1`
 - Android package: `com.loop.app.loop_mobile`
@@ -44,34 +44,36 @@ Updated: 2026-08-23T21:35:00Z
   Playwright, Flutter checks, and builds a fail-closed debug APK.
 - A clean-checkout CI failure exposed a hidden dependency on Next-generated
   `LayoutProps`; the root layout now uses an explicit React prop type.
+- Icon-only account and quote-line actions now expose accessible names and
+  focused widget tests enforce those semantics.
 
 ## Verification
 
 - Local database reset: all 24 migrations and seed applied successfully.
 - Database tests: 11 files, 185 assertions, all pass.
-- Flutter format: 82 files, 0 changes.
+- Flutter format: 83 files, 0 changes.
 - Flutter analyze: no issues.
-- Flutter tests: 85/85 pass serially.
+- Flutter tests: 87/87 pass serially.
 - Focused Ask LOOP failure tests: 11/11 pass.
 - Web typecheck, ESLint, and optimized build: pass.
 - Playwright: 89 discovered, 29 pass, 60 authenticated tests skip without a
   dedicated QA account, 0 fail.
-- GitHub Quality run `32667680943`: PASS on checkpoint `03d6c54`; both
+- GitHub Quality run `32673029762`: PASS on checkpoint `6c90866`; both
   `Flutter mobile` and `Web and database` jobs completed successfully.
 - Hosted migration ledger matches the 24 local migration files through
   `20260823202606_make_item_photo_updates_atomic`.
-- Production Vercel deployment for web source checkpoint `73ffb41` succeeded.
+- Production Vercel deployment `6053890989` for runtime checkpoint `6c90866` succeeded.
   The canonical sign-in page renders with no captured browser console errors.
 - Tracked-source secret scan found no privileged credentials. The only tracked
   environment files are empty templates with a public site URL default.
 
 ## QA APK
 
-- Source commit: `58e3b8e7287a6784d2afac8a7db8a88ed4f60f71`
+- Source commit: `6c908668b6ef50ef1499e48f2270d8484dd4ae14`
 - Path:
-  `artifacts/final-qa-58e3b8e/loop-58e3b8e-configured-debug-qa.apk`
-- Size: 157,674,808 bytes (150.37 MiB)
-- SHA-256: `1D850118FAD233FF452E4FB2B45B1319C480CADC2AF99EBB2879D94F7D0392E2`
+  `artifacts/final-head-6c90866/loop-6c90866-final-head-configured-debug-qa.apk`
+- Size: 157,674,984 bytes (150.37 MiB)
+- SHA-256: `57FC377A9AF83F7A574AD11D89A09EDE370E58433BCE15F474F71D61473980B4`
 - Package/version: `com.loop.app.loop_mobile`, `1.0.0+1`
 - Signing: Android debug certificate, APK Signature Scheme v2 verified
 - Configuration: approved public Supabase URL and client-safe key only; no
