@@ -78,19 +78,19 @@ select is(
 
 select throws_ok(
   $$ update public.profiles set username = 'admin' where id = 'cccccccc-cccc-cccc-cccc-cccccccccccc' $$,
-  '23514',
+  '23514', null,
   'a reserved name is rejected by the schema, not just the pre-check'
 );
 
 select throws_ok(
   $$ update public.profiles set username = 'ab' where id = 'cccccccc-cccc-cccc-cccc-cccccccccccc' $$,
-  '23514',
+  '23514', null,
   'a too-short username is rejected by the schema'
 );
 
 select throws_ok(
   $$ update public.profiles set username = 'Has-Dashes' where id = 'cccccccc-cccc-cccc-cccc-cccccccccccc' $$,
-  '23514',
+  '23514', null,
   'an out-of-character-set username is rejected by the schema'
 );
 
@@ -104,7 +104,7 @@ select ok(
 
 select throws_ok(
   $$ update public.profiles set username = 'liamkurta' where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd' $$,
-  '23505',
+  '23505', null,
   'the unique index rejects a second user claiming the same username -- database-authoritative, not just the pre-check'
 );
 

@@ -149,8 +149,10 @@ class _QuoteTile extends ConsumerWidget {
             .read(quotesRepositoryProvider)
             .setStatus(id: quote.id, status: status);
         ref.invalidate(quotesProvider);
-      } catch (e) {
-        if (context.mounted) showErrorSnackBar(context, 'Failed: $e');
+      } catch (_) {
+        if (context.mounted) {
+          showErrorSnackBar(context, 'Could not update the quote. Try again.');
+        }
       }
     }
 
@@ -267,7 +269,7 @@ class _CreateQuoteFormState extends ConsumerState<_CreateQuoteForm> {
       final quantity = double.tryParse(line.quantity) ?? 0;
       final unitPriceCents =
           MoneyUtils.dollarsStringToCents(line.unitPrice) ?? 0;
-      if (description.isNotEmpty && quantity > 0) {
+      if (description.isNotEmpty && quantity > 0 && unitPriceCents >= 0) {
         prepared.add(
           PreparedLine(
             description: description,
@@ -301,6 +303,7 @@ class _CreateQuoteFormState extends ConsumerState<_CreateQuoteForm> {
             opportunityId: _opportunityId,
             lines: prepared,
           );
+      if (!mounted) return;
       setState(() {
         _contactId = null;
         _opportunityId = null;
@@ -309,8 +312,13 @@ class _CreateQuoteFormState extends ConsumerState<_CreateQuoteForm> {
           ..add(QuoteLineDraft());
       });
       ref.invalidate(quotesProvider);
-    } catch (e) {
-      setState(() => _error = 'Failed to create quote: $e');
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _error =
+              'Could not create the quote. Check the details and try again.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

@@ -406,9 +406,11 @@ revokes-then-narrows). Fixed in a new migration,
 `20260821235200_harden_function_search_path_and_grants.sql`, applied
 to the hosted project and committed to `supabase/migrations/` so local
 dev picks it up too. Reverified clean afterward (only the expected,
-intentional `authenticated`-only advisories remain, plus one
-Supabase-platform-owned event trigger, `rls_auto_enable`, correctly
-left untouched).
+intentional `authenticated`-only advisories remain. The later
+`20260823050806_enforce_account_graph_integrity.sql` migration also revoked
+the unnecessary anonymous/authenticated RPC grants from the
+Supabase-platform-owned `rls_auto_enable` event-trigger function; event-trigger
+execution is unaffected and that advisor warning is now gone.
 
 `apps/web/.env.local` now points at the hosted project instead of
 local Docker (`http://127.0.0.1:55321`) — Docker Desktop isn't running
@@ -581,19 +583,37 @@ rather than a broken chat UI. Setting the key (and optionally
 `ANTHROPIC_MODEL`, see `.env.example`) is a human step — see
 docs/AUTONOMOUS_BUILD_STATUS.md "Blocked".
 
-## Mobile's quote creation drifted from web's (both non-transactional... differently)
+## ~~Mobile quote creation drifted from the atomic web path~~ — fixed 2026-08-23
 
-Web's quote creation (`apps/web/.../business/quotes/actions.ts`) now
-calls `public.create_quote_with_line_items` — see the resolved "Quote
-creation is not transactional" entry above. Mobile's equivalent
-(`apps/mobile/lib/features/business/quotes/quotes_providers.dart`) was
-built by a separate agent pass that read the *pre-RPC* web code and
-correctly mirrored what was there at the time: a two-step insert. The
-two platforms are now inconsistent — mobile still has the header/
-line-items race the RPC was written to fix. Low urgency (same low
-volume risk as before), but worth swapping mobile's `createQuote` to
-call the same RPC via `_client.rpc('create_quote_with_line_items', {...})`
-next time that file is touched.
+Mobile had retained a two-write header/line-item path after web moved to
+`create_quote_with_line_items`. Fixed: mobile now calls the same atomic RPC,
+validates finite positive quantities/nonnegative prices, checks mounted state
+after the network wait, and does not expose raw backend errors. The RPC itself
+was then hardened by `20260823052248_harden_quote_rpc_inputs.sql`: totals are
+recomputed from lines, actor identity comes from Auth, malformed/direct writes
+are constrained, and the legacy payload shape remains accepted. Hosted pgTAP
+passes 13/13 and the mobile parameter suite passes 3/3.
+
+## ~~Nested account foreign keys were only top-level RLS scoped~~ — fixed 2026-08-23
+
+RLS correctly required access to each row's `account_id`, but ordinary foreign
+keys did not prove that nested IDs (for example an Account A purchase pointing
+at an Account B item) belonged to that same account. An attacker who learned a
+UUID could forge a cross-account relationship without gaining read access to
+the parent row. `20260823050806_enforce_account_graph_integrity.sql` adds
+server-side same-account checks to all nested domain edges plus action
+assignees, stamps audit actors from `auth.uid()`, makes profile email
+Auth-controlled, and removes unused trigger helper RPC grants. Current hosted
+data contained zero conflicting edges; 32/32 synthetic two-account tests pass.
+
+## ~~Documents bucket had no size or MIME limit~~ — fixed 2026-08-23
+
+Both buckets were private and account-path RLS scoped, but `documents` allowed
+an unbounded file with any MIME type and malformed UUID path segments produced
+cast errors. `20260823051328_harden_private_storage_limits.sql` adds a 12 MiB
+document limit, a PDF/image MIME allowlist, fail-closed path parsing for both
+buckets, and matching document metadata/path constraints. The item-photo limit
+remains 8 MiB. Hosted Storage pgTAP passes 18/18.
 
 ## `@loop/contracts` is hand-synced with migrations
 

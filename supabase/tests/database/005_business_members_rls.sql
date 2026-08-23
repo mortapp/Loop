@@ -69,13 +69,35 @@ begin
 end;
 $$ language plpgsql;
 
+-- PostgreSQL does not allow a data-modifying CTE inside the scalar expression
+-- passed to pgTAP's is(). Execute the statement inside a temporary invoker
+-- function and return its affected-row count instead.
+create or replace function pg_temp.execute_and_count(statement text)
+returns integer as $$
+declare
+  v_count integer;
+begin
+  execute statement;
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$ language plpgsql;
+
 select pg_temp.authenticate_as('88888888-8888-8888-8888-888888888888');
-insert into public.businesses (name, slug, created_by)
-values ('Business A', 'business-a-rls-test', '88888888-8888-8888-8888-888888888888');
+insert into public.businesses (id, name, slug, created_by)
+values (
+  'a0000000-0000-4000-8000-00000000000a',
+  'Business A', 'business-a-rls-test',
+  '88888888-8888-8888-8888-888888888888'
+);
 
 select pg_temp.authenticate_as('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
-insert into public.businesses (name, slug, created_by)
-values ('Business B', 'business-b-rls-test', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
+insert into public.businesses (id, name, slug, created_by)
+values (
+  'b0000000-0000-4000-8000-00000000000b',
+  'Business B', 'business-b-rls-test',
+  'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+);
 
 -- henry, as Business A's owner, adds iris (admin) and jack (member).
 select pg_temp.authenticate_as('88888888-8888-8888-8888-888888888888');
@@ -131,7 +153,7 @@ select is(
 select pg_temp.authenticate_as_anon();
 select throws_ok(
   $$ select count(*) from public.business_members $$,
-  '42501',
+  '42501', null,
   'anon (no session, no table grant) cannot read business_members at all'
 );
 
@@ -157,7 +179,7 @@ select throws_ok(
   insert into public.business_members (business_id, profile_id, role, status)
   select id, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'member', 'invited' from public.businesses where slug = 'business-a-rls-test'
   $$,
-  '42501',
+  '42501', null,
   'jack (plain member, not admin) cannot invite a new member'
 );
 
@@ -170,9 +192,12 @@ select pg_temp.authenticate_as('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
 select throws_ok(
   $$
   insert into public.business_members (business_id, profile_id, role, status)
-  select id, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'owner', 'active' from public.businesses where slug = 'business-b-rls-test'
+  values (
+    'b0000000-0000-4000-8000-00000000000b',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'owner', 'active'
+  )
   $$,
-  '42501',
+  '42501', null,
   'jack cannot self-insert into a business he has zero relationship to (self-service INSERT escalation)'
 );
 
@@ -180,24 +205,23 @@ select pg_temp.authenticate_as('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
 select throws_ok(
   $$
   insert into public.business_members (business_id, profile_id, role, status)
-  select id, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'owner', 'active' from public.businesses where slug = 'business-a-rls-test'
+  values (
+    'a0000000-0000-4000-8000-00000000000a',
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'owner', 'active'
+  )
   $$,
-  '42501',
+  '42501', null,
   'kate cannot grant herself ownership of Business A by inserting her own membership row'
 );
 
 select pg_temp.authenticate_as('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
 select is(
-  (
-    with attempt as (
-      update public.business_members
-      set role = 'owner'
-      where business_id = (select id from public.businesses where slug = 'business-a-rls-test')
-        and profile_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
-      returning 1
-    )
-    select count(*)::int from attempt
-  ),
+  pg_temp.execute_and_count($$
+    update public.business_members
+    set role = 'owner'
+    where business_id = (select id from public.businesses where slug = 'business-a-rls-test')
+      and profile_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+  $$),
   0,
   'jack cannot self-promote to owner via UPDATE -- no self-service UPDATE policy exists at all now'
 );
@@ -232,17 +256,13 @@ select lives_ok(
 
 select pg_temp.authenticate_as('99999999-9999-9999-9999-999999999999');
 select is(
-  (
-    with attempt as (
-      delete from public.business_members
-      where business_id = (select id from public.businesses where slug = 'business-a-rls-test')
-        and profile_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
-      returning 1
-    )
-    select count(*)::int from attempt
-  ),
-  0,
-  'iris (admin, but not target) cannot delete jack''s row via the self-delete path'
+  pg_temp.execute_and_count($$
+    delete from public.business_members
+    where business_id = 'a0000000-0000-4000-8000-00000000000a'
+      and profile_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+  $$),
+  1,
+  'iris can remove jack through the explicit admin-management policy'
 );
 
 select lives_ok(
@@ -270,22 +290,21 @@ select pg_temp.authenticate_as('88888888-8888-8888-8888-888888888888');
 select throws_ok(
   $$
   insert into public.business_members (business_id, profile_id, role, status)
-  select id, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'member', 'invited' from public.businesses where slug = 'business-b-rls-test'
+  values (
+    'b0000000-0000-4000-8000-00000000000b',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'member', 'invited'
+  )
   $$,
-  '42501',
+  '42501', null,
   'henry (owner of Business A only) cannot add members to Business B'
 );
 
 select is(
-  (
-    with attempt as (
-      update public.business_members
-      set role = 'member'
-      where business_id = (select id from public.businesses where slug = 'business-b-rls-test')
-      returning 1
-    )
-    select count(*)::int from attempt
-  ),
+  pg_temp.execute_and_count($$
+    update public.business_members
+    set role = 'member'
+    where business_id = 'b0000000-0000-4000-8000-00000000000b'
+  $$),
   0,
   'henry cannot update any row belonging to Business B'
 );

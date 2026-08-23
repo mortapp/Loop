@@ -55,7 +55,7 @@ select throws_ok(
   select id, 'earn', 0 from public.accounts
   where owner_profile_id = '66666666-6666-6666-6666-666666666666'
   $$,
-  '23514',
+  '23514', null,
   'a zero-cent event is rejected by the schema'
 );
 
@@ -65,7 +65,7 @@ select throws_ok(
   select id, 'earn', -500 from public.accounts
   where owner_profile_id = '66666666-6666-6666-6666-666666666666'
   $$,
-  '23514',
+  '23514', null,
   'a negative-cent event is rejected by the schema'
 );
 

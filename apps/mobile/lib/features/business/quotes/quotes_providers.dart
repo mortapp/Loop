@@ -54,69 +54,82 @@ String generateQuoteNumber() {
   return 'Q-${DateTime.now().year}-$suffix';
 }
 
+Map<String, Object?> buildCreateQuoteRpcParameters({
+  required String accountId,
+  required String contactId,
+  required String? opportunityId,
+  required String userId,
+  required String quoteNumber,
+  required List<PreparedLine> lines,
+}) {
+  if (lines.isEmpty) {
+    throw StateError(
+      'Add at least one line item with a description and quantity.',
+    );
+  }
+
+  for (final line in lines) {
+    if (line.description.trim().isEmpty ||
+        !line.quantity.isFinite ||
+        line.quantity <= 0 ||
+        line.unitPriceCents < 0) {
+      throw StateError('Every quote line must contain valid values.');
+    }
+  }
+
+  final subtotalCents = lines.fold<int>(
+    0,
+    (sum, line) => sum + line.lineTotalCents,
+  );
+
+  return {
+    'p_account_id': accountId,
+    'p_contact_id': contactId,
+    'p_opportunity_id': opportunityId,
+    'p_quote_number': quoteNumber,
+    'p_subtotal_cents': subtotalCents,
+    'p_tax_cents': 0,
+    'p_total_cents': subtotalCents,
+    'p_created_by': userId,
+    'p_line_items': [
+      for (final line in lines)
+        {
+          'description': line.description.trim(),
+          'quantity': line.quantity,
+          'unit_price_cents': line.unitPriceCents,
+        },
+    ],
+  };
+}
+
 class QuotesRepository {
   QuotesRepository(this._client);
 
   final SupabaseClient _client;
 
-  /// Two-step insert (quote header, then line items) — mirrors
-  /// `createQuote` in `apps/web/src/app/(app)/business/quotes/actions.ts`.
-  /// Not wrapped in a transaction on purpose: see
-  /// docs/KNOWN_ISSUES.md "Quote creation is not transactional". A failure
-  /// on the second step is surfaced rather than hidden, leaving a quote
-  /// header with no line items exactly as the web app does.
+  /// Creates the quote header and all lines in one database transaction.
   Future<void> createQuote({
     required String accountId,
     required String contactId,
     String? opportunityId,
     required List<PreparedLine> lines,
   }) async {
-    if (lines.isEmpty) {
-      throw StateError(
-        'Add at least one line item with a description and quantity.',
-      );
-    }
-
-    final subtotalCents = lines.fold<int>(
-      0,
-      (sum, line) => sum + line.lineTotalCents,
-    );
     final userId = _client.auth.currentUser?.id;
-
-    final quoteRow = await _client
-        .from('quotes')
-        .insert({
-          'account_id': accountId,
-          'contact_id': contactId,
-          'opportunity_id': opportunityId,
-          'quote_number': generateQuoteNumber(),
-          'subtotal_cents': subtotalCents,
-          'tax_cents': 0,
-          'total_cents': subtotalCents,
-          'created_by': userId,
-        })
-        .select('id')
-        .single();
-
-    final quoteId = quoteRow['id'] as String;
-
-    try {
-      await _client.from('quote_line_items').insert([
-        for (var i = 0; i < lines.length; i++)
-          {
-            'quote_id': quoteId,
-            'description': lines[i].description,
-            'quantity': lines[i].quantity,
-            'unit_price_cents': lines[i].unitPriceCents,
-            'position': i,
-          },
-      ]);
-    } on PostgrestException catch (e) {
-      // The quote header exists but is missing its lines — not wrapped in
-      // a transaction yet (see docs/KNOWN_ISSUES.md). Surface it rather
-      // than hiding a half-written quote.
-      throw StateError('Quote created but line items failed: ${e.message}');
+    if (userId == null) {
+      throw StateError('Sign in again before creating a quote.');
     }
+
+    await _client.rpc(
+      'create_quote_with_line_items',
+      params: buildCreateQuoteRpcParameters(
+        accountId: accountId,
+        contactId: contactId,
+        opportunityId: opportunityId,
+        userId: userId,
+        quoteNumber: generateQuoteNumber(),
+        lines: lines,
+      ),
+    );
   }
 
   Future<void> setStatus({required String id, required QuoteStatus status}) {

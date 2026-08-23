@@ -12,7 +12,10 @@ function generateQuoteNumber(): string {
   return `Q-${year}-${suffix}`;
 }
 
-export async function createQuote(_prev: CreateQuoteState, formData: FormData): Promise<CreateQuoteState> {
+export async function createQuote(
+  _prev: CreateQuoteState,
+  formData: FormData,
+): Promise<CreateQuoteState> {
   const contactId = String(formData.get("contactId") ?? "").trim() || null;
   const opportunityId = String(formData.get("opportunityId") ?? "").trim() || null;
 
@@ -71,7 +74,7 @@ export async function createQuote(_prev: CreateQuoteState, formData: FormData): 
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: "Could not create the quote. Check the details and try again." };
   }
 
   revalidatePath("/business/quotes");

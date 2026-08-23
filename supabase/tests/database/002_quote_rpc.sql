@@ -6,7 +6,7 @@ create extension if not exists pgtap;
 
 begin;
 
-select plan(5);
+select plan(13);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: one auth user + a contact to quote against.
@@ -101,6 +101,100 @@ select is(
   (select count(*)::int from public.quotes where quote_number = 'Q-TEST-0002'),
   0,
   'the rejected call left no orphan quote header behind'
+);
+
+select throws_ok(
+  $$
+  select public.create_quote_with_line_items(
+    (select id from public.accounts where owner_profile_id = '33333333-3333-3333-3333-333333333333'),
+    (select id from public.contacts where display_name = 'RPC Test Contact'),
+    null,
+    'Q-TEST-0003',
+    1, 0, 1,
+    '33333333-3333-3333-3333-333333333333',
+    '[{"description":"Widget","quantity":3,"unit_price_cents":3300}]'::jsonb
+  )
+  $$,
+  '22023', null,
+  'client totals must match the server-calculated line subtotal'
+);
+
+select is(
+  (select count(*)::int from public.quotes where quote_number = 'Q-TEST-0003'),
+  0,
+  'a totals mismatch leaves no orphan quote header'
+);
+
+select throws_ok(
+  $$
+  select public.create_quote_with_line_items(
+    (select id from public.accounts where owner_profile_id = '33333333-3333-3333-3333-333333333333'),
+    (select id from public.contacts where display_name = 'RPC Test Contact'),
+    null,
+    'Q-TEST-0004',
+    -100, 0, -100,
+    '33333333-3333-3333-3333-333333333333',
+    '[{"description":"Bad line","quantity":1,"unit_price_cents":-100}]'::jsonb
+  )
+  $$,
+  '22023', null,
+  'negative line prices are rejected by the RPC'
+);
+
+select is(
+  (select count(*)::int from public.quotes where quote_number = 'Q-TEST-0004'),
+  0,
+  'an invalid line leaves no orphan quote header'
+);
+
+select lives_ok(
+  $$
+  select public.create_quote_with_line_items(
+    (select id from public.accounts where owner_profile_id = '33333333-3333-3333-3333-333333333333'),
+    (select id from public.contacts where display_name = 'RPC Test Contact'),
+    null,
+    'Q-TEST-0005',
+    500, 0, 500,
+    '99999999-9999-4999-8999-999999999999',
+    '[{"description":"Actor test","quantity":1,"unit_price_cents":500}]'::jsonb
+  )
+  $$,
+  'the legacy created-by parameter remains accepted'
+);
+
+select is(
+  (select created_by from public.quotes where quote_number = 'Q-TEST-0005'),
+  '33333333-3333-3333-3333-333333333333'::uuid,
+  'the stored quote actor is derived from auth, not the RPC parameter'
+);
+
+select throws_ok(
+  $$
+  insert into public.quotes (
+    account_id, contact_id, quote_number,
+    subtotal_cents, tax_cents, total_cents
+  )
+  select id,
+         (select id from public.contacts where display_name = 'RPC Test Contact'),
+         'Q-DIRECT-BAD', 100, 0, 99
+  from public.accounts
+  where owner_profile_id = '33333333-3333-3333-3333-333333333333'
+  $$,
+  '23514', null,
+  'direct quote writes cannot bypass amount consistency'
+);
+
+select throws_ok(
+  $$
+  insert into public.quote_line_items (
+    quote_id, description, quantity, unit_price_cents
+  )
+  select id, 'Invalid quantity', 0, 100
+  from public.quotes
+  where quote_number = 'Q-TEST-0001'
+  $$,
+  '23514', null,
+  'direct line writes cannot bypass quantity constraints'
 );
 
 select * from finish();
