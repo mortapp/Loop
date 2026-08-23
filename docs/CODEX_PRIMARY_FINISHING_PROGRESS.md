@@ -1,101 +1,95 @@
 # LOOP Codex Primary Finishing Progress
 
-Updated: 2026-08-23T07:04:18Z
+Updated: 2026-08-23T21:35:00Z
 
 ## Repository
 
-- Active repository: `C:\Users\micha\OneDrive\Desktop\Loop`
+- Repository: `C:\Users\micha\OneDrive\Desktop\Loop`
 - Branch: `main`
-- Starting HEAD: `40692e8fdb22284b57b0a8e0742e585b1f177e4e`
-- Auth/onboarding checkpoint: `87a25000f9656b81bf0e19a137ee44d5894a09b5`
-- Backend/account/storage/quote checkpoint: `4ab112bfeb05b4cc3e4f1063b92fe4790fd37a62`
+- Tested source/workflow checkpoint: `03d6c5412be85beadbaf458aa922b3be2bdce97b`
 - Remote: `git@github.com:mortapp/Loop.git`
-- Remote policy: ordinary fast-forward pushes only; no force push. The current
-  atomic lifecycle/error-safety checkpoint is pending its final scoped commit.
 - Source version: `1.0.0+1`
-- MORT status: reference-only; not modified
+- Android package: `com.loop.app.loop_mobile`
+- Hosted Supabase: `zqalnvfwxmfrnyjcuehq`
+- Production web: `https://loop-teal-rho.vercel.app`
+- MORT: reference-only and unmodified
+
+## Completed Engineering
+
+- Native Google OAuth uses the standards-valid callback
+  `com.loop.app.loop-mobile://app/login-callback`. The owner physically
+  confirmed Google login reaches authenticated native LOOP on the Galaxy A14.
+- Authentication, post-auth profile gating, display name, username, password
+  setup, session restoration, cancellation, and onboarding race handling have
+  focused regression coverage.
+- All six independently reported High findings were repaired: cross-account AI
+  confirmation reuse, AI duplicate execution, malformed quote prices, Money
+  history truncation, concurrent item-photo metadata loss, and the dead mobile
+  business CTA.
+- A seventh High found in the final parity audit was repaired: malformed or
+  throwing Ask LOOP gateway responses can no longer leave the mobile composer
+  permanently busy.
+- AI confirmations bind user, account, tool, canonical input, expiration, and a
+  stable idempotency identity. Database uniqueness makes approved retries
+  exactly-once.
+- Purchases, listings, sales, refunds, quote creation, item-photo metadata, and
+  Money totals use canonical server-side RPCs and constraints.
+- Mobile Money history now uses deterministic 50-row pagination with
+  account-switch and stale-request protection.
+- The mobile business entry point creates a real business and selects its
+  trigger-provisioned business account. It no longer advertises an unavailable
+  invitation flow.
+- CI is consolidated in `.github/workflows/quality.yml`. It pins Flutter and
+  Supabase CLI versions, replays the database from zero, runs pgTAP, web checks,
+  Playwright, Flutter checks, and builds a fail-closed debug APK.
+- A clean-checkout CI failure exposed a hidden dependency on Next-generated
+  `LayoutProps`; the root layout now uses an explicit React prop type.
+
+## Verification
+
+- Local database reset: all 24 migrations and seed applied successfully.
+- Database tests: 11 files, 185 assertions, all pass.
+- Flutter format: 82 files, 0 changes.
+- Flutter analyze: no issues.
+- Flutter tests: 85/85 pass serially.
+- Focused Ask LOOP failure tests: 11/11 pass.
+- Web typecheck, ESLint, and optimized build: pass.
+- Playwright: 89 discovered, 29 pass, 60 authenticated tests skip without a
+  dedicated QA account, 0 fail.
+- GitHub Quality run `32667680943`: PASS on checkpoint `03d6c54`; both
+  `Flutter mobile` and `Web and database` jobs completed successfully.
+- Hosted migration ledger matches the 24 local migration files through
+  `20260823202606_make_item_photo_updates_atomic`.
+- Production Vercel deployment for web source checkpoint `73ffb41` succeeded.
+  The canonical sign-in page renders with no captured browser console errors.
+- Tracked-source secret scan found no privileged credentials. The only tracked
+  environment files are empty templates with a public site URL default.
+
+## QA APK
+
+- Source commit: `58e3b8e7287a6784d2afac8a7db8a88ed4f60f71`
+- Path:
+  `artifacts/final-qa-58e3b8e/loop-58e3b8e-configured-debug-qa.apk`
+- Size: 157,674,808 bytes (150.37 MiB)
+- SHA-256: `1D850118FAD233FF452E4FB2B45B1319C480CADC2AF99EBB2879D94F7D0392E2`
+- Package/version: `com.loop.app.loop_mobile`, `1.0.0+1`
+- Signing: Android debug certificate, APK Signature Scheme v2 verified
+- Configuration: approved public Supabase URL and client-safe key only; no
+  service role, provider secret, access token, or private key value.
+
+## Current External Gates
+
+- Wireless ADB currently lists no authorized device, so the exact final QA APK
+  has not been installed or run on the Galaxy A14.
+- The authenticated Galaxy Today/Money/Sell/Business/Protect/Ask LOOP/account
+  gauntlet and final sign-out/sign-in regression remain physical-device work.
+- `ANTHROPIC_API_KEY` is not available, so no live provider call was fabricated.
+- Authenticated Playwright needs a dedicated non-owner QA account and CI secrets.
+- Supabase leaked-password protection is a Free-plan limitation; see
+  `docs/KNOWN_ISSUES.md`.
+- Native iOS build, signing, TestFlight, and iPhone QA require macOS/Xcode and
+  Apple credentials.
 
 ## Current Phase
 
-`PHASE 8 - atomic Money/Protect/Recover lifecycle and cross-platform error safety`
-
-## Verified Evidence
-
-- Hosted Supabase project `zqalnvfwxmfrnyjcuehq` is active.
-- Google and email authentication are enabled.
-- The valid callback `com.loop.app.loop-mobile://app/login-callback` is in
-  Android, iOS, compiled Dart, and the hosted Auth allowlist. The legacy
-  underscore callback is absent from the configured QA APK's compiled Dart.
-- OAuth waits for a consistent Supabase session/user pair, with duplicate,
-  timeout, cancel, retry, and cold-session coverage.
-- Onboarding requires display name + globally unique username, atomically
-  saves both, and adds a password to Google-only users without creating a
-  second account. Flutter is 47/47 green at the current checkpoint.
-- Hosted migration `20260823050806_enforce_account_graph_integrity` blocks
-  forged cross-account nested UUIDs, derives actor IDs from Auth, restricts
-  profile email updates, and removes unnecessary trigger-function RPC access.
-  Its hosted pgTAP suite passes 32/32 in a rolled-back synthetic transaction.
-- Hosted migration `20260823051328_harden_private_storage_limits` keeps both
-  buckets private, adds fail-closed UUID path parsing, sets 12 MiB document / 8
-  MiB photo limits and MIME allowlists, and binds document metadata paths to
-  their account. Hosted pgTAP passes 18/18.
-- Hosted migration `20260823052248_harden_quote_rpc_inputs` recomputes quote
-  totals, validates lines, derives the actor, and adds direct-write constraints.
-  Hosted pgTAP passes 13/13.
-- Mobile quote creation now calls that atomic RPC instead of leaving a possible
-  orphan header, guards post-await widget disposal, and sanitizes errors on
-  mobile and web. Focused Flutter quote tests pass 3/3; analyzer is clean.
-- Hosted migration `20260823060632_enforce_atomic_money_lifecycle` adds four
-  authenticated, security-invoker RPCs for purchases, listings, sales, and
-  refunds; direct-write guards, integer-cent/state constraints, source-event
-  uniqueness, and one-sale-per-item enforcement keep legacy clients safe.
-- Hosted migration
-  `20260823062451_order_lifecycle_guards_after_account_integrity` preserves the
-  established cross-account SQLSTATE contract by deterministically running
-  account guards before lifecycle validation.
-- Hosted migration `20260823070326_consolidate_business_member_policies`
-  preserves all member/admin behavior while reducing SELECT/DELETE from
-  multiple permissive policies to exactly one policy per command. The
-  performance advisor now reports zero multiple-policy warnings.
-- A current-CLI clean local reset now replays every migration and seed from
-  empty. `supabase/roles.sql` supplies only the unattached local compatibility
-  helper that the hosted platform owns; applied migrations remain immutable.
-- Fresh database regression is 166/166 across nine pgTAP suites. Mobile is
-  47/47, `flutter analyze --no-pub` is clean, and web typecheck, ESLint, and
-  optimized Next.js build pass.
-- Mobile and web purchase/listing/sale/refund flows use the same atomic RPCs.
-  Async widget disposal is guarded, account selection survives refresh, return
-  transitions only move forward, money caches invalidate after mutations, and
-  browser/mobile/AI responses no longer expose raw backend/provider errors.
-- Security advisor no longer reports anonymous execution of
-  `rls_auto_enable()`. Remaining helper-function warnings are reviewed,
-  intentional RLS recursion breakers; leaked-password protection remains a
-  plan-limited enhancement.
-
-## Physical QA
-
-- Device: Samsung SM-A146U, Android API 35
-- Wireless ADB serial: `10.0.0.151:33757`
-- Package: `com.loop.app.loop_mobile`
-- Installed version: `1.0.0+1`
-- Current gate: owner must complete Google account selection; LOOP is
-  backgrounded and Chrome is foreground. No private account chooser content
-  has been captured or displayed.
-
-## Active Work
-
-- Main agent: backend/RLS/Storage red-team remediation and shared app flow
-  correctness.
-- Sosa and the wireless QA agent completed their bounded assignments and were
-  closed; no extra agents are running.
-
-## External Gates
-
-- Google account selection requires the owner on the physical phone.
-- iOS Xcode, signing, TestFlight, and physical iPhone validation require Apple tooling and credentials.
-
-## Next Automatic Checkpoint
-
-Commit and push the verified lifecycle/error-safety checkpoint, then continue
-Today, Money, Protect, Recover, and account-action UX audits while polling the
-owner-gated Samsung callback state.
+`FINAL VERIFICATION - external physical/provider gates only`

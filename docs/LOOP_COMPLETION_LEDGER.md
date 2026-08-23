@@ -1,85 +1,87 @@
 # LOOP Completion Ledger
 
-Status values: PASS, FAIL, PARTIAL, IN_PROGRESS, EXTERNAL_BLOCKER,
-OWNER_ACTION_REQUIRED, ACCEPTED_WITH_EVIDENCE, NOT_RUN. Never converted
-to PASS to reach a prettier percentage — see docs/AUTONOMOUS_BUILD_STATUS.md
-and docs/KNOWN_ISSUES.md for full evidence behind every row below.
+Updated: 2026-08-23
 
-Updated 2026-08-23 during the hosted atomic lifecycle and error-safety remediation. Historical
-passes remain recorded, while the Google callback and authenticated physical
-journey remain owner-gated. Originally rewritten 2026-08-22,
-continuing from checkpoint `b12c6b8` after a usage-limit pause. This
-replaces the prior version, which predated this session's mobile AI
-client, Today automation, Money integrity, Playwright E2E harness,
-accessibility work, responsive QA, the `business_members` security fix,
-and the iOS parity audit.
+Status values are evidence-based. `PASS` never means an external or manual gate
+was silently assumed.
 
-| Area | Status | Note |
-|---|---|---|
-| REPOSITORY | IN_PROGRESS | Auth/onboarding checkpoint `87a25000f9656b81bf0e19a137ee44d5894a09b5` and backend checkpoint `4ab112bfeb05b4cc3e4f1063b92fe4790fd37a62` are preserved. Current lifecycle/policy/error-safety changes passed final source verification. No hosted reset or unrelated reversion. |
-| GITHUB | IN_PROGRESS | The verified lifecycle/error-safety checkpoint is pending an ordinary fast-forward push. No force push. |
-| MUREX_NOIR | PASS | Unchanged this session — full token replacement on both platforms from an earlier session, physically confirmed on the real Galaxy A14. Not re-touched; no regression introduced by this session's changes (all additive: new screens/migrations/tests reuse existing `AppColors`/`AppSpacing`/`var(--color-*)` tokens). |
-| WEB_UI | PASS | Current `typecheck`, ESLint, and optimized Next.js build pass. Server actions, photo upload, and AI routes now return safe user copy instead of raw Supabase/provider messages. The prior live production smoke remains historical evidence; this unpushed checkpoint is not claimed deployed. |
-| MOBILE_UI | PASS | `flutter analyze --no-pub` is clean and the full current suite passes 47/47. Mutation screens guard post-await disposal and use sanitized errors; prior signed-device evidence remains historical until the owner completes OAuth. |
-| ACCOUNT_SYSTEM | PASS | Unchanged this session (built in the prior continuation) — account menu, Profile, Settings, Personalization, Help on both platforms. This session fixed two real accessibility gaps in the web account menu (missing accessible name at some breakpoints, a duplicate `id="account-menu"`) — see ACCESSIBILITY_WEB. |
-| TODAY | PASS | Unchanged base feature; still real, live-verified in an earlier session. |
-| TODAY_AUTOMATION | PASS | New this session. `public.generate_today_actions(account_id)` (`supabase/migrations/20260822164226_today_automation.sql`) turns quote follow-up/expiry, return-window, and warranty deadlines into real `actions` rows. Idempotent via a partial unique index + `on conflict do nothing` (a real DB constraint, not an app-side check-then-insert). Three AFTER triggers auto-close a generated action when the underlying thing resolves elsewhere. Both Today screens call the RPC on load, best-effort. Covered by 12 pgTAP assertions (`supabase/tests/database/003_today_automation.sql`); migration applied live, `get_advisors` showed no new findings. |
-| MONEY | PASS | Manual entries, purchases, refunds, and sales now invalidate the shared totals/feed caches. The feed is bounded to 200 newest events and account-less startup returns safely instead of querying with an empty id. |
-| MONEY_INTEGRITY | PASS | New this session. `public.account_money_totals(account_id)` (`supabase/migrations/20260822165605_money_integrity.sql`) is now the one canonical MADE/PROTECTED/RECOVERED/SPENT/FEES/NET formula — both web and mobile call it instead of independently re-deriving totals from the raw event list (which they previously did, with signs kept in sync only by a comment). A real `CHECK (amount_cents > 0)` constraint now prevents a zero/negative ledger entry at the schema level, not just client-side. Covered by 10 pgTAP assertions: partial refund, duplicate events (both count — correct for an append-only ledger), zero/negative rejected, odd-cent-amount precision (333+333+334=1000 exactly), and account isolation both ways. Migration applied live. |
-| MAKE | PASS | Web and mobile quote creation now use the same atomic `create_quote_with_line_items` RPC. The server recomputes totals, validates 1-100 lines, rejects malformed/negative values, derives the actor from Auth, and enforces direct-write amount/line constraints. Hosted pgTAP passes 13/13; mobile payload tests pass 3/3. |
-| PROTECT | PASS | Purchases and listings now use authenticated security-invoker RPCs that atomically create the domain row and associated state/ledger changes. Direct-write constraints and guards retain compatibility with the installed prior QA client. |
-| RECOVER | PASS | Sales and refunds now use atomic, idempotency-aware RPCs. One sale per item and one sourced ledger event per account/source/kind are enforced; sale gross, fee, net, item status, listing status, refund state, and money events commit together or not at all. |
-| ITEM_PHOTOS | PASS | Unchanged this session (built and live-verified in an earlier continuation). |
-| ASK_LOOP_WEB | PASS | Unchanged this session — chat UI, confirm/decline tool-registry flow. |
-| ASK_LOOP_ANDROID | PASS | New this session. Real Flutter chat client (`apps/mobile/lib/features/ai/ai_repository.dart` + rewritten `ai_screen.dart`) calling the exact same `/api/ai/chat`+`/api/ai/confirm` endpoints web uses — not a parallel architecture. Full text/loading/retry/error UX, pending tool-confirmation cards with Confirm/Decline, Murex Noir styling with the Double Loop Seal marking assistant output. `flutter analyze` clean, debug APK built and launched cleanly on the physical Galaxy A14. Marked PASS for client completeness — see AI_BACKEND for the separate provider-credential gate. |
-| AI_BACKEND | OWNER_ACTION_REQUIRED | `ANTHROPIC_API_KEY` remains unset. The cross-platform auth boundary (`apps/web/src/lib/ai/auth.ts`'s `resolveAiRequest` — cookie session for web, `Authorization: Bearer <supabase JWT>` + explicit `accountId` for mobile) was built and verified (`tsc`/`eslint` clean, both routes preserve existing web behavior) this session specifically so the mobile client would have a real backend to call the moment the key is set. Cannot be live-verified end-to-end without the key. |
-| AUTH | IN_PROGRESS | Web guard remains verified. Mobile now has explicit PKCE/deep-link policy, launch-to-session coordination, timeout/cancel/retry, and session/current-user consistency. Physical session establishment is still owner-gated. |
-| GOOGLE_AUTH_WEB | PASS | Unchanged this session, previously verified live. |
-| GOOGLE_AUTH_ANDROID | IN_PROGRESS | The prior callback scheme was invalid because it contained an underscore. Valid-scheme APK is installed and reaches hosted Google PKCE; owner account selection and callback/session restoration remain pending. |
-| DATABASE | PASS | Hosted forward migrations now continue through `20260823070326`: atomic purchase/listing/sale/refund lifecycle, deterministic trigger order, and consolidated business-member policies. Hosted preflight found zero existing purchases/listings/sales/returns/money events, so no user data rewrite was needed. |
-| MIGRATIONS | PASS | Local filenames align to the exact hosted ledger through `20260823070326`. Current CLI `2.115.0` reset replayed every migration plus seed from empty; `supabase/roles.sql` supplies the hosted-only `rls_auto_enable()` compatibility symbol locally without editing immutable migration history. |
-| RLS | PASS | Every exposed table retains RLS. Full fresh regression passes 166/166 across nine pgTAP suites. Business membership now has exactly one authenticated policy per SELECT/INSERT/UPDATE/DELETE command; the 17-case owner/admin/member/outsider suite remains green and the advisor's multiple-policy warnings are gone. |
-| BUSINESS_MEMBERS_SECURITY | PASS | A real privilege-escalation bug found and fixed this session (`supabase/migrations/20260822173117_fix_business_members_self_escalation.sql`) — see docs/KNOWN_ISSUES.md and the commit message for full detail. Old `business_members_self_manage` (FOR ALL, `WITH CHECK (profile_id = auth.uid())` only) let any authenticated user INSERT themselves as `owner`/`active` into any business, or UPDATE their own row's `role` to `owner`/`admin`. No app code used self-service writes to this table, so the fix (self-service narrowed to SELECT + DELETE only; INSERT/UPDATE require `is_business_admin()`) has zero product cost. 17 pgTAP assertions (`supabase/tests/database/005_business_members_rls.sql`) cover owner/admin/member/outsider/anon across select/insert/update/delete, both escalation paths explicitly blocked, legitimate admin management still works, cross-business access denied both ways. Migration applied live to 0 existing rows. |
-| STORAGE | PASS | `documents` + `item-photos` are private and account-path scoped with guarded UUID parsing. Documents: 12 MiB and PDF/JPEG/PNG/WebP/HEIC/HEIF only. Item photos: 8 MiB and image types only. Document rows enforce account-prefixed unique paths, size/MIME/name constraints. Hosted regression passes 18/18. |
-| WEB_E2E | PASS / OWNER_ACTION_REQUIRED | New this session. Playwright harness (`apps/web/playwright.config.ts`, `apps/web/e2e/`), the smallest framework that can actually exercise SSR Server Components + cookie auth + real navigation. 45 tests across 10 files. 25 run for real with no credentials needed (16 auth-guard tests covering every `(app)/**` route + `/`, 7 responsive breakpoint checks, 2 axe accessibility scans) — all pass against both a local dev server and, for the guard behavior, live production. The remaining 20 (nav/Today/Money/Sell/Business/AI/account-menu/personalization/accessibility on authenticated pages) are real, complete test code that `test.skip`s itself without `QA_TEST_EMAIL`/`QA_TEST_PASSWORD` — creating that account is outside what this session can do (account creation is a prohibited action even for an isolated QA user). See docs/KNOWN_ISSUES.md for the exact 2-step owner action. |
-| ACCESSIBILITY_WEB | PASS | Scoped, not exhaustive — see docs/KNOWN_ISSUES.md for exactly what's still open (manual keyboard pass, touch-target sizing, text-scaling stress test). This session: fixed 2 real bugs (account-menu trigger had no accessible name at some breakpoints; a duplicate `id="account-menu"` since two menu instances render simultaneously) and 3 forms with no field labels at all (Money/Sell/Today). Automated axe-core WCAG2A/2AA scans added and run live against `/sign-in`/`/sign-up`: zero violations. 7 more page scans wired the same way, gated on WEB_E2E's QA-credential blocker. |
-| ACCESSIBILITY_MOBILE | PARTIAL | Onboarding now has semantics, focus order, 48px controls, live status/error regions, and Samsung-resolution 2x-text coverage. A full-app TalkBack/focus audit remains open. |
-| RESPONSIVE_WEB | PASS | New this session, and a real answer to the prior session's `resize_window` tool-limitation blocker: Playwright's `setViewportSize` is the working alternative (resizes before navigation, so layout is correct from first paint). All 7 named breakpoints (360/390/430/768/1024/1280/1440) verified live against `/sign-in` with zero horizontal overflow at any width. The equivalent authenticated-page checks are wired the same QA-credential-gated way as WEB_E2E. |
-| ANDROID_BUILD | PASS | Both debug and, new this session, **release** builds succeed. The release build surfaced a real bug this session found via the iOS parity audit (missing `INTERNET` permission — see below); a second real bug (every prior build silently missing `--dart-define`, see ANDROID_SUPABASE_CONFIG) was found afterward on the physical device and is also fixed. `dart_define.json` (gitignored) is now the one correct, remembered way to build. |
-| GALAXY_A14_CONNECTION | PASS | Reconnected cleanly this session via `adb connect` after a brief `offline` state; device visible throughout. |
-| ANDROID_SUPABASE_CONFIG | PASS | Real regression found and fixed this session (see docs/KNOWN_ISSUES.md): every mobile build was silently running against `placeholder.supabase.co` because `--dart-define-from-file` was never passed. Fixed with a real startup validation (`SupabaseConfig.isValidConfig`) plus a durable `dart_define.json` build path. 8 new unit tests; verified live on the Galaxy A14 both ways (misconfigured build shows a clean "can't start" screen, correctly-configured build reaches real Google OAuth). |
-| PLACEHOLDER_URL_REJECTED | PASS | `main.dart` gates on `SupabaseConfig.isConfigured` before Supabase is ever initialized; `bootstrapSupabase` no longer has a silent fallback. Live-verified on-device: a build with no dart-defines renders `ConfigurationErrorApp` with a clean logcat, never reaches the sign-in screen. |
-| GOOGLE_OAUTH_HANDOFF | PASS | Live-verified on the Galaxy A14 with the corrected build: **Continue with Google** correctly opens `accounts.google.com`, "Choose an account to continue to zqalnvfwxmfrnyjcuehq.supabase.co" (the real project, confirmed by screenshot) — not `placeholder.supabase.co`. |
-| MOBILE_CALLBACK | IN_PROGRESS | Reproducible root cause: `com.loop.app.loop_mobile` is not a parseable URI scheme. Canonical callback is now `com.loop.app.loop-mobile://app/login-callback`; Android/iOS/source/compiled snapshot agree and the exact redirect is live in Supabase. Physical session callback remains pending owner account selection. |
-| ONBOARDING | IN_PROGRESS | Web/mobile gates require both display name and username. Mobile profile fields save atomically; Google-only users must create and confirm a backup password; errors are sanitized and async races covered. Analyzer, 47/47 Flutter tests, web typecheck/lint/build pass. Physical completion remains pending OAuth. |
-| USERNAME | PASS | `profiles.username` remains database-authoritative through unique/format/reserved constraints and `is_username_available()`. Both onboarding clients require it; mobile no longer performs the name and username writes separately. |
-| ANDROID_INTENT_FILTER | PASS | The configured APK's merged manifest registers the exact standards-valid callback and a parity test locks Android/iOS/source agreement. Actual post-Google delivery is tracked separately under MOBILE_CALLBACK. |
-| GALAXY_A14_RETEST | IN_PROGRESS | Exact configured APK installed without clearing data; secure startup and hosted Google PKCE launch pass. Callback, onboarding, cold-session restore, and post-auth traversal await owner account selection. |
-| GALAXY_A14_AUTHENTICATED_QA | OWNER_ACTION_REQUIRED | The Google OAuth path now reaches the real project (see above) rather than being silently unreachable, which was itself a plausible explanation for the device sitting on the sign-in screen through most of this session. The owner still needs to complete account selection/sign-in themselves — this session does not select a Google account or type a password into any field, on-device or in-browser. The full authenticated matrix (Today/Money/Sell/Business/Protect/Ask LOOP/account menu/general nav) is ready to run the moment a session exists. |
-| GALAXY_A14_PERFORMANCE | OWNER_ACTION_REQUIRED | Same blocker — meaningful performance observation (scrolling, image rendering, tab switching) needs authenticated screens with real data. Launch-only logcat inspection (below) is clean but is not a performance signal on its own. |
-| LOGCAT | IN_PROGRESS | Cleared before the current configured install/launch. Final sanitized post-callback crash scan remains pending the owner-operated OAuth step. |
-| IOS_SOURCE_PARITY | PASS | Full audit this session (docs/KNOWN_ISSUES.md has the complete breakdown): `Info.plist` vs `AndroidManifest.xml`, bundle identifiers, OAuth/deep-link redirect handling, photo-library permission, ATS, Google auth architecture, deployment target vs. every plugin in use, launch-screen branding parity (both equally unbranded — real parity, just not yet Murex Noir), and the (expected, non-issue) absence of a `Podfile`. Static/config review only — no Xcode available. |
-| IOS_REAL_BUILD | EXTERNAL_BLOCKER | Unchanged — Windows environment, no Xcode/macOS. |
-| SECRET_SCAN | PASS | Current tracked signature scan found zero secret-bearing files. Only `.env.example` and `apps/web/.env.local.example` are tracked; no real environment file, service credential, private key, or provider key is staged. |
-| SUPABASE_ADVISOR | ACCEPTED_WITH_EVIDENCE | Re-run after both DDL changes. Performance warnings are now only 20 unused-index INFO notices on the nearly empty staging database; both multiple-permissive-policy warnings are fixed. Security WARN findings remain the four authenticated-only boolean RLS recursion helpers, intentionally callable username availability RPC, and plan-limited leaked-password protection; no new lifecycle RPC warning exists. |
-| LEAKED_PASSWORD_PROTECTION | ACCEPTED_WITH_EVIDENCE | DEFERRED - PLAN-LIMITED SECURITY ENHANCEMENT. Supabase requires Pro for HaveIBeenPwned leaked-password protection; do not spend money. Current mitigations remain password length/complexity, rate limiting, email verification, RLS, account restrictions, and secure reset. Enable immediately after a future Pro upgrade and rerun Auth advisors. |
-| ANTHROPIC_PROVIDER | OWNER_ACTION_REQUIRED | See AI_BACKEND. |
-| CI | PASS | A fresh current-CLI reset exposed and fixed the hosted/local `rls_auto_enable()` baseline mismatch through `supabase/roles.sql`; exact empty-database replay now passes before all 166 pgTAP assertions. Existing web/mobile workflows still run their format/analyze/test/build gates. |
-| VERCEL | PASS | Latest push (`ca3fc42`) auto-deployed via the existing git-linked project (`prj_zgoDaWhw4m7uBj8PjgfalFKXbmFV`, no new project created) and reached `READY`/`production`, correctly aliased to `loop-teal-rho.vercel.app`. Confirmed via `list_deployments`/`get_deployment` — `githubCommitSha` on the live deployment matches this session's exact HEAD. |
-| PRODUCTION_WEB | PASS | Live-verified this session via real browser navigation (not just the API): `/sign-in` renders correctly, zero console errors on a fresh load, and `/today` unauthenticated correctly redirects to `/sign-in?next=%2Ftoday` — the proxy auth guard confirmed working on the actual production deployment, not just locally. `get_runtime_errors` for the last 24h: none. No authenticated production session was available to exercise further (same credential-entry boundary as everywhere else this session) — full authenticated production smoke test is part of the same owner-gated QA as GALAXY_A14_AUTHENTICATED_QA / WEB_E2E. |
-| DOCUMENTATION | PASS | Progress, completion ledger, known issues, and test matrix now record the atomic lifecycle, trigger-order compatibility, clean-replay fix, error sanitization, 166/166 database result, 47/47 Flutter result, and current external gates. |
-| EXTERNAL_BLOCKERS | — | See below. |
+| Area                         | Status                 | Evidence                                                                                    |
+| ---------------------------- | ---------------------- | ------------------------------------------------------------------------------------------- |
+| REPOSITORY                   | PASS                   | `main`; tested source/workflow checkpoint `03d6c54`; ordinary fast-forward pushes only      |
+| GITHUB                       | PASS                   | Unified Quality workflow is tracked and running on source changes                           |
+| SOURCE                       | PASS                   | All discovered Critical/High findings repaired; `git diff --check` clean                    |
+| MUREX_NOIR                   | PASS                   | Existing design system preserved; no broad redesign in this pass                            |
+| WEB                          | PASS                   | Typecheck, ESLint, production build, and public Playwright pass                             |
+| MOBILE                       | PASS                   | Format clean, analyzer clean, 85/85 Flutter tests                                           |
+| AUTH                         | PASS                   | Email/Google/session gates covered; owner confirms native Google login works                |
+| GOOGLE_AUTH_WEB              | PASS                   | Existing hosted flow preserved                                                              |
+| GOOGLE_AUTH_ANDROID          | PASS                   | Physical owner confirmation; callback architecture regression-locked                        |
+| PKCE                         | PASS                   | Exact callback, code/error filtering, cancellation, timeout, and session consistency tested |
+| MOBILE_CALLBACK              | PASS                   | `com.loop.app.loop-mobile://app/login-callback` registered on Android/iOS/Supabase          |
+| FLUTTER_SESSION              | PASS                   | Owner reached authenticated native LOOP; final sign-out/in retest remains physical QA       |
+| OAUTH_CANCEL                 | PASS                   | Actionable cancellation UI and physical retest at prior checkpoint                          |
+| NEW_USER_ONBOARDING          | PASS                   | Canonical display-name/username/password flow and race tests                                |
+| RETURNING_USER_LOGIN         | PASS                   | Routing contract covered; final physical sign-out/in journey still required                 |
+| USERNAME                     | PASS                   | Database constraints/RPC plus web/mobile validation                                         |
+| PASSWORD_SETUP               | PASS                   | Same Auth identity; no duplicate account architecture                                       |
+| SINGLE_IDENTITY              | PASS                   | Google password setup updates the existing Supabase user                                    |
+| ACCOUNT_BOOTSTRAP            | PASS                   | Personal account trigger and real mobile business creation                                  |
+| ACCOUNT_SWITCHING            | PASS                   | Persistent selection; stale async and AI proposal invalidation                              |
+| TODAY                        | PASS                   | Real actions, loading/empty/error behavior                                                  |
+| TODAY_AUTOMATION             | PASS                   | Idempotent quote/return/warranty generation and resolution                                  |
+| MONEY                        | PASS                   | Canonical totals plus deterministic 50-row history pagination                               |
+| MONEY_INTEGRITY              | PASS                   | Integer cents, atomic side effects, source idempotency                                      |
+| MAKE                         | PASS                   | Contacts, leads, opportunities, quotes, and server totals                                   |
+| PROTECT                      | PASS                   | Purchases, returns, refunds, warranties, private documents                                  |
+| RECOVER                      | PASS                   | Items, valuations, listings, sales, atomic photo metadata                                   |
+| ASK_LOOP_WEB                 | PASS                   | Shared server route and confirmation contract                                               |
+| ASK_LOOP_MOBILE              | PASS                   | Account-safe UI; malformed/throwing gateway requests recover                                |
+| AI_CONFIRMATION_SECURITY     | PASS                   | User/account/tool/input/expiry/tamper tests                                                 |
+| AI_ACCOUNT_BINDING           | PASS                   | Old account proposals invalidated in UI and server                                          |
+| AI_IDEMPOTENCY               | PASS                   | Unique execution identity; retries create one mutation                                      |
+| AI_PROVIDER                  | OWNER_ACTION_REQUIRED  | `ANTHROPIC_API_KEY` unavailable; no fake model call                                         |
+| RLS                          | PASS                   | 185/185 database assertions; anon and cross-account denial                                  |
+| ACCOUNT_GRAPH_INTEGRITY      | PASS                   | Nested IDs and actors enforced server-side                                                  |
+| BUSINESS_MEMBERS_SECURITY    | PASS                   | Escalation paths denied; canonical owner/admin behavior retained                            |
+| SECURITY_DEFINER             | ACCEPTED_WITH_EVIDENCE | Five narrow authenticated helpers; see Known Issues                                         |
+| RPC_SECURITY                 | PASS                   | Invoker RPCs, explicit grants, auth/account binding                                         |
+| PRIVATE_STORAGE              | PASS                   | Private buckets, bounded signed URLs, account/path/MIME/size policy                         |
+| DATABASE_TESTS               | PASS                   | 11 files, 185 assertions                                                                    |
+| FLUTTER_TESTS                | PASS                   | 85/85                                                                                       |
+| WEB_TYPECHECK                | PASS                   | Clean checkout no longer needs generated `LayoutProps`                                      |
+| WEB_LINT                     | PASS                   | ESLint clean                                                                                |
+| WEB_BUILD                    | PASS                   | Next production build, 24 routes                                                            |
+| PLAYWRIGHT                   | OWNER_ACTION_REQUIRED  | 29 pass, 60 dedicated-QA-credential skips, 0 fail                                           |
+| ACCESSIBILITY_WEB            | PARTIAL                | Public axe pass; authenticated/manual keyboard pass gated                                   |
+| ACCESSIBILITY_MOBILE         | PARTIAL                | Focused semantics/large-text/touch tests pass; final device manual pass gated               |
+| RESPONSIVE                   | PASS                   | Public web breakpoints plus Samsung auth/onboarding coverage                                |
+| OFFLINE_RETRY                | PASS                   | Atomic writes, safe retry/error states, no raw provider errors                              |
+| FAIL_CLOSED                  | PASS                   | Missing config/provider/authorization never becomes fake success                            |
+| SECRET_SCAN                  | PASS                   | No privileged credential in tracked source or configured APK                                |
+| CI                           | PASS                   | Unified Quality run `32667680943` passed both jobs on `03d6c54`                             |
+| MIGRATION_PARITY             | PASS                   | 24 local and hosted migrations match exactly                                                |
+| SUPABASE_SECURITY_ADVISOR    | ACCEPTED_WITH_EVIDENCE | Five intentional helpers plus plan-limited Auth enhancement                                 |
+| SUPABASE_PERFORMANCE_ADVISOR | ACCEPTED_WITH_EVIDENCE | Unused-index INFO only on low-traffic dataset                                               |
+| LEAKED_PASSWORD_PROTECTION   | OWNER_ACTION_REQUIRED  | `DEFERRED - PLAN-LIMITED SECURITY ENHANCEMENT`                                              |
+| GALAXY_A14_CONNECTION        | FAIL                   | Wireless ADB currently lists no device                                                      |
+| GALAXY_A14_AUTHENTICATED_QA  | PARTIAL                | Google auth owner-confirmed; full final APK journey not run                                 |
+| GALAXY_A14_PERFORMANCE       | PARTIAL                | Prior unauthenticated stress pass; authenticated final APK pass not run                     |
+| LOGCAT                       | PARTIAL                | Prior configured APK clean; exact final APK logcat unavailable                              |
+| IOS_SOURCE_PARITY            | PASS                   | Static config/shared-source audit clean                                                     |
+| IOS_REAL_BUILD               | EXTERNAL_BLOCKER       | macOS/Xcode required                                                                        |
+| VERCEL                       | PASS                   | Production deployment for `73ffb41` succeeded                                               |
+| PRODUCTION_WEB               | PASS                   | Canonical sign-in renders; Google CTA visible; no captured console errors                   |
+| DOCUMENTATION                | PASS                   | Canonical status/test/issue/handoff docs updated                                            |
 
-## LOOP_FINAL_STATE=IN_PROGRESS_NOT_RELEASE_READY
+## External Blockers
 
-The mobile callback parser defect and onboarding partial-write defect are fixed
-in source and covered by focused tests. The configured QA APK is installed on
-the physical Samsung and reaches hosted Google OAuth. This is not a release
-verdict: callback/session establishment, onboarding completion, cold-session
-restore, authenticated traversal, and sanitized post-auth logcat still require
-the owner to select the Google account on the phone.
+1. Wireless Galaxy connection and complete authenticated physical gauntlet.
+2. Dedicated QA credentials for authenticated Playwright.
+3. Server-side Anthropic credential and live provider QA.
+4. Supabase Pro for leaked-password protection.
+5. macOS/Xcode, Apple signing, TestFlight, and iPhone QA.
+6. Product, privacy, legal, operational, and release-signing approval.
 
-Other external gates remain unchanged: Anthropic provider credentials, a real
-iOS/macOS/Xcode build and TestFlight, and any provider/legal approvals. Full-app
-mobile accessibility remains engineering work; only onboarding has focused
-coverage in this remediation.
+`LOOP_FINAL_STATE=PRODUCTION_READY_EXTERNALLY_BLOCKED`
+
+This state is a code-controlled completion verdict, not public-release approval.
