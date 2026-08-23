@@ -43,6 +43,48 @@ page just showed a plain sign-in form with no explanation of what
 happened, which is the "won't load fully right" the owner reported).
 Real improvement either way, not just a stopgap.
 
+## Root-cause confirmed live: Android intent-filter routing is correct, proving the redirect-URL allow-list is the one remaining gap
+
+Direct on-device proof, not inference: with LOOP backgrounded,
+`adb shell am start -a android.intent.action.VIEW -d
+"com.loop.app.loop_mobile://login-callback"` brought LOOP's own task
+to the foreground (confirmed by screenshot) -- Android correctly
+resolves this custom URI to LOOP and only LOOP, never Chrome. This
+rules out the Android manifest/intent-filter as a suspect entirely and
+narrows the remaining gap to exactly one place: whether Supabase's
+GoTrue server actually issues its redirect to this URI after Google
+auth completes, which depends solely on the Redirect URLs allow-list
+entry described above. Full physical completion (an owner actually
+finishing a Google sign-in on-device once that's added) is still
+needed to confirm `FLUTTER_SESSION_ESTABLISHED`, since this session
+does not select a Google account or complete auth itself.
+
+## New: @username handles + optional Google-account password linking, on top of display-name onboarding
+
+Extends the display-name onboarding above (same session, owner asked
+for a fuller native account-setup step). Both platforms:
+
+- `profiles.username` (`supabase/migrations/20260822180000_usernames.sql`):
+  lowercase, `[a-z0-9_]{3,20}`, a reserved-name list, and a database
+  unique index -- all three are real schema constraints, not just
+  client-side checks. `public.is_username_available(candidate)` is a
+  SECURITY DEFINER pre-check for live UI feedback (leaks only a
+  boolean); the constraint + index are what's actually authoritative.
+  11 pgTAP assertions (`supabase/tests/database/006_usernames.sql`).
+- Onboarding (web `/auth/complete-profile`, mobile `OnboardingScreen`):
+  now also collects a username with live available/taken/invalid
+  feedback (400ms debounce against the RPC above), and -- only for an
+  account with no password identity yet (Google-only signup, detected
+  via `user.identities`) -- an optional password + confirm, linked to
+  the SAME auth user via Supabase's own `auth.updateUser({password})`.
+  Never a second account: same `auth.users.id` either way.
+- Verified: web `tsc`/`eslint`/`next build` clean, full Playwright
+  suite unaffected (25/25 real passes); mobile `flutter analyze`/`test`
+  clean (13/13), debug build installs and launches cleanly on the
+  physical Galaxy A14 with a clean logcat. The onboarding screens
+  themselves still aren't exercised against a real completed sign-up on
+  either platform -- same redirect-URL blocker above.
+
 ## New: post-auth onboarding (display name) + a real sign-in error/notice banner
 
 Added 2026-08-22, prompted by the owner's request for the Google

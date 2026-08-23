@@ -38,8 +38,23 @@ export default async function CompleteProfilePage({
   const metaName =
     (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined);
   const suggestedName = metaName || titleCaseFromEmail(user.email?.split("@")[0] ?? "");
+  const suggestedUsername = usernameFromEmail(user.email?.split("@")[0] ?? "");
 
-  return <CompleteProfileForm suggestedName={suggestedName} next={nextPath} />;
+  // Google (or any OAuth-only) sign-up has no password identity yet --
+  // offer to set one so the same account can also sign in with email/
+  // password later. An account that already has one (signed up with
+  // email/password originally, or already linked one) skips this.
+  const hasPasswordIdentity = user.identities?.some((identity) => identity.provider === "email") ?? false;
+
+  return (
+    <CompleteProfileForm
+      suggestedName={suggestedName}
+      suggestedUsername={suggestedUsername}
+      next={nextPath}
+      email={user.email ?? ""}
+      offerPasswordSetup={!hasPasswordIdentity}
+    />
+  );
 }
 
 function titleCaseFromEmail(localPart: string): string {
@@ -50,4 +65,13 @@ function titleCaseFromEmail(localPart: string): string {
     .filter(Boolean)
     .map((word) => word[0]!.toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+/** A best-effort, schema-valid ([a-z0-9_]{3,20}) starting guess -- the
+ * user can still change it, and availability is checked live. Empty if
+ * the email's local part can't produce a valid guess (too short after
+ * stripping disallowed characters); the field just starts blank then. */
+function usernameFromEmail(localPart: string): string {
+  const cleaned = localPart.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20);
+  return cleaned.length >= 3 ? cleaned : "";
 }
