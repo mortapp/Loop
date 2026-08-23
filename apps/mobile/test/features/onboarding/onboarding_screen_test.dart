@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_mobile/core/theme/app_theme.dart';
 import 'package:loop_mobile/features/onboarding/onboarding_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
   const googleIdentity = OnboardingIdentityState(
@@ -143,6 +145,91 @@ void main() {
     expect(attempts, 2);
   });
 
+  testWidgets('username entry is normalized before availability and submit', (
+    tester,
+  ) async {
+    String? checkedUsername;
+    OnboardingSubmission? submitted;
+    await _pumpOnboarding(
+      tester,
+      identity: emailIdentity,
+      usernameChecker: (username) async {
+        checkedUsername = username;
+        return true;
+      },
+      submitter: (submission) async => submitted = submission,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('onboarding-username-field')),
+      'River_Name',
+    );
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pump();
+
+    final field = tester.widget<TextField>(
+      find.byKey(const Key('onboarding-username-field')),
+    );
+    expect(field.controller!.text, 'river_name');
+    expect(checkedUsername, 'river_name');
+
+    await _tapSubmit(tester);
+    await tester.pump();
+    expect(submitted!.username, 'river_name');
+  });
+
+  testWidgets('server username collision replaces stale available state', (
+    tester,
+  ) async {
+    var submitAttempts = 0;
+    await _pumpOnboarding(
+      tester,
+      identity: emailIdentity,
+      submitter: (_) async {
+        submitAttempts++;
+        throw const PostgrestException(
+          message: 'duplicate key value violates unique constraint',
+          code: '23505',
+        );
+      },
+    );
+
+    expect(find.text('Username available'), findsOneWidget);
+    await _tapSubmit(tester);
+    await tester.pumpAndSettle();
+
+    expect(submitAttempts, 1);
+    expect(find.text('Username available'), findsNothing);
+    expect(find.text('Username already taken'), findsOneWidget);
+    expect(find.text('That username is already taken.'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('onboarding-username-field')))
+          .focusNode!
+          .hasFocus,
+      isTrue,
+    );
+  });
+
+  testWidgets('validation focuses the first field that needs attention', (
+    tester,
+  ) async {
+    await _pumpOnboarding(tester, identity: googleIdentity);
+    await tester.enterText(find.byKey(const Key('onboarding-name-field')), '');
+
+    await _tapSubmit(tester);
+    await tester.pump();
+
+    expect(find.text('Enter your name.'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('onboarding-name-field')))
+          .focusNode!
+          .hasFocus,
+      isTrue,
+    );
+  });
+
   testWidgets('backend details are never rendered in setup errors', (
     tester,
   ) async {
@@ -246,7 +333,7 @@ Future<void> _pumpOnboarding(
         ),
       ],
       child: MaterialApp(
-        theme: ThemeData.dark(useMaterial3: true),
+        theme: AppTheme.dark(),
         builder: (context, child) {
           return MediaQuery(
             data: MediaQuery.of(

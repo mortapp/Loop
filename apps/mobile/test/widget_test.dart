@@ -15,6 +15,7 @@ import 'package:loop_mobile/core/auth/google_oauth_controller.dart';
 import 'package:loop_mobile/core/router/app_router.dart';
 import 'package:loop_mobile/core/utils/money.dart';
 import 'package:loop_mobile/features/today/today_providers.dart';
+import 'package:loop_mobile/features/onboarding/onboarding_screen.dart';
 import 'package:loop_mobile/main.dart';
 
 void main() {
@@ -102,6 +103,41 @@ void main() {
     await tester.pump();
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Nothing open. Add something above.'), findsNothing);
+  });
+
+  testWidgets('Signed-in incomplete profiles reach canonical onboarding', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          isAuthenticatedProvider.overrideWith((ref) => true),
+          profileGateProvider.overrideWith(
+            (ref) => ProfileGateState.requiresOnboarding,
+          ),
+          onboardingIdentityProvider.overrideWithValue(
+            const OnboardingIdentityState(
+              userId: 'new-user',
+              email: 'new.user@example.com',
+              suggestedName: 'New User',
+              suggestedUsername: 'newuser',
+              credentialsRequired: false,
+            ),
+          ),
+          onboardingUsernameAvailabilityProvider.overrideWithValue(
+            (_) async => true,
+          ),
+          onboardingSubmitterProvider.overrideWithValue((_) async {}),
+        ],
+        child: const LoopApp(),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OnboardingScreen), findsOneWidget);
+    expect(find.text('Welcome to LOOP'), findsOneWidget);
     expect(find.text('Nothing open. Add something above.'), findsNothing);
   });
 

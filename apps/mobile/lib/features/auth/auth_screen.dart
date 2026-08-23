@@ -10,6 +10,44 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/loop_seal.dart';
 
+@immutable
+class EmailPasswordSubmission {
+  const EmailPasswordSubmission({
+    required this.email,
+    required this.password,
+    required this.isSignIn,
+  });
+
+  final String email;
+  final String password;
+  final bool isSignIn;
+}
+
+typedef EmailPasswordSubmitter =
+    Future<bool> Function(EmailPasswordSubmission submission);
+
+/// Keeps the form testable while production still uses the canonical Supabase
+/// Auth client and callback contract.
+final emailPasswordSubmitterProvider = Provider<EmailPasswordSubmitter>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  return (submission) async {
+    final AuthResponse response;
+    if (submission.isSignIn) {
+      response = await client.auth.signInWithPassword(
+        email: submission.email,
+        password: submission.password,
+      );
+    } else {
+      response = await client.auth.signUp(
+        email: submission.email,
+        password: submission.password,
+        emailRedirectTo: MobileAuthContract.callbackUrl,
+      );
+    }
+    return response.session != null || client.auth.currentSession != null;
+  };
+});
+
 /// Sign in / sign up, combined into one screen with a mode toggle —
 /// mirrors apps/web's (auth) group so the two platforms feel like the same
 /// product without literally sharing code. Real Supabase Auth, not a mock:
@@ -30,12 +68,18 @@ class AuthScreen extends ConsumerStatefulWidget {
 }
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
-  final _formKey = GlobalKey<FormState>();
+  GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
+  final _confirmPasswordFocusNode = FocusNode();
 
   bool _isSignIn = true;
   bool _submitting = false;
+  bool _passwordVisible = false;
+  bool _confirmPasswordVisible = false;
   String? _error;
   String? _notice;
 
@@ -43,6 +87,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    _confirmPasswordFocusNode.dispose();
     super.dispose();
   }
 
@@ -55,25 +103,28 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       _notice = null;
     });
 
-    final client = ref.read(supabaseClientProvider);
     final email = _emailController.text.trim();
     final password = _passwordController.text;
+    ref.read(googleOAuthControllerProvider.notifier).clearError();
 
     try {
-      if (_isSignIn) {
-        await client.auth.signInWithPassword(email: email, password: password);
-      } else {
-        await client.auth.signUp(
+      final hasSession = await ref.read(emailPasswordSubmitterProvider)(
+        EmailPasswordSubmission(
           email: email,
           password: password,
-          emailRedirectTo: MobileAuthContract.callbackUrl,
-        );
-      }
+          isSignIn: _isSignIn,
+        ),
+      );
       // On success the router's redirect (keyed off authStateChangesProvider)
       // takes over — no manual navigation needed here.
-      if (mounted && client.auth.currentSession == null) {
+      if (mounted && !hasSession) {
         setState(() {
-          _notice = 'Check your email to finish creating your account.';
+          if (_isSignIn) {
+            _error =
+                'LOOP could not verify your session. Try signing in again.';
+          } else {
+            _notice = 'Check your email to finish creating your account.';
+          }
         });
       }
     } on AuthException catch (error) {
@@ -103,10 +154,38 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   void _toggleMode() {
     setState(() {
       _isSignIn = !_isSignIn;
+      _formKey = GlobalKey<FormState>();
+      _passwordController.clear();
+      _confirmPasswordController.clear();
+      _passwordVisible = false;
+      _confirmPasswordVisible = false;
       _error = null;
       _notice = null;
     });
     ref.read(googleOAuthControllerProvider.notifier).clearError();
+  }
+
+  String? _validateEmail(String? value) {
+    final email = value?.trim() ?? '';
+    if (!RegExp(r'^[^@\s]+@[^@\s]+$').hasMatch(email)) {
+      return 'Enter a valid email address';
+    }
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    final password = value ?? '';
+    if (password.isEmpty) return 'Enter your password';
+    if (!_isSignIn && password.length < 8) {
+      return 'Use at least 8 characters';
+    }
+    return null;
+  }
+
+  String? _validatePasswordConfirmation(String? value) {
+    if (value == null || value.isEmpty) return 'Confirm your password';
+    if (value != _passwordController.text) return "Passwords don't match";
+    return null;
   }
 
   String _safeAuthMessage(AuthException error) {
@@ -147,6 +226,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
+                key: const Key('auth-scroll-view'),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.lg,
                   vertical: AppSpacing.lg,
@@ -258,70 +340,153 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             _LabeledField(
                               label: 'EMAIL',
                               child: TextFormField(
+                                key: const Key('auth-email-field'),
                                 controller: _emailController,
+                                focusNode: _emailFocusNode,
                                 enabled: !busy,
                                 keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
                                 autofillHints: const [AutofillHints.email],
                                 decoration: const InputDecoration(
                                   hintText: 'you@business.com',
                                 ),
-                                validator: (value) {
-                                  if (value == null || !value.contains('@')) {
-                                    return 'Enter a valid email address';
-                                  }
-                                  return null;
-                                },
+                                validator: _validateEmail,
+                                onFieldSubmitted: (_) =>
+                                    _passwordFocusNode.requestFocus(),
                               ),
                             ),
                             const SizedBox(height: AppSpacing.sm),
                             _LabeledField(
                               label: 'PASSWORD',
                               child: TextFormField(
+                                key: const Key('auth-password-field'),
                                 controller: _passwordController,
+                                focusNode: _passwordFocusNode,
                                 enabled: !busy,
-                                obscureText: true,
+                                obscureText: !_passwordVisible,
+                                autocorrect: false,
+                                enableSuggestions: false,
+                                textInputAction: _isSignIn
+                                    ? TextInputAction.done
+                                    : TextInputAction.next,
                                 autofillHints: [
                                   _isSignIn
                                       ? AutofillHints.password
                                       : AutofillHints.newPassword,
                                 ],
-                                decoration: const InputDecoration(
-                                  hintText: '••••••••',
+                                decoration: InputDecoration(
+                                  hintText: _isSignIn
+                                      ? 'Your password'
+                                      : 'At least 8 characters',
+                                  suffixIcon: IconButton(
+                                    key: const Key('auth-password-visibility'),
+                                    tooltip: _passwordVisible
+                                        ? 'Hide password'
+                                        : 'Show password',
+                                    onPressed: busy
+                                        ? null
+                                        : () => setState(
+                                            () => _passwordVisible =
+                                                !_passwordVisible,
+                                          ),
+                                    icon: Icon(
+                                      _passwordVisible
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                    ),
+                                  ),
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.length < 8) {
-                                    return 'At least 8 characters';
+                                validator: _validatePassword,
+                                onFieldSubmitted: (_) {
+                                  if (busy) return;
+                                  if (_isSignIn) {
+                                    _submitEmailPassword();
+                                  } else {
+                                    _confirmPasswordFocusNode.requestFocus();
                                   }
-                                  return null;
                                 },
-                                onFieldSubmitted: (_) =>
-                                    busy ? null : _submitEmailPassword(),
                               ),
                             ),
+                            if (!_isSignIn) ...[
+                              const SizedBox(height: AppSpacing.sm),
+                              _LabeledField(
+                                label: 'CONFIRM PASSWORD',
+                                child: TextFormField(
+                                  key: const Key('auth-confirm-password-field'),
+                                  controller: _confirmPasswordController,
+                                  focusNode: _confirmPasswordFocusNode,
+                                  enabled: !busy,
+                                  obscureText: !_confirmPasswordVisible,
+                                  autocorrect: false,
+                                  enableSuggestions: false,
+                                  textInputAction: TextInputAction.done,
+                                  autofillHints: const [
+                                    AutofillHints.newPassword,
+                                  ],
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter it again',
+                                    suffixIcon: IconButton(
+                                      key: const Key(
+                                        'auth-confirm-password-visibility',
+                                      ),
+                                      tooltip: _confirmPasswordVisible
+                                          ? 'Hide confirmation password'
+                                          : 'Show confirmation password',
+                                      onPressed: busy
+                                          ? null
+                                          : () => setState(
+                                              () => _confirmPasswordVisible =
+                                                  !_confirmPasswordVisible,
+                                            ),
+                                      icon: Icon(
+                                        _confirmPasswordVisible
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                      ),
+                                    ),
+                                  ),
+                                  validator: _validatePasswordConfirmation,
+                                  onFieldSubmitted: (_) =>
+                                      busy ? null : _submitEmailPassword(),
+                                ),
+                              ),
+                            ],
                             if (_error != null) ...[
                               const SizedBox(height: AppSpacing.sm),
-                              Text(
-                                _error!,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.dangerText,
+                              Semantics(
+                                liveRegion: true,
+                                child: Text(
+                                  _error!,
+                                  key: const Key('auth-error'),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.dangerText,
+                                  ),
                                 ),
                               ),
                             ],
                             if (_notice != null) ...[
                               const SizedBox(height: AppSpacing.sm),
-                              Text(
-                                _notice!,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.tyrianText,
+                              Semantics(
+                                liveRegion: true,
+                                child: Text(
+                                  _notice!,
+                                  key: const Key('auth-notice'),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.tyrianText,
+                                  ),
                                 ),
                               ),
                             ],
                             if (googleState.message != null) ...[
                               const SizedBox(height: AppSpacing.sm),
-                              Text(
-                                googleState.message!,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.dangerText,
+                              Semantics(
+                                liveRegion: true,
+                                child: Text(
+                                  googleState.message!,
+                                  key: const Key('auth-google-error'),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.dangerText,
+                                  ),
                                 ),
                               ),
                             ],
@@ -344,6 +509,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   ),
                                 ),
                                 child: ElevatedButton(
+                                  key: const Key('auth-submit'),
                                   onPressed: busy ? null : _submitEmailPassword,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.transparent,
@@ -369,6 +535,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       const SizedBox(height: AppSpacing.lg),
                       Center(
                         child: TextButton(
+                          key: const Key('auth-mode-toggle'),
                           onPressed: busy ? null : _toggleMode,
                           child: Text.rich(
                             TextSpan(

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/account/profile_providers.dart';
@@ -11,6 +12,18 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/loop_seal.dart';
 
 final _usernamePattern = RegExp(r'^[a-z0-9_]{3,20}$');
+final _asciiLowercaseFormatter = TextInputFormatter.withFunction((
+  oldValue,
+  newValue,
+) {
+  final normalized = newValue.text.replaceAllMapped(
+    RegExp('[A-Z]'),
+    (match) => match[0]!.toLowerCase(),
+  );
+  return normalized == newValue.text
+      ? newValue
+      : newValue.copyWith(text: normalized);
+});
 
 enum _UsernameStatus { idle, invalid, checking, available, taken, unavailable }
 
@@ -169,6 +182,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   late final OnboardingIdentityState _identity;
   late final TextEditingController _nameController;
   late final TextEditingController _usernameController;
+  late String _lastUsernameText;
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _nameFocusNode = FocusNode();
@@ -192,11 +206,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _nameController = TextEditingController(text: _identity.suggestedName);
     _usernameController = TextEditingController(
       text: _identity.suggestedUsername,
-    )..addListener(_onUsernameChanged);
-    _onUsernameChanged();
+    );
+    _lastUsernameText = _usernameController.text;
+    _usernameController.addListener(_onUsernameChanged);
+    _scheduleUsernameCheck();
   }
 
   void _onUsernameChanged() {
+    final text = _usernameController.text;
+    if (text == _lastUsernameText) return;
+    _lastUsernameText = text;
     _scheduleUsernameCheck();
     _clearSubmissionFeedback();
   }
@@ -306,6 +325,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return null;
   }
 
+  void _focusFirstInvalidField() {
+    final name = _nameController.text.trim();
+    final username = _usernameController.text.trim().toLowerCase();
+    if (name.isEmpty) {
+      _nameFocusNode.requestFocus();
+      return;
+    }
+    if (!_usernamePattern.hasMatch(username) ||
+        _usernameStatus != _UsernameStatus.available) {
+      _usernameFocusNode.requestFocus();
+      return;
+    }
+    if (_identity.credentialsRequired) {
+      if (_passwordController.text.length < 8) {
+        _passwordFocusNode.requestFocus();
+      } else if (_confirmPasswordController.text != _passwordController.text) {
+        _confirmPasswordFocusNode.requestFocus();
+      }
+    }
+  }
+
   Future<void> _submit() async {
     if (_submitting) return;
 
@@ -315,6 +355,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         _error = validationMessage;
         _submissionFailed = false;
       });
+      _focusFirstInvalidField();
       return;
     }
     if (_identity.userId.isEmpty) {
@@ -346,10 +387,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ref.invalidate(currentProfileProvider);
     } catch (error) {
       if (!mounted) return;
+      final usernameConflict =
+          error is PostgrestException && error.code == '23505';
       setState(() {
+        if (usernameConflict) _usernameStatus = _UsernameStatus.taken;
         _error = _safeSubmissionMessage(error);
         _submissionFailed = true;
       });
+      if (usernameConflict) _usernameFocusNode.requestFocus();
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -493,6 +538,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         autocorrect: false,
                         enableSuggestions: false,
                         textCapitalization: TextCapitalization.none,
+                        inputFormatters: [_asciiLowercaseFormatter],
                         textInputAction: _identity.credentialsRequired
                             ? TextInputAction.next
                             : TextInputAction.done,
