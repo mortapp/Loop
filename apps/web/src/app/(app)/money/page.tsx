@@ -47,7 +47,7 @@ export default async function MoneyPage() {
     : { data: [] as MoneyEvent[] };
 
   // Totals come from the one canonical formula (public.account_money_totals,
-  // see supabase/migrations/20260822163000_money_integrity.sql) rather than
+  // see supabase/migrations/20260822165605_money_integrity.sql) rather than
   // being re-derived here -- this page used to reduce over `events` itself,
   // duplicating the exact same formula apps/mobile also reimplemented.
   const { data: totalsRows } = accountId
@@ -148,7 +148,8 @@ export default async function MoneyPage() {
                   {event.description || KIND_LABEL[event.kind]}
                 </p>
                 <p className="text-xs text-[var(--color-text-tertiary)]">
-                  {new Date(event.occurred_at).toLocaleDateString()} · {event.source_type ?? "manual"}
+                  {new Date(event.occurred_at).toLocaleDateString()} ·{" "}
+                  {event.source_type ?? "manual"}
                 </p>
               </div>
               <Amount

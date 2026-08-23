@@ -1,5 +1,5 @@
 -- pgTAP regression tests for Today automation
--- (supabase/migrations/20260822160000_today_automation.sql). Run with:
+-- (supabase/migrations/20260822164226_today_automation.sql). Run with:
 --   supabase test db --local supabase/tests/database
 --
 -- Everything here runs inside one transaction that is rolled back at the

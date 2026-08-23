@@ -104,7 +104,7 @@ export async function createQuote(
   } = await supabase.auth.getUser();
 
   // Header + line items are inserted atomically by this RPC (one plpgsql
-  // transaction) — see supabase/migrations/20260817000008_quote_rpc.sql.
+  // transaction) — see supabase/migrations/20260821235124_quote_rpc.sql.
   const { error } = await supabase.rpc("create_quote_with_line_items", {
     p_account_id: accountId,
     p_contact_id: contactId,

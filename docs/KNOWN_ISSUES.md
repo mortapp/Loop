@@ -50,7 +50,7 @@ regression test disproved that diagnosis.
 Extends the display-name onboarding above (same session, owner asked
 for a fuller native account-setup step). Both platforms:
 
-- `profiles.username` (`supabase/migrations/20260822180000_usernames.sql`):
+- `profiles.username` (`supabase/migrations/20260823011853_usernames.sql`):
   lowercase, `[a-z0-9_]{3,20}`, a reserved-name list, and a database
   unique index -- all three are real schema constraints, not just
   client-side checks. `public.is_username_available(candidate)` is a
@@ -403,7 +403,7 @@ every `SECURITY DEFINER` function was still executable by `anon` (the
 Postgres default of granting EXECUTE to PUBLIC was never explicitly
 revoked, unlike every table-level GRANT in this schema, which always
 revokes-then-narrows). Fixed in a new migration,
-`20260821235200_harden_function_search_path_and_grants.sql`, applied
+`20260821235226_harden_function_search_path_and_grants.sql`, applied
 to the hosted project and committed to `supabase/migrations/` so local
 dev picks it up too. Reverified clean afterward (only the expected,
 intentional `authenticated`-only advisories remain. The later
@@ -441,7 +441,7 @@ of the very table being queried) and `profiles`' peer-visibility policy
 (joining `business_members` twice). Fixed by routing the membership
 check through `SECURITY DEFINER` helper functions
 (`is_active_business_member`, `is_business_admin`,
-`shares_active_business` in `20260817000002_identity.sql`), which bypass
+`shares_active_business` in `20260821234807_identity.sql`), which bypass
 RLS internally and break the cycle. Any future policy that needs to
 check membership/role should call these helpers rather than inlining a
 fresh subquery on `business_members`.
@@ -559,7 +559,7 @@ environment — see docs/VERCEL_DEPLOYMENT.md.
 Was: `createQuote` inserted the `quotes` header row, then
 `quote_line_items` in a second request, so a failure between the two
 left an orphaned header. Fixed by `public.create_quote_with_line_items`
-(`supabase/migrations/20260817000008_quote_rpc.sql`), a `security
+(`supabase/migrations/20260821235124_quote_rpc.sql`), a `security
 invoker` plpgsql function that does both inserts in one transaction;
 `createQuote` now calls it via `.rpc()`. Verified live: a successful
 call returns the quote id with its line items attached, and a rejected

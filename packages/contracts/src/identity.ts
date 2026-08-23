@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Row schemas mirror `supabase/migrations/20260817000002_identity.sql`
+// Row schemas mirror `supabase/migrations/20260821234807_identity.sql`
 // column-for-column (snake_case, matching what the Supabase client returns).
 
 export const accountModeSchema = z.enum(["personal", "business", "both"]);

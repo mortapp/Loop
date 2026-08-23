@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // PROTECT / ReturnGuard. Row schemas mirror
-// `supabase/migrations/20260817000005_protect.sql` column-for-column.
+// `supabase/migrations/20260821235006_protect.sql` column-for-column.
 
 export const purchaseSchema = z.object({
   id: z.string().uuid(),

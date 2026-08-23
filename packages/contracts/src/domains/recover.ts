@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // RECOVER / ResellLens. Row schemas mirror
-// `supabase/migrations/20260817000006_recover.sql` column-for-column.
+// `supabase/migrations/20260821235044_recover.sql` column-for-column.
 
 export const valuationSourceSchema = z.enum(["ai", "manual", "marketplace"]);
 export type ValuationSource = z.infer<typeof valuationSourceSchema>;
@@ -20,12 +20,7 @@ export const valuationSchema = z.object({
 });
 export type Valuation = z.infer<typeof valuationSchema>;
 
-export const listingStatusSchema = z.enum([
-  "draft",
-  "active",
-  "sold",
-  "removed",
-]);
+export const listingStatusSchema = z.enum(["draft", "active", "sold", "removed"]);
 export type ListingStatus = z.infer<typeof listingStatusSchema>;
 
 export const listingSchema = z.object({

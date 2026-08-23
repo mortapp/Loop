@@ -1,6 +1,6 @@
 /// MADE/PROTECTED/RECOVERED/SPENT/FEES/NET for an account — the shape
 /// returned by the canonical `public.account_money_totals` RPC (see
-/// supabase/migrations/20260822163000_money_integrity.sql). This is the
+/// supabase/migrations/20260822165605_money_integrity.sql). This is the
 /// one place the formula lives; this class only carries the result.
 class MoneyTotals {
   const MoneyTotals({

@@ -20,7 +20,7 @@ final todayActionsProvider = FutureProvider.autoDispose<List<ActionItem>>((
     // Best-effort: turn due quote/return/warranty deadlines into actions
     // before reading the list. A transient failure here (offline, RLS
     // edge case) should never block showing whatever actions already
-    // exist — see supabase/migrations/20260822160000_today_automation.sql.
+    // exist — see supabase/migrations/20260822164226_today_automation.sql.
     try {
       await client.rpc(
         'generate_today_actions',

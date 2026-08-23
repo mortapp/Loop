@@ -1,5 +1,5 @@
 -- pgTAP regression tests for Money integrity
--- (supabase/migrations/20260822163000_money_integrity.sql). Run with:
+-- (supabase/migrations/20260822165605_money_integrity.sql). Run with:
 --   supabase test db --local supabase/tests/database
 --
 -- Runs inside one transaction rolled back at the end (same pattern as

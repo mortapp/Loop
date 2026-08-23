@@ -1,6 +1,6 @@
 -- Exhaustive pgTAP coverage for business_members RLS
--- (supabase/migrations/20260817000002_identity.sql originally,
--- supabase/migrations/20260822170000_fix_business_members_self_escalation.sql
+-- (supabase/migrations/20260821234807_identity.sql originally,
+-- supabase/migrations/20260822173117_fix_business_members_self_escalation.sql
 -- for the fix this suite verifies). Run with:
 --   supabase test db --local supabase/tests/database
 --
@@ -147,7 +147,7 @@ select is(
 );
 
 -- anon has no table-level GRANT on business_members at all (only
--- authenticated does -- see 20260817000002_identity.sql's grants), so an
+-- authenticated does -- see 20260821234807_identity.sql's grants), so an
 -- anon SELECT fails at the permission layer before RLS is even
 -- evaluated; that denial is itself the "anon sees nothing" guarantee.
 select pg_temp.authenticate_as_anon();

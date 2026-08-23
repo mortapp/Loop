@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Row schemas mirror `supabase/migrations/20260817000003_core_primitives.sql`
+// Row schemas mirror `supabase/migrations/20260821234907_core_primitives.sql`
 // column-for-column. Every table here carries `account_id` — the unified
 // context shared by MAKE, PROTECT, and RECOVER.
 
@@ -19,13 +19,7 @@ export const contactSchema = z.object({
 });
 export type Contact = z.infer<typeof contactSchema>;
 
-export const itemStatusSchema = z.enum([
-  "owned",
-  "returned",
-  "listed",
-  "sold",
-  "disposed",
-]);
+export const itemStatusSchema = z.enum(["owned", "returned", "listed", "sold", "disposed"]);
 export type ItemStatus = z.infer<typeof itemStatusSchema>;
 
 /** The OWN anchor entity that MAKE/PROTECT/RECOVER all hang off of. */
@@ -75,13 +69,7 @@ export const documentSchema = z.object({
 });
 export type Document = z.infer<typeof documentSchema>;
 
-export const moneyEventKindSchema = z.enum([
-  "earn",
-  "spend",
-  "refund",
-  "fee",
-  "recovered",
-]);
+export const moneyEventKindSchema = z.enum(["earn", "spend", "refund", "fee", "recovered"]);
 export type MoneyEventKind = z.infer<typeof moneyEventKindSchema>;
 
 /** Append-only ledger row. Never updated or deleted once inserted. */
@@ -101,12 +89,7 @@ export const moneyEventSchema = z.object({
 });
 export type MoneyEvent = z.infer<typeof moneyEventSchema>;
 
-export const actionStatusSchema = z.enum([
-  "open",
-  "snoozed",
-  "done",
-  "dismissed",
-]);
+export const actionStatusSchema = z.enum(["open", "snoozed", "done", "dismissed"]);
 export type ActionStatus = z.infer<typeof actionStatusSchema>;
 
 /** The unified queue that powers the Today engine. */

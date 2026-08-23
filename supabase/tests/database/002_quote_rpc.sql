@@ -1,5 +1,5 @@
 -- pgTAP regression tests for public.create_quote_with_line_items
--- (supabase/migrations/20260817000008_quote_rpc.sql). Run with:
+-- (supabase/migrations/20260821235124_quote_rpc.sql). Run with:
 --   supabase test db --local supabase/tests/database
 
 create extension if not exists pgtap;

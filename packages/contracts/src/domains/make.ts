@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // MAKE / QuoteCloser. Row schemas mirror
-// `supabase/migrations/20260817000004_make.sql` column-for-column.
+// `supabase/migrations/20260821234924_make.sql` column-for-column.
 
 export const leadStatusSchema = z.enum([
   "new",

@@ -2,7 +2,7 @@
 -- isolation. Run with: supabase test db --local supabase/tests/database
 --
 -- This encodes the manual REST/psql smoke test performed while building
--- 20260817000002_identity.sql (see docs/TEST_MATRIX.md /
+-- 20260821234807_identity.sql (see docs/TEST_MATRIX.md /
 -- docs/KNOWN_ISSUES.md), so the two real bugs found there (RLS
 -- self-recursion, and the INSERT...RETURNING/SELECT-policy race on
 -- business creation) can't silently regress.

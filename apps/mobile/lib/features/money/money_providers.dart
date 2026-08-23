@@ -28,7 +28,7 @@ final moneyEventsProvider = FutureProvider.autoDispose<List<MoneyEvent>>((
 
 /// MADE/PROTECTED/RECOVERED/SPENT/FEES/NET, sourced from the one canonical
 /// formula (public.account_money_totals — see
-/// supabase/migrations/20260822163000_money_integrity.sql) instead of
+/// supabase/migrations/20260822165605_money_integrity.sql) instead of
 /// being re-derived client-side. Web reads the same RPC.
 final moneyTotalsProvider = FutureProvider.autoDispose<MoneyTotals>((
   ref,

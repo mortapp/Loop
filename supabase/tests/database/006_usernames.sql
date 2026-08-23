@@ -1,5 +1,5 @@
 -- pgTAP regression tests for @username handles
--- (supabase/migrations/20260822180000_usernames.sql). Run with:
+-- (supabase/migrations/20260823011853_usernames.sql). Run with:
 --   supabase test db --local supabase/tests/database
 
 create extension if not exists pgtap;
