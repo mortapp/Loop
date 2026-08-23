@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { getThemePreference } from "@/lib/theme";
 import "./globals.css";
@@ -23,10 +24,15 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: "LOOP",
-  description: "LOOP — one unified value operating system. Earn, buy, own, return or resell, earn again.",
+  description:
+    "LOOP — one unified value operating system. Earn, buy, own, return or resell, earn again.",
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
+type RootLayoutProps = {
+  children: ReactNode;
+};
+
+export default async function RootLayout({ children }: RootLayoutProps) {
   const theme = await getThemePreference();
 
   return (
