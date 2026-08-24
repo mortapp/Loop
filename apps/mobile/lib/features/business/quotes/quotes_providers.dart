@@ -133,14 +133,7 @@ class QuotesRepository {
   }
 
   Future<void> setStatus({required String id, required QuoteStatus status}) {
-    final patch = <String, dynamic>{'status': status.name};
-    if (status == QuoteStatus.sent) {
-      patch['sent_at'] = DateTime.now().toIso8601String();
-    }
-    if (status == QuoteStatus.accepted) {
-      patch['accepted_at'] = DateTime.now().toIso8601String();
-    }
-    return _client.from('quotes').update(patch).eq('id', id);
+    return _client.from('quotes').update({'status': status.name}).eq('id', id);
   }
 }
 

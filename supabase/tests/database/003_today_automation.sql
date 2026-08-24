@@ -47,6 +47,10 @@ $$ language plpgsql;
 
 select pg_temp.authenticate_as('44444444-4444-4444-4444-444444444444');
 
+-- This block creates historical fixture states that ordinary clients cannot
+-- manufacture directly (custom sent_at/valid_until timestamps).
+reset role;
+
 do $$
 declare
   v_account_id uuid;
@@ -78,6 +82,8 @@ begin
   insert into public.warranties (account_id, item_id, expires_at)
   values (v_account_id, v_item_id, current_date + 10);
 end $$;
+
+select pg_temp.authenticate_as('44444444-4444-4444-4444-444444444444');
 
 -- ---------------------------------------------------------------------------
 -- Generation: exactly the 4 eligible rows, nothing for the fresh quote.

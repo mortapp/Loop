@@ -87,20 +87,14 @@ QuoteLinePreparation prepareQuoteLines(List<QuoteLineDraft> drafts) {
       );
     }
 
-    final unitPrice = double.tryParse(unitPriceText);
-    final scaledUnitPrice = unitPrice == null ? null : unitPrice * 100;
-    if (unitPrice == null ||
-        !unitPrice.isFinite ||
-        unitPrice < 0 ||
-        scaledUnitPrice == null ||
-        !scaledUnitPrice.isFinite) {
+    final unitPriceCents = MoneyUtils.dollarsStringToCents(unitPriceText);
+    if (unitPriceCents == null) {
       return invalid(
         'Line $lineNumber: enter a valid non-negative unit price. '
         'Use 0 for a free line item.',
       );
     }
 
-    final unitPriceCents = scaledUnitPrice.round();
     final unroundedLineTotal = quantity * unitPriceCents;
     if (!unroundedLineTotal.isFinite) {
       return invalid('Line $lineNumber: the line total is too large.');

@@ -28,6 +28,8 @@ void main() {
         'Infinity',
         '-Infinity',
         '1e309',
+        '1.005',
+        '1000000000.01',
       ]) {
         final result = prepareQuoteLines([
           QuoteLineDraft(description: 'Consulting', unitPrice: unitPrice),

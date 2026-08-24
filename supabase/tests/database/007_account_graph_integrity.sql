@@ -137,16 +137,23 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$ insert into public.quotes (account_id, contact_id, quote_number)
-     select id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', 'FORGED-CONTACT'
-     from public.accounts where owner_profile_id = '11111111-1111-4111-8111-111111111111' $$,
+  $$ select public.create_quote_with_line_items(
+       (select id from public.accounts where owner_profile_id = '11111111-1111-4111-8111-111111111111'),
+       'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', null::uuid, 'FORGED-CONTACT',
+       100, 0, 100, '11111111-1111-4111-8111-111111111111',
+       '[{"description":"Fixture","quantity":1,"unit_price_cents":100}]'::jsonb
+     ) $$,
   '23514', null, 'quotes reject a contact from another account'
 );
 
 select throws_ok(
-  $$ insert into public.quotes (account_id, opportunity_id, quote_number)
-     select id, 'dddddddd-dddd-4ddd-8ddd-ddddddddddd2', 'FORGED-OPPORTUNITY'
-     from public.accounts where owner_profile_id = '11111111-1111-4111-8111-111111111111' $$,
+  $$ select public.create_quote_with_line_items(
+       (select id from public.accounts where owner_profile_id = '11111111-1111-4111-8111-111111111111'),
+       'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1',
+       'dddddddd-dddd-4ddd-8ddd-ddddddddddd2', 'FORGED-OPPORTUNITY',
+       100, 0, 100, '11111111-1111-4111-8111-111111111111',
+       '[{"description":"Fixture","quantity":1,"unit_price_cents":100}]'::jsonb
+     ) $$,
   '23514', null, 'quotes reject an opportunity from another account'
 );
 

@@ -180,8 +180,8 @@ select throws_ok(
   from public.accounts
   where owner_profile_id = '33333333-3333-3333-3333-333333333333'
   $$,
-  '23514', null,
-  'direct quote writes cannot bypass amount consistency'
+  '42501', null,
+  'direct quote writes are denied instead of relying only on amount checks'
 );
 
 select throws_ok(
@@ -193,8 +193,8 @@ select throws_ok(
   from public.quotes
   where quote_number = 'Q-TEST-0001'
   $$,
-  '23514', null,
-  'direct line writes cannot bypass quantity constraints'
+  '42501', null,
+  'direct line writes are denied instead of relying only on line checks'
 );
 
 select * from finish();

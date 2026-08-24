@@ -6,6 +6,7 @@ import '../../core/account/account_providers.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/money.dart';
+import '../../core/utils/request_id.dart';
 import '../../core/widgets/account_sheet.dart';
 import '../../core/widgets/async_error_view.dart';
 import 'models/money_event.dart';
@@ -358,6 +359,7 @@ class _LogEventFormState extends ConsumerState<_LogEventForm> {
   MoneyEventKind _kind = MoneyEventKind.earn;
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
+  String _requestId = newRequestId();
   bool _submitting = false;
   String? _error;
 
@@ -388,6 +390,7 @@ class _LogEventFormState extends ConsumerState<_LogEventForm> {
             accountId: accountId,
             kind: _kind,
             amountCents: amountCents,
+            requestId: _requestId,
             description: _descriptionController.text.trim().isEmpty
                 ? null
                 : _descriptionController.text.trim(),
@@ -395,6 +398,7 @@ class _LogEventFormState extends ConsumerState<_LogEventForm> {
       if (!mounted) return;
       _amountController.clear();
       _descriptionController.clear();
+      _requestId = newRequestId();
       ref.invalidate(moneyEventsProvider);
       ref.invalidate(moneyTotalsProvider);
     } catch (_) {

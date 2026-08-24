@@ -275,17 +275,39 @@ class MoneyEventsRepository {
     required String accountId,
     required MoneyEventKind kind,
     required int amountCents,
+    required String requestId,
     String? description,
-  }) {
+  }) async {
     final userId = _client.auth.currentUser?.id;
-    return _client.from('money_events').insert({
+    final payload = {
       'account_id': accountId,
       'kind': kind.name,
       'amount_cents': amountCents,
       'source_type': 'manual',
+      'source_id': requestId,
       'description': description,
       'created_by': userId,
-    });
+    };
+
+    try {
+      await _client.from('money_events').insert(payload);
+    } on PostgrestException catch (error) {
+      if (error.code != '23505') rethrow;
+
+      final existing = await _client
+          .from('money_events')
+          .select('kind, amount_cents, description')
+          .eq('account_id', accountId)
+          .eq('source_type', 'manual')
+          .eq('source_id', requestId)
+          .maybeSingle();
+      final isSameRequest =
+          existing != null &&
+          existing['kind'] == kind.name &&
+          existing['amount_cents'] == amountCents &&
+          existing['description'] == description;
+      if (!isSameRequest) rethrow;
+    }
   }
 }
 

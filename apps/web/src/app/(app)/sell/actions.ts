@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { parseDollarsToCents } from "@/lib/money-input";
 import { userSafeServerError } from "@/lib/user-safe-error";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -17,12 +18,11 @@ export async function createItem(_prev: FormState, formData: FormData): Promise<
   const category = String(formData.get("category") ?? "").trim() || null;
   const condition = String(formData.get("condition") ?? "").trim() || null;
   const purchasePrice = String(formData.get("purchasePrice") ?? "").trim();
-  const purchasePriceCents = purchasePrice ? Math.round(Number(purchasePrice) * 100) : null;
+  const purchasePriceCents = purchasePrice
+    ? parseDollarsToCents(purchasePrice, { allowZero: true })
+    : null;
 
-  if (
-    purchasePriceCents !== null &&
-    (!Number.isFinite(purchasePriceCents) || purchasePriceCents < 0)
-  ) {
+  if (purchasePriceCents !== null && purchasePriceCents === null) {
     return { error: "Enter a valid purchase price." };
   }
 
@@ -136,9 +136,9 @@ export async function removeItemPhoto(
 export async function addValuation(_prev: FormState, formData: FormData): Promise<FormState> {
   const itemId = String(formData.get("itemId") ?? "").trim();
   const value = String(formData.get("value") ?? "").trim();
-  const estimatedValueCents = Math.round(Number(value) * 100);
+  const estimatedValueCents = parseDollarsToCents(value);
 
-  if (!itemId || !value || !Number.isFinite(estimatedValueCents) || estimatedValueCents <= 0) {
+  if (!itemId || estimatedValueCents === null) {
     return { error: "Enter a valid estimated value." };
   }
 
@@ -172,12 +172,12 @@ export async function createListing(_prev: FormState, formData: FormData): Promi
   const itemId = String(formData.get("itemId") ?? "").trim();
   const marketplace = String(formData.get("marketplace") ?? "").trim();
   const listPrice = String(formData.get("listPrice") ?? "").trim();
-  const listPriceCents = listPrice ? Math.round(Number(listPrice) * 100) : null;
+  const listPriceCents = listPrice ? parseDollarsToCents(listPrice, { allowZero: true }) : null;
 
   if (!itemId || !marketplace) {
     return { error: "Marketplace is required." };
   }
-  if (listPriceCents !== null && (!Number.isFinite(listPriceCents) || listPriceCents < 0)) {
+  if (listPrice && listPriceCents === null) {
     return { error: "Enter a valid listing price." };
   }
 
@@ -208,17 +208,10 @@ export async function recordSale(_prev: FormState, formData: FormData): Promise<
   const salePrice = String(formData.get("salePrice") ?? "").trim();
   const fees = String(formData.get("fees") ?? "").trim();
 
-  const salePriceCents = Math.round(Number(salePrice) * 100);
-  const feesCents = fees ? Math.round(Number(fees) * 100) : 0;
+  const salePriceCents = parseDollarsToCents(salePrice);
+  const feesCents = fees ? parseDollarsToCents(fees, { allowZero: true }) : 0;
 
-  if (
-    !itemId ||
-    !Number.isFinite(salePriceCents) ||
-    salePriceCents <= 0 ||
-    !Number.isFinite(feesCents) ||
-    feesCents < 0 ||
-    feesCents > salePriceCents
-  ) {
+  if (!itemId || salePriceCents === null || feesCents === null || feesCents > salePriceCents) {
     return { error: "Enter a valid sale price." };
   }
 

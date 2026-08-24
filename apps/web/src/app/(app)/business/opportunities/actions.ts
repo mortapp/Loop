@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { parseDollarsToCents } from "@/lib/money-input";
 import { userSafeServerError } from "@/lib/user-safe-error";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -32,8 +33,10 @@ export async function createOpportunity(
     return { error: "Title is required." };
   }
 
-  const estimatedValueCents = estimatedValue ? Math.round(Number(estimatedValue) * 100) : null;
-  if (estimatedValue && !Number.isFinite(estimatedValueCents)) {
+  const estimatedValueCents = estimatedValue
+    ? parseDollarsToCents(estimatedValue, { allowZero: true })
+    : null;
+  if (estimatedValue && estimatedValueCents === null) {
     return { error: "Estimated value must be a number." };
   }
 

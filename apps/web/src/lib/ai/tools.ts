@@ -1,5 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { parseDollarValueToCents } from "@/lib/money-input";
 import { userSafeServerError } from "@/lib/user-safe-error";
 
 /**
@@ -105,9 +106,8 @@ export async function executeTool(
       if (!["earn", "spend", "refund", "fee"].includes(kind)) {
         return { error: "Invalid kind." };
       }
-      const amountDollars = Number(input.amountDollars);
-      const amountCents = Math.round(amountDollars * 100);
-      if (!Number.isFinite(amountCents) || amountCents <= 0) {
+      const amountCents = parseDollarValueToCents(input.amountDollars);
+      if (amountCents === null) {
         return { error: "Invalid amount." };
       }
       const description = input.description ? String(input.description).trim() : null;
@@ -139,12 +139,12 @@ export async function executeTool(
             Number(existing.amount_cents) === amountCents &&
             (existing.description ?? null) === description
           ) {
-            return { summary: `Logged ${kind} of $${amountDollars.toFixed(2)}.` };
+            return { summary: `Logged ${kind} of $${(amountCents / 100).toFixed(2)}.` };
           }
         }
         return { error: userSafeServerError("ai:log-money-event", error) };
       }
-      return { summary: `Logged ${kind} of $${amountDollars.toFixed(2)}.` };
+      return { summary: `Logged ${kind} of $${(amountCents / 100).toFixed(2)}.` };
     }
 
     default:

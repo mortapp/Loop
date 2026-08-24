@@ -130,7 +130,7 @@ export default async function MoneyPage() {
           Log a manual entry
         </summary>
         <div className="mt-3">
-          <LogEventForm />
+          <LogEventForm initialRequestId={crypto.randomUUID()} />
         </div>
       </details>
 

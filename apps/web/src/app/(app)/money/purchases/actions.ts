@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { parseDollarsToCents } from "@/lib/money-input";
 import { userSafeServerError } from "@/lib/user-safe-error";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -23,8 +24,8 @@ export async function createPurchase(_prev: FormState, formData: FormData): Prom
   const returnWindowExpiresAt = String(formData.get("returnWindowExpiresAt") ?? "").trim() || null;
   const warrantyExpiresAt = String(formData.get("warrantyExpiresAt") ?? "").trim() || null;
 
-  const priceCents = price ? Math.round(Number(price) * 100) : null;
-  if (price && !Number.isFinite(priceCents)) {
+  const priceCents = price ? parseDollarsToCents(price, { allowZero: true }) : null;
+  if (price && priceCents === null) {
     return { error: "Price must be a number." };
   }
 
@@ -137,15 +138,9 @@ export async function refundReturn(_prev: FormState, formData: FormData): Promis
   const returnId = String(formData.get("returnId") ?? "").trim();
   const itemId = String(formData.get("itemId") ?? "").trim();
   const amount = String(formData.get("amount") ?? "").trim();
-  const refundAmountCents = Math.round(Number(amount) * 100);
+  const refundAmountCents = parseDollarsToCents(amount);
 
-  if (
-    !returnId ||
-    !itemId ||
-    !amount ||
-    !Number.isFinite(refundAmountCents) ||
-    refundAmountCents <= 0
-  ) {
+  if (!returnId || !itemId || !amount || refundAmountCents === null) {
     return { error: "Enter a valid refund amount." };
   }
 

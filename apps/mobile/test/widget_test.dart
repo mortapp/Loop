@@ -145,8 +145,14 @@ void main() {
     test('dollarsStringToCents parses dollar strings to integer cents', () {
       expect(MoneyUtils.dollarsStringToCents('12.34'), 1234);
       expect(MoneyUtils.dollarsStringToCents('0.01'), 1);
+      expect(MoneyUtils.dollarsStringToCents('0'), 0);
+      expect(MoneyUtils.dollarsStringToCents('1000000000.00'), 100000000000);
       expect(MoneyUtils.dollarsStringToCents(''), isNull);
       expect(MoneyUtils.dollarsStringToCents('not a number'), isNull);
+      expect(MoneyUtils.dollarsStringToCents('1.005'), isNull);
+      expect(MoneyUtils.dollarsStringToCents('1e3'), isNull);
+      expect(MoneyUtils.dollarsStringToCents('-1'), isNull);
+      expect(MoneyUtils.dollarsStringToCents('1000000000.01'), isNull);
     });
 
     test('formatCents renders grouped, signed dollar strings', () {

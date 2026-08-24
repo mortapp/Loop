@@ -13,6 +13,7 @@ export const AUTH_FILE = "e2e/.auth/qa-user.json";
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
+  workers: 2,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",

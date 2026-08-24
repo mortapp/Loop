@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
+import { MAX_MONEY_CENTS, parseDollarsToCents } from "@/lib/money-input";
 import { userSafeServerError } from "@/lib/user-safe-error";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -10,7 +11,6 @@ export type CreateQuoteState = { error: string } | null;
 
 const MAX_QUOTE_LINES = 100;
 const MAX_QUANTITY = 1_000_000;
-const MAX_UNIT_PRICE_CENTS = 100_000_000_000;
 
 const ALLOWED_QUOTE_STATUSES = new Set([
   "draft",
@@ -55,8 +55,9 @@ export async function createQuote(
   for (let index = 0; index < descriptions.length; index += 1) {
     const description = descriptions[index].trim();
     const quantity = Number(quantities[index] ?? "");
-    const unitPrice = Number(unitPrices[index] ?? "");
-    const unitPriceCents = Math.round(unitPrice * 100);
+    const unitPriceCents = parseDollarsToCents(unitPrices[index] ?? "", {
+      allowZero: true,
+    });
 
     if (!description) {
       return { error: `Line ${index + 1} needs a description.` };
@@ -67,12 +68,7 @@ export async function createQuote(
     if (!Number.isSafeInteger(quantity) || quantity <= 0 || quantity > MAX_QUANTITY) {
       return { error: `Line ${index + 1} needs a whole-number quantity greater than zero.` };
     }
-    if (
-      !Number.isFinite(unitPrice) ||
-      unitPrice < 0 ||
-      !Number.isSafeInteger(unitPriceCents) ||
-      unitPriceCents > MAX_UNIT_PRICE_CENTS
-    ) {
+    if (unitPriceCents === null || unitPriceCents > MAX_MONEY_CENTS) {
       return { error: `Line ${index + 1} needs a valid non-negative unit price.` };
     }
 
@@ -148,13 +144,9 @@ export async function setQuoteStatus(
   }
 
   const supabase = await createClient();
-  const patch: Record<string, unknown> = { status };
-  if (status === "sent") patch.sent_at = new Date().toISOString();
-  if (status === "accepted") patch.accepted_at = new Date().toISOString();
-
   const { error } = await supabase
     .from("quotes")
-    .update(patch)
+    .update({ status })
     .eq("id", id)
     .eq("account_id", accountId)
     .select("id")

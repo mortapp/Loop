@@ -70,6 +70,9 @@ jobs:
       - name: Type-check web app
         run: npm run typecheck --workspace apps/web
 
+      - name: Run web unit tests
+        run: npm run test:unit --workspace apps/web
+
       - name: Lint web app
         run: npm run lint --workspace apps/web
 
