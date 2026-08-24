@@ -11,9 +11,9 @@ authenticated LOOP. The working callback is
 `com.loop.app.loop-mobile://app/login-callback` and must not be changed.
 
 Wireless `adb devices -l` and `adb mdns services` currently return no device.
-The exact configured QA APK built from `6c90866` is
-`artifacts/final-head-6c90866/loop-6c90866-final-head-configured-debug-qa.apk`
-(SHA-256 `57FC377A9AF83F7A574AD11D89A09EDE370E58433BCE15F474F71D61473980B4`).
+The exact configured QA APK built from `c963f65` is
+`artifacts/hardening-c963f65/loop-c963f65-configured-debug-qa.apk`
+(SHA-256 `8A81E4E00CABCEF9D9D8C262B678B343D34B2093FE65EDEDEE3BEACEE0D0B275`).
 It therefore has not been installed or traversed. Do not mark the
 following complete until the exact APK is tested without clearing the owner's
 session: Today, Money, Sell/photo picker, Business/quotes, Protect, Ask LOOP,
@@ -70,13 +70,14 @@ spend money solely from this task.
 
 ## Advisor Findings Accepted With Evidence
 
-- Five authenticated-executable `SECURITY DEFINER` helpers remain:
-  `has_account_access`, `is_active_business_member`, `is_business_admin`,
-  `is_username_available`, and `shares_active_business`. They are narrow,
-  authenticated, search-path-hardened recursion breakers or boolean UX helpers
-  used by RLS. Anonymous/PUBLIC execution is revoked. Their authorization
-  behavior is covered by the 185-case database suite. Do not revoke them without
-  redesigning and retesting the policies that depend on them.
+- Six authenticated-executable `SECURITY DEFINER` functions remain:
+  `create_quote_with_line_items`, `has_account_access`,
+  `is_active_business_member`, `is_business_admin`,
+  `is_username_available`, and `shares_active_business`. The quote function is
+  the narrow validated write authority after direct quote creation and line
+  mutation were revoked. The others are search-path-hardened recursion breakers
+  or boolean helpers used by RLS. Anonymous/PUBLIC execution is revoked. Their
+  authorization behavior is covered by the 199-case database suite.
 - Performance advisor notices are unused-index INFO entries on a low-traffic
   dataset. The indexes support known relationship, status, deadline, feed, and
   pagination queries. Reassess with production telemetry; do not drop them now.
@@ -97,6 +98,11 @@ spend money solely from this task.
 - CI is one authoritative workflow rather than three overlapping workflows.
 - Icon-only account and quote-line controls now expose accessible names, with
   focused widget regression coverage.
+- Fractional-cent, exponent, unsafe, and oversized money values are rejected
+  consistently by web, Flutter, AI tool input, and Postgres constraints.
+- Manual Money retries are exactly-once on web and mobile.
+- Direct quote total, header, line, and delete mutations are denied; quote
+  creation remains available only through its validated server function.
 
 ## Security Hygiene
 

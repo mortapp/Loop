@@ -4,16 +4,16 @@ Updated: 2026-08-23
 
 | Area                          | Command or evidence                                                      | Result                                                               |
 | ----------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| Database replay               | `npx supabase db reset --local` on a clean detached worktree             | PASS - all 24 migrations and seed applied                            |
-| Database regression           | `npx supabase test db --local supabase/tests/database`                   | PASS - 11 files, 185 tests                                           |
-| Migration parity              | Hosted `list_migrations` vs local filenames                              | PASS - exact 24-entry match                                          |
+| Database replay               | `npx supabase db reset --local`                                          | PASS - all 26 migrations and seed applied before Storage health gate |
+| Database regression           | `npx supabase test db --local supabase/tests/database`                   | PASS - 13 files, 199 tests                                           |
+| Migration parity              | Hosted `list_migrations` vs local filenames                              | PASS - exact 26-entry match                                          |
 | AI confirmation               | pgTAP `010_ai_confirmation_idempotency.sql`                              | PASS - account/user/tool/input/tamper/expiry/retry boundaries        |
 | Item photos                   | pgTAP `011_atomic_item_photos.sql`                                       | PASS - atomic attach/detach and cross-account denial                 |
 | Private Storage               | pgTAP `008_private_storage.sql`                                          | PASS - private buckets, paths, MIME, size, isolation                 |
 | Money lifecycle               | pgTAP `009_atomic_money_lifecycle.sql`                                   | PASS - atomic purchase/listing/sale/refund                           |
 | Flutter format                | `dart format --output=none --set-exit-if-changed lib test`               | PASS - 83 files, 0 changes                                           |
 | Flutter analysis              | `flutter analyze --no-pub`                                               | PASS - no issues                                                     |
-| Flutter tests                 | `flutter test --no-pub --concurrency=1`                                  | PASS - 87/87                                                         |
+| Flutter tests                 | `flutter test --no-pub`                                                  | PASS - 89/89                                                         |
 | Ask LOOP mobile failures      | Account scope plus repository focused tests                              | PASS - 11/11                                                         |
 | Web typecheck                 | `npm run typecheck --workspace apps/web`                                 | PASS                                                                 |
 | Web lint                      | `npm run lint --workspace apps/web`                                      | PASS                                                                 |
@@ -22,12 +22,12 @@ Updated: 2026-08-23
 | Public accessibility          | axe WCAG 2 A/AA specs                                                    | PASS on public auth surfaces                                         |
 | Responsive web                | Playwright at 360/390/430/768/1024/1280/1440                             | PASS on public surfaces                                              |
 | Production Vercel             | GitHub deployment plus real browser smoke                                | PASS - source `6c90866`, sign-in visible, no captured console errors |
-| Android APK build             | Configured debug build from `6c90866`                                    | PASS - 157,674,984 bytes                                             |
+| Android APK build             | Configured debug build from `c963f65`                                    | PASS - 157,675,432 bytes                                             |
 | Android APK signature         | `apksigner verify --verbose --print-certs`                               | PASS - v2, Android debug certificate                                 |
 | Android APK identity          | `apkanalyzer manifest`                                                   | PASS - `com.loop.app.loop_mobile`, `1.0.0+1`                         |
 | Android config audit          | Compiled public project reference and callback plus config unit tests    | PASS - no privileged key included                                    |
 | Galaxy secure startup         | Prior configured APK wireless retest                                     | PASS for prior checkpoint `228679e`                                  |
-| Galaxy final APK              | `adb devices -l` then install/traverse exact final APK                   | EXTERNAL_BLOCKER - no ADB or mDNS device currently listed             |
+| Galaxy final APK              | `adb devices -l` then install/traverse exact final APK                   | EXTERNAL_BLOCKER - no ADB or mDNS device currently listed            |
 | Native Google login           | Owner physical confirmation                                              | PASS for authentication capability; preserve callback architecture   |
 | Authenticated Galaxy gauntlet | Today, Money, Sell, Business, Protect, AI, account, sign-out/sign-in     | EXTERNAL_BLOCKER - device unavailable                                |
 | Live AI provider              | Controlled provider request                                              | OWNER_ACTION_REQUIRED - key unavailable                              |
