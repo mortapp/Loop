@@ -173,7 +173,10 @@ select pg_temp.authenticate_as('44444444-4444-4444-4444-444444444444');
 -- action Today generated for it.
 -- ---------------------------------------------------------------------------
 
-update public.quotes set status = 'accepted' where quote_number = 'Q-AUTOMATION-DUE';
+select public.set_quote_status_with_money_event(
+  (select id from public.quotes where quote_number = 'Q-AUTOMATION-DUE'),
+  'accepted'
+);
 
 select is(
   (select count(*)::int from public.actions a
