@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_preference.dart';
 
@@ -30,7 +29,7 @@ class PersonalizationScreen extends ConsumerWidget {
             Text(
               'THEME',
               style: theme.textTheme.labelLarge?.copyWith(
-                color: AppColors.textStructural,
+                color: theme.colorScheme.onSurfaceVariant,
                 letterSpacing: 1,
               ),
             ),
@@ -42,15 +41,16 @@ class PersonalizationScreen extends ConsumerWidget {
                   onTap: () => setThemePreference(ref, value),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   child: Container(
+                    key: ValueKey('theme-option-${value.name}'),
                     padding: const EdgeInsets.all(AppSpacing.md),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                       border: Border.all(
                         color: value == current
-                            ? AppColors.tyrianAccent
-                            : AppColors.platinum.withValues(alpha: 0.16),
+                            ? theme.colorScheme.primary
+                            : theme.dividerColor,
                       ),
-                      color: AppColors.murexInk,
+                      color: theme.colorScheme.surface,
                     ),
                     child: Row(
                       children: [
@@ -67,9 +67,9 @@ class PersonalizationScreen extends ConsumerWidget {
                           ),
                         ),
                         if (value == current)
-                          const Icon(
+                          Icon(
                             Icons.check,
-                            color: AppColors.tyrianText,
+                            color: theme.colorScheme.primary,
                             size: 18,
                           ),
                       ],
