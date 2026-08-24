@@ -1,6 +1,6 @@
 # LOOP Final External-Gate Handoff
 
-Updated: 2026-08-23
+Updated: 2026-08-24
 
 No unresolved Critical or High code-controlled finding is being handed off.
 Do not create cleanup work merely to continue activity. Resume engineering only
@@ -9,20 +9,20 @@ when one of these external gates changes or new evidence reveals a defect.
 ## Tested Checkpoint
 
 - Branch: `main`
-- Tested runtime checkpoint: `c963f65bd8ee841b9f4ba752fde085464fc45c1f`
+- Tested runtime checkpoint: `66188b9834cc423aab8aa2bf20c20d7aac91e62e`
 - Supabase: `zqalnvfwxmfrnyjcuehq`
 - Production web: `https://loop-teal-rho.vercel.app`
 - Android package/version: `com.loop.app.loop_mobile`, `1.0.0+1`
 - Callback: `com.loop.app.loop-mobile://app/login-callback`
-- Database: 26 migrations, 199/199 tests
-- Flutter: 89/89 tests
-- Playwright: 29 pass, 60 credential-gated skips, 0 fail
-- GitHub Quality run: `32673029762`, PASS
-- Vercel production deployment: `6053890989`, PASS from `6c90866`
+- Database: 27 migrations, 209/209 tests
+- Flutter: 93/93 tests
+- Playwright: 31 pass, 60 credential-gated skips, 0 fail
+- GitHub Quality run: `32728072991`, PASS
+- Vercel production deployment: PASS from `66188b9`
 - Configured QA APK:
-  `artifacts/hardening-c963f65/loop-c963f65-configured-debug-qa.apk`
+  `artifacts/ledger-2-66188b9/loop-ledger-2-66188b9-configured-debug-qa.apk`
 - APK SHA-256:
-  `8A81E4E00CABCEF9D9D8C262B678B343D34B2093FE65EDEDEE3BEACEE0D0B275`
+  `0628AD3B756A3E476065D1087124C29DA256C2E0410E1F3DFD60D7FCDA753320`
 
 ## Resume Conditions
 
@@ -30,7 +30,7 @@ when one of these external gates changes or new evidence reveals a defect.
 
 Run `adb devices -l` and use the current wireless serial. Do not clear data or
 sign the owner out first. Install the exact configured APK from
-`artifacts/hardening-c963f65`, preserve the session, and run Today, Money, Sell,
+`artifacts/ledger-2-66188b9`, preserve the session, and run Today, Money, Sell,
 photo picker, Business, quotes, Protect, Ask LOOP, account switching,
 background/resume, and sanitized logcat. Sign out only at the end, then verify
 Google returning-user login routes to Today without onboarding.

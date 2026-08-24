@@ -55,7 +55,7 @@ created.
 | Mobile regression | Complete | All 22 Flutter test files pass serially; analyzer clean |
 | Physical Samsung QA | Pending | Wireless ADB transport currently unavailable |
 | Web parity | Complete | Five-destination ledger UI uses existing server actions and account-scoped reads |
-| Final security, build, and release evidence | Pending | No release claim until current gates pass |
+| Final security, build, and release evidence | Partial | Code, CI, hosted ledger, Vercel, and APK pass; physical certification blocked |
 
 ## External or current gates
 
@@ -98,3 +98,19 @@ Windows/OneDrive compiler-cache collision in the parallel runner.
 - Public accessibility, responsive behavior, auth guards, bearer-token API
   boundaries, AI confirmation binding, and idempotency tests executed and passed.
 - Authenticated web journeys remain an explicit QA-credential gate.
+
+## Final code-controlled checkpoint
+
+- Runtime commit: `66188b9834cc423aab8aa2bf20c20d7aac91e62e`.
+- GitHub Quality run `32728072991`: PASS for Flutter mobile and web/database.
+- Database replay/security suite: PASS, 27 migrations and 209 assertions in 14 files.
+- Hosted migration parity: PASS, 27 local and 27 hosted entries.
+- Flutter suite: PASS, 93 tests across 22 files.
+- Vercel deployment status for `66188b9`: PASS; production sign-in HTTP 200.
+- Configured APK: `artifacts/ledger-2-66188b9/loop-ledger-2-66188b9-configured-debug-qa.apk`.
+- APK: 157,684,544 bytes; SHA-256
+  `0628AD3B756A3E476065D1087124C29DA256C2E0410E1F3DFD60D7FCDA753320`.
+- Package/version: `com.loop.app.loop_mobile`, `1.0.0+1`; debug v2 signing verified.
+- Tracked privileged-secret scan: PASS, zero hits.
+- Physical Ledger 2.0 certification: BLOCKED. Wireless mDNS and ADB list no
+  device, so the new APK is not installed and no new physical pass is claimed.

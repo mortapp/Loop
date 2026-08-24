@@ -1,6 +1,6 @@
 # LOOP Known Issues and External Gates
 
-Updated: 2026-08-23
+Updated: 2026-08-24
 
 ## Open External Gates
 
@@ -11,9 +11,9 @@ authenticated LOOP. The working callback is
 `com.loop.app.loop-mobile://app/login-callback` and must not be changed.
 
 Wireless `adb devices -l` and `adb mdns services` currently return no device.
-The exact configured QA APK built from `c963f65` is
-`artifacts/hardening-c963f65/loop-c963f65-configured-debug-qa.apk`
-(SHA-256 `8A81E4E00CABCEF9D9D8C262B678B343D34B2093FE65EDEDEE3BEACEE0D0B275`).
+The exact configured Ledger 2.0 QA APK built from `66188b9` is
+`artifacts/ledger-2-66188b9/loop-ledger-2-66188b9-configured-debug-qa.apk`
+(SHA-256 `0628AD3B756A3E476065D1087124C29DA256C2E0410E1F3DFD60D7FCDA753320`).
 It therefore has not been installed or traversed. Do not mark the
 following complete until the exact APK is tested without clearing the owner's
 session: Today, Money, Sell/photo picker, Business/quotes, Protect, Ask LOOP,
@@ -30,7 +30,7 @@ the authenticated Ask LOOP device/web journeys.
 
 ### Authenticated Playwright
 
-The suite discovers 89 tests. Twenty-nine public/guard tests pass and 60 real
+The suite discovers 91 tests. Thirty-one public/guard tests pass and 60 real
 authenticated tests intentionally skip when `QA_TEST_EMAIL` and
 `QA_TEST_PASSWORD` are absent. Create a dedicated, non-owner QA Supabase user
 and store those values as GitHub Actions secrets. Never use the owner's primary
@@ -70,14 +70,16 @@ spend money solely from this task.
 
 ## Advisor Findings Accepted With Evidence
 
-- Six authenticated-executable `SECURITY DEFINER` functions remain:
+- Seven authenticated-executable `SECURITY DEFINER` functions remain:
   `create_quote_with_line_items`, `has_account_access`,
   `is_active_business_member`, `is_business_admin`,
-  `is_username_available`, and `shares_active_business`. The quote function is
+  `is_username_available`, `set_quote_status_with_money_event`, and
+  `shares_active_business`. The quote functions are
   the narrow validated write authority after direct quote creation and line
-  mutation were revoked. The others are search-path-hardened recursion breakers
-  or boolean helpers used by RLS. Anonymous/PUBLIC execution is revoked. Their
-  authorization behavior is covered by the 199-case database suite.
+  mutation were revoked, and accepted status atomically writes one Money event.
+  The others are search-path-hardened recursion breakers or boolean helpers used
+  by RLS. Anonymous/PUBLIC execution is revoked. Their authorization behavior is
+  covered by the 209-case database suite.
 - Performance advisor notices are unused-index INFO entries on a low-traffic
   dataset. The indexes support known relationship, status, deadline, feed, and
   pagination queries. Reassess with production telemetry; do not drop them now.
