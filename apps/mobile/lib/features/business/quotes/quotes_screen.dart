@@ -10,6 +10,7 @@ import '../../../core/widgets/async_error_view.dart';
 import '../contacts/contacts_providers.dart';
 import '../contacts/models/contact.dart';
 import '../opportunities/opportunities_providers.dart';
+import '../../money/money_providers.dart';
 import 'models/quote.dart';
 import 'quotes_providers.dart';
 
@@ -179,8 +180,8 @@ class _QuotesBody extends ConsumerWidget {
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
           Text(
-            'MAKE / QuoteCloser. An accepted quote is expected to produce '
-            'a money_events row once that wiring exists.',
+            'MAKE / QuoteCloser. Accepting a paid quote records its value in '
+            'Money exactly once.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: AppSpacing.md),
@@ -229,6 +230,10 @@ class _QuoteTile extends ConsumerWidget {
             .read(quotesRepositoryProvider)
             .setStatus(id: quote.id, status: status);
         ref.invalidate(quotesProvider);
+        if (status == QuoteStatus.accepted) {
+          ref.invalidate(moneyEventsProvider);
+          ref.invalidate(moneyTotalsProvider);
+        }
       } catch (_) {
         if (context.mounted) {
           showErrorSnackBar(context, 'Could not update the quote. Try again.');

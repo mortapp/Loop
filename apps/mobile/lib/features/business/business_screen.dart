@@ -143,13 +143,17 @@ class _BusinessScreenState extends ConsumerState<BusinessScreen> {
             const SizedBox(height: AppSpacing.xl),
             Text('MAKE / QuoteCloser', style: theme.textTheme.titleMedium),
             const SizedBox(height: AppSpacing.sm),
-            GridView.count(
-              crossAxisCount: 2,
+            GridView(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: AppSpacing.sm,
+                crossAxisSpacing: AppSpacing.sm,
+                mainAxisExtent: businessNavCardExtent(
+                  MediaQuery.textScalerOf(context),
+                ),
+              ),
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: AppSpacing.sm,
-              crossAxisSpacing: AppSpacing.sm,
-              childAspectRatio: 1.6,
               children: [
                 _NavCard(
                   title: 'Contacts',
@@ -183,6 +187,13 @@ class _BusinessScreenState extends ConsumerState<BusinessScreen> {
       ),
     );
   }
+}
+
+/// Keeps the two-column MAKE grid compact at normal size while allowing its
+/// icon, title, and two description lines to grow without clipping.
+double businessNavCardExtent(TextScaler textScaler) {
+  final scale = (textScaler.scale(16) / 16).clamp(1.0, 2.0).toDouble();
+  return 164 + (160 * (scale - 1));
 }
 
 class _CreateBusinessDialog extends StatefulWidget {
@@ -262,6 +273,7 @@ class _NavCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
+      key: ValueKey('business-nav-card-$title'),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         onTap: onTap,

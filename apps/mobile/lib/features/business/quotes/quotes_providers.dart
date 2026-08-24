@@ -102,6 +102,13 @@ Map<String, Object?> buildCreateQuoteRpcParameters({
   };
 }
 
+Map<String, Object?> buildSetQuoteStatusRpcParameters({
+  required String quoteId,
+  required QuoteStatus status,
+}) {
+  return {'p_quote_id': quoteId, 'p_status': status.name};
+}
+
 class QuotesRepository {
   QuotesRepository(this._client);
 
@@ -132,8 +139,14 @@ class QuotesRepository {
     );
   }
 
-  Future<void> setStatus({required String id, required QuoteStatus status}) {
-    return _client.from('quotes').update({'status': status.name}).eq('id', id);
+  Future<void> setStatus({
+    required String id,
+    required QuoteStatus status,
+  }) async {
+    await _client.rpc(
+      'set_quote_status_with_money_event',
+      params: buildSetQuoteStatusRpcParameters(quoteId: id, status: status),
+    );
   }
 }
 

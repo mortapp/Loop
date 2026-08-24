@@ -144,13 +144,10 @@ export async function setQuoteStatus(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("quotes")
-    .update({ status })
-    .eq("id", id)
-    .eq("account_id", accountId)
-    .select("id")
-    .single();
+  const { error } = await supabase.rpc("set_quote_status_with_money_event", {
+    p_quote_id: id,
+    p_status: status,
+  });
 
   if (error) {
     return {
@@ -163,5 +160,6 @@ export async function setQuoteStatus(
   }
 
   revalidatePath("/business/quotes");
+  if (status === "accepted") revalidatePath("/money");
   return null;
 }

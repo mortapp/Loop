@@ -65,6 +65,50 @@ void main() {
     expect(container.read(activeAccountProvider).id, _business.id);
     expect(find.text('North Star Studio is ready.'), findsOneWidget);
   });
+
+  for (final textScale in [1.0, 1.5]) {
+    testWidgets('MAKE cards fit Galaxy A14 portrait at ${textScale}x text', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1080, 2408);
+      tester.view.devicePixelRatio = 2.8125;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final container = ProviderContainer(
+        overrides: [
+          activeAccountProvider.overrideWith(
+            () => _TestActiveAccountNotifier(_personal),
+          ),
+          availableAccountsProvider.overrideWith(
+            (ref) async => const [_personal],
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: MediaQuery(
+              data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
+              child: const BusinessScreen(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      for (final title in ['Contacts', 'Leads', 'Opportunities', 'Quotes']) {
+        expect(
+          find.byKey(ValueKey('business-nav-card-$title')),
+          findsOneWidget,
+        );
+      }
+    });
+  }
 }
 
 class _TestActiveAccountNotifier extends ActiveAccountNotifier {

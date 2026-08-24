@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_mobile/features/business/quotes/models/quote.dart';
 import 'package:loop_mobile/features/business/quotes/quotes_providers.dart';
 
 void main() {
@@ -109,4 +110,21 @@ void main() {
       }
     });
   });
+
+  test(
+    'status RPC payload contains no client-controlled account or amount',
+    () {
+      final parameters = buildSetQuoteStatusRpcParameters(
+        quoteId: '11111111-1111-4111-8111-111111111111',
+        status: QuoteStatus.accepted,
+      );
+
+      expect(parameters, {
+        'p_quote_id': '11111111-1111-4111-8111-111111111111',
+        'p_status': 'accepted',
+      });
+      expect(parameters.containsKey('p_account_id'), isFalse);
+      expect(parameters.containsKey('p_total_cents'), isFalse);
+    },
+  );
 }

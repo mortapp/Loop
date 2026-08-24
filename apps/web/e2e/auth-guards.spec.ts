@@ -44,4 +44,20 @@ test.describe("auth guards (unauthenticated)", () => {
     await page.goto("/sign-up");
     await expect(page.getByRole("button", { name: /^sign up$/i })).toBeVisible();
   });
+
+  for (const path of ["/api/ai/chat", "/api/ai/confirm"]) {
+    test(`${path} reaches its bearer-token auth boundary`, async ({ request }) => {
+      const response = await request.post(path, {
+        data: {
+          messages: [{ role: "user", content: "Synthetic auth-boundary check" }],
+          accountId: "00000000-0000-0000-0000-000000000000",
+        },
+        maxRedirects: 0,
+      });
+
+      expect(response.status()).not.toBe(307);
+      expect(response.headers().location ?? "").not.toContain("/sign-in");
+      expect(response.headers()["content-type"] ?? "").toContain("application/json");
+    });
+  }
 });

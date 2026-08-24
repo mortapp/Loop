@@ -9,10 +9,20 @@ import { NextResponse, type NextRequest } from "next/server";
 // (refreshing the access token before it expires) and to gate the
 // authenticated app shell at (app)/**.
 
-const PUBLIC_PATHS = ["/sign-in", "/sign-up", "/auth/callback"];
+// These routes own their own authentication boundary. In particular, the AI
+// routes accept a Supabase Bearer token from the native app, which the cookie-
+// based proxy cannot authenticate. The handlers still validate the token and
+// account membership before provider work or writes.
+const PROXY_UNGUARDED_PATHS = [
+  "/sign-in",
+  "/sign-up",
+  "/auth/callback",
+  "/api/ai/chat",
+  "/api/ai/confirm",
+];
 
-function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+function isProxyUnguardedPath(pathname: string): boolean {
+  return PROXY_UNGUARDED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
 export async function proxy(request: NextRequest) {
@@ -45,7 +55,7 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (!user && !isPublicPath(pathname) && pathname !== "/") {
+  if (!user && !isProxyUnguardedPath(pathname) && pathname !== "/") {
     const redirectUrl = new URL("/sign-in", request.url);
     redirectUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(redirectUrl);

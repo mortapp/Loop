@@ -2,7 +2,7 @@ create extension if not exists pgtap;
 
 begin;
 
-select plan(7);
+select plan(8);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password,
@@ -67,10 +67,19 @@ select throws_ok(
   'authenticated clients cannot rewrite quote lines directly'
 );
 
-select lives_ok(
+select throws_ok(
   $$ update public.quotes set status = 'sent'
      where quote_number = 'Q-AUTHORITY-1' $$,
-  'authenticated account members retain the narrow status update path'
+  '42501', null,
+  'authenticated clients cannot bypass the atomic status RPC'
+);
+
+select lives_ok(
+  $$ select public.set_quote_status_with_money_event(
+    (select id from public.quotes where quote_number = 'Q-AUTHORITY-1'),
+    'sent'
+  ) $$,
+  'authenticated account members retain the validated status path'
 );
 
 select ok(
