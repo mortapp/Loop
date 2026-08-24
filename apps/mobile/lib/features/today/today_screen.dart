@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/account/account_providers.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/account_sheet.dart';
 import '../../core/widgets/async_error_view.dart';
+import '../../core/widgets/ledger_surface.dart';
 import 'models/action_item.dart';
 import 'today_providers.dart';
 
@@ -20,6 +20,29 @@ import 'today_providers.dart';
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
 
+  void _showQuickAdd(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 160),
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
+            AppSpacing.md,
+            MediaQuery.viewInsetsOf(sheetContext).bottom + AppSpacing.md,
+          ),
+          child: _QuickAddForm(
+            autofocus: true,
+            onAdded: () => Navigator.of(sheetContext).pop(),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final actionsAsync = ref.watch(todayActionsProvider);
@@ -27,13 +50,23 @@ class TodayScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Today'),
-        actions: const [AccountAvatarButton()],
+        actions: [
+          IconButton(
+            tooltip: 'Add action',
+            onPressed: () => _showQuickAdd(context),
+            icon: const Icon(Icons.add),
+          ),
+          const AccountAvatarButton(),
+        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () => ref.refresh(todayActionsProvider.future),
           child: actionsAsync.when(
-            data: (actions) => _TodayList(actions: actions),
+            data: (actions) => _TodayList(
+              actions: actions,
+              onAdd: () => _showQuickAdd(context),
+            ),
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => AsyncErrorView(
               error: error,
@@ -47,9 +80,10 @@ class TodayScreen extends ConsumerWidget {
 }
 
 class _TodayList extends ConsumerWidget {
-  const _TodayList({required this.actions});
+  const _TodayList({required this.actions, required this.onAdd});
 
   final List<ActionItem> actions;
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -59,41 +93,55 @@ class _TodayList extends ConsumerWidget {
               a.status == ActionStatus.open || a.status == ActionStatus.snoozed,
         )
         .toList();
-    final done = actions.where((a) => a.status == ActionStatus.done).toList();
+    final done = actions
+        .where((a) => a.status == ActionStatus.done)
+        .take(2)
+        .toList();
 
     final theme = Theme.of(context);
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
-        Text('TODAY', style: theme.textTheme.headlineLarge),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          _formatFullDate(DateTime.now()),
-          style: theme.textTheme.bodyMedium,
+        LedgerPageIntro(
+          title: 'Today',
+          subtitle: _formatFullDate(DateTime.now()),
         ),
         const SizedBox(height: AppSpacing.xl),
-        const _QuickAddForm(),
-        const SizedBox(height: AppSpacing.lg),
         if (open.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-            child: Text(
-              'Nothing open. Add something above.',
-              style: theme.textTheme.bodyMedium,
+          LedgerEmptyState(
+            title: 'You’re clear.',
+            detail: 'Nothing needs your attention right now.',
+            action: FilledButton.icon(
+              key: const Key('today-empty-add-action'),
+              onPressed: onAdd,
+              icon: const Icon(Icons.add),
+              label: const Text('Add an action'),
             ),
           )
-        else
-          ...open.map((action) => _ActionTile(action: action)),
+        else ...[
+          _NextAction(action: open.first),
+          if (open.length > 1) ...[
+            const SizedBox(height: AppSpacing.lg),
+            const LedgerSectionLabel('Up next'),
+            const SizedBox(height: AppSpacing.xs),
+            ...open
+                .skip(1)
+                .take(4)
+                .map((action) => _ActionTile(action: action)),
+            if (open.length > 5)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
+                child: Text(
+                  '${open.length - 5} more waiting',
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ),
+          ],
+        ],
         if (done.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(
-            'RECENTLY DONE',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: AppColors.textStructural,
-              letterSpacing: 1.5,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
+          const LedgerSectionLabel('Recently done'),
+          const SizedBox(height: AppSpacing.xs),
           ...done.map((action) => _DoneActionTile(action: action)),
         ],
       ],
@@ -102,7 +150,10 @@ class _TodayList extends ConsumerWidget {
 }
 
 class _QuickAddForm extends ConsumerStatefulWidget {
-  const _QuickAddForm();
+  const _QuickAddForm({this.autofocus = false, this.onAdded});
+
+  final bool autofocus;
+  final VoidCallback? onAdded;
 
   @override
   ConsumerState<_QuickAddForm> createState() => _QuickAddFormState();
@@ -131,6 +182,7 @@ class _QuickAddFormState extends ConsumerState<_QuickAddForm> {
       if (!mounted) return;
       _controller.clear();
       ref.invalidate(todayActionsProvider);
+      widget.onAdded?.call();
     } catch (_) {
       if (mounted) {
         showErrorSnackBar(context, userSafeActionError('add this action'));
@@ -148,8 +200,10 @@ class _QuickAddFormState extends ConsumerState<_QuickAddForm> {
         Expanded(
           child: TextField(
             controller: _controller,
+            autofocus: widget.autofocus,
             decoration: const InputDecoration(
-              hintText: 'Add something to do…',
+              labelText: 'Action',
+              hintText: 'What needs doing?',
               border: OutlineInputBorder(),
               isDense: true,
             ),
@@ -165,9 +219,70 @@ class _QuickAddFormState extends ConsumerState<_QuickAddForm> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Add'),
+              : const Text('Save'),
         ),
       ],
+    );
+  }
+}
+
+Future<void> _setActionStatus({
+  required WidgetRef ref,
+  required BuildContext context,
+  required ActionItem action,
+  required ActionStatus status,
+}) async {
+  try {
+    await ref
+        .read(todayActionsRepositoryProvider)
+        .setStatus(id: action.id, status: status);
+    if (!context.mounted) return;
+    ref.invalidate(todayActionsProvider);
+  } catch (_) {
+    if (context.mounted) {
+      showErrorSnackBar(context, userSafeActionError('update this action'));
+    }
+  }
+}
+
+class _NextAction extends ConsumerWidget {
+  const _NextAction({required this.action});
+
+  final ActionItem action;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    return LedgerHero(
+      eyebrow: 'Next',
+      value: Text(action.title, style: theme.textTheme.headlineMedium),
+      detail: action.dueAt == null ? null : _dueText(action.dueAt!),
+      action: Row(
+        children: [
+          FilledButton.icon(
+            key: const Key('today-complete-next-action'),
+            onPressed: () => _setActionStatus(
+              ref: ref,
+              context: context,
+              action: action,
+              status: ActionStatus.done,
+            ),
+            icon: const Icon(Icons.check),
+            label: const Text('Mark done'),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          IconButton(
+            tooltip: 'Dismiss action',
+            onPressed: () => _setActionStatus(
+              ref: ref,
+              context: context,
+              action: action,
+              status: ActionStatus.dismissed,
+            ),
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -182,51 +297,18 @@ class _ActionTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-
-    Future<void> setStatus(ActionStatus status) async {
-      try {
-        await ref
-            .read(todayActionsRepositoryProvider)
-            .setStatus(id: action.id, status: status);
-        if (!context.mounted) return;
-        ref.invalidate(todayActionsProvider);
-      } catch (_) {
-        if (context.mounted) {
-          showErrorSnackBar(context, userSafeActionError('update this action'));
-        }
-      }
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm + 2),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppColors.platinum.withValues(alpha: 0.25)),
+    return LedgerRow(
+      title: action.title,
+      subtitle: action.dueAt == null ? null : _dueText(action.dueAt!),
+      trailing: IconButton(
+        tooltip: 'Mark ${action.title} done',
+        onPressed: () => _setActionStatus(
+          ref: ref,
+          context: context,
+          action: action,
+          status: ActionStatus.done,
         ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(action.title, style: theme.textTheme.bodyLarge),
-                if (action.dueAt != null) _DueLabel(dueAt: action.dueAt!),
-              ],
-            ),
-          ),
-          TextButton(
-            onPressed: () => setStatus(ActionStatus.done),
-            style: TextButton.styleFrom(foregroundColor: AppColors.tyrianText),
-            child: const Text('Done'),
-          ),
-          TextButton(
-            onPressed: () => setStatus(ActionStatus.dismissed),
-            style: TextButton.styleFrom(foregroundColor: AppColors.textMuted),
-            child: const Text('Dismiss'),
-          ),
-        ],
+        icon: const Icon(Icons.check_circle_outline),
       ),
     );
   }
@@ -275,26 +357,9 @@ class _DoneActionTile extends ConsumerWidget {
   }
 }
 
-/// Real overdue detection computed from the actual due date — not a
-/// fake urgency indicator (matches the same treatment on
-/// apps/web/src/app/(app)/today/page.tsx).
-class _DueLabel extends StatelessWidget {
-  const _DueLabel({required this.dueAt});
-
-  final DateTime dueAt;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final overdue = dueAt.isBefore(DateTime.now());
-    return Text(
-      '${overdue ? 'Overdue · ' : 'Due '}${_formatDate(dueAt)}',
-      style: theme.textTheme.bodyMedium?.copyWith(
-        color: overdue ? AppColors.dangerText : null,
-        fontWeight: overdue ? FontWeight.w600 : null,
-      ),
-    );
-  }
+String _dueText(DateTime dueAt) {
+  final overdue = dueAt.isBefore(DateTime.now());
+  return '${overdue ? 'Overdue · ' : 'Due '}${_formatDate(dueAt)}';
 }
 
 String _formatFullDate(DateTime date) {

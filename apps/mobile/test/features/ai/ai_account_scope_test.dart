@@ -59,7 +59,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('LOOP wants to create an action'), findsNothing);
-    expect(find.text('Ask LOOP'), findsOneWidget);
+    expect(find.text('Ask LOOP'), findsWidgets);
     expect(
       find.text('This action was created for another account. Ask LOOP again.'),
       findsOneWidget,
@@ -99,7 +99,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('LOOP wants to create an action'), findsNothing);
-    expect(find.text('Ask LOOP'), findsOneWidget);
+    expect(find.text('Ask LOOP'), findsWidgets);
   });
 
   testWidgets(

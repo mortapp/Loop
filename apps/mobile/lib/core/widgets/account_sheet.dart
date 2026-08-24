@@ -9,8 +9,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
 /// The account identity control — avatar + name opens this bottom sheet:
-/// Switch account / Personalization / Profile / Settings / Help & Support
-/// / Sign out. Mirrors apps/web's AccountMenu control-for-control. No
+/// Account / Profile / Appearance / Help / Sign out. No
 /// billing/plan/upgrade rows: LOOP has no subscription tiers, so those
 /// would be copied UI, not an earned feature.
 class AccountAvatarButton extends ConsumerWidget {
@@ -124,17 +123,10 @@ class _AccountSheet extends ConsumerWidget {
             ),
             const _SheetDivider(),
             _SheetItem(
-              label: 'Switch account',
+              label: 'Account',
               onTap: () {
                 Navigator.of(context).pop();
-                context.go('/business');
-              },
-            ),
-            _SheetItem(
-              label: 'Personalization',
-              onTap: () {
-                Navigator.of(context).pop();
-                context.push('/settings/personalization');
+                context.push('/settings');
               },
             ),
             _SheetItem(
@@ -145,15 +137,14 @@ class _AccountSheet extends ConsumerWidget {
               },
             ),
             _SheetItem(
-              label: 'Settings',
+              label: 'Appearance',
               onTap: () {
                 Navigator.of(context).pop();
-                context.push('/settings');
+                context.push('/settings/personalization');
               },
             ),
-            const _SheetDivider(),
             _SheetItem(
-              label: 'Help & Support',
+              label: 'Help',
               onTap: () {
                 Navigator.of(context).pop();
                 context.push('/help');

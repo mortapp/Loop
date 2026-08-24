@@ -9,6 +9,7 @@ import '../../core/utils/money.dart';
 import '../../core/utils/request_id.dart';
 import '../../core/widgets/account_sheet.dart';
 import '../../core/widgets/async_error_view.dart';
+import '../../core/widgets/ledger_surface.dart';
 import 'models/money_event.dart';
 import 'models/money_totals.dart';
 import 'money_providers.dart';
@@ -43,6 +44,35 @@ Color _kindColor(BuildContext context, MoneyEventKind kind) {
 class MoneyScreen extends ConsumerWidget {
   const MoneyScreen({super.key});
 
+  void _showAddEntry(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
+            AppSpacing.md,
+            MediaQuery.viewInsetsOf(sheetContext).bottom + AppSpacing.md,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Add entry',
+                style: Theme.of(sheetContext).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _LogEventForm(onSaved: () => Navigator.of(sheetContext).pop()),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final eventsAsync = ref.watch(moneyEventsProvider);
@@ -52,14 +82,7 @@ class MoneyScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Money'),
-        actions: [
-          IconButton(
-            tooltip: 'Purchases & returns',
-            icon: const Icon(Icons.receipt_long_outlined),
-            onPressed: () => context.push('/money/purchases'),
-          ),
-          const AccountAvatarButton(),
-        ],
+        actions: const [AccountAvatarButton()],
       ),
       body: SafeArea(
         child: eventsAsync.when(
@@ -68,7 +91,11 @@ class MoneyScreen extends ConsumerWidget {
               return const Center(child: CircularProgressIndicator());
             }
             return totalsAsync.when(
-              data: (totals) => _MoneyBody(history: history, totals: totals),
+              data: (totals) => _MoneyBody(
+                history: history,
+                totals: totals,
+                onAdd: () => _showAddEntry(context),
+              ),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => AsyncErrorView(
                 error: error,
@@ -87,26 +114,16 @@ class MoneyScreen extends ConsumerWidget {
   }
 }
 
-int _centsForKind(MoneyTotals totals, MoneyEventKind kind) {
-  switch (kind) {
-    case MoneyEventKind.earn:
-      return totals.madeCents;
-    case MoneyEventKind.recovered:
-      return totals.recoveredCents;
-    case MoneyEventKind.refund:
-      return totals.protectedCents;
-    case MoneyEventKind.spend:
-      return totals.spentCents;
-    case MoneyEventKind.fee:
-      return totals.feesCents;
-  }
-}
-
 class _MoneyBody extends ConsumerWidget {
-  const _MoneyBody({required this.history, required this.totals});
+  const _MoneyBody({
+    required this.history,
+    required this.totals,
+    required this.onAdd,
+  });
 
   final MoneyEventsPageState history;
   final MoneyTotals totals;
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -128,59 +145,67 @@ class _MoneyBody extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          Text(
-            'TOTAL VALUE THROUGH LOOP',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: AppColors.textStructural,
-              letterSpacing: 1.5,
-            ),
+          const LedgerPageIntro(
+            title: 'Money',
+            subtitle: 'Everything you made, protected, and recovered.',
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            MoneyUtils.formatCents(net),
-            style: theme.textTheme.headlineLarge?.copyWith(
-              fontSize: 44,
-              color: net >= 0 ? AppColors.success : AppColors.danger,
-              fontFeatures: const [FontFeature.tabularFigures()],
+          const SizedBox(height: AppSpacing.lg),
+          LedgerHero(
+            eyebrow: 'Current value',
+            value: Text(
+              MoneyUtils.formatCents(net),
+              style: theme.textTheme.headlineLarge?.copyWith(
+                fontSize: 44,
+                color: net >= 0 ? AppColors.success : AppColors.dangerText,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+            action: FilledButton.icon(
+              key: const Key('money-add-entry-action'),
+              onPressed: onAdd,
+              icon: const Icon(Icons.add),
+              label: const Text('Add entry'),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          Container(
-            padding: const EdgeInsets.only(top: AppSpacing.sm),
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color: AppColors.platinum.withValues(alpha: 0.25),
+          Row(
+            children: [
+              Expanded(
+                child: _KindTotal(
+                  label: 'Made',
+                  value: MoneyUtils.formatCents(totals.madeCents),
                 ),
               ),
-            ),
-            child: Row(
-              children: [
-                for (final kind in _kinds)
-                  Expanded(
-                    child: _KindTotal(
-                      label: kind.name,
-                      value: MoneyUtils.formatCents(
-                        _centsForKind(totals, kind),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+              Expanded(
+                child: _KindTotal(
+                  label: 'Protected',
+                  value: MoneyUtils.formatCents(totals.protectedCents),
+                ),
+              ),
+              Expanded(
+                child: _KindTotal(
+                  label: 'Recovered',
+                  value: MoneyUtils.formatCents(totals.recoveredCents),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text(
-            'LOG A MANUAL ENTRY',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: AppColors.textStructural,
-              letterSpacing: 1.5,
-            ),
+          LedgerRow(
+            key: const Key('money-protect-row'),
+            title: 'Purchases, returns & warranties',
+            subtitle: 'Keep what you bought protected.',
+            leading: const Icon(Icons.shield_outlined, size: 20),
+            onTap: () => context.push('/money/purchases'),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          const _LogEventForm(),
           const SizedBox(height: AppSpacing.lg),
+          const LedgerSectionLabel('Ledger'),
+          const SizedBox(height: AppSpacing.xs),
           if (events.isEmpty)
-            const Text('No recorded value yet.')
+            const LedgerEmptyState(
+              title: 'No entries yet.',
+              detail: 'Your value history will appear here.',
+            )
           else ...[
             ...events.map((event) => _MoneyEventTile(event: event)),
             const SizedBox(height: AppSpacing.sm),
@@ -349,7 +374,9 @@ class _MoneyEventTile extends StatelessWidget {
 }
 
 class _LogEventForm extends ConsumerStatefulWidget {
-  const _LogEventForm();
+  const _LogEventForm({this.onSaved});
+
+  final VoidCallback? onSaved;
 
   @override
   ConsumerState<_LogEventForm> createState() => _LogEventFormState();
@@ -401,6 +428,7 @@ class _LogEventFormState extends ConsumerState<_LogEventForm> {
       _requestId = newRequestId();
       ref.invalidate(moneyEventsProvider);
       ref.invalidate(moneyTotalsProvider);
+      widget.onSaved?.call();
     } catch (_) {
       if (mounted) {
         setState(() => _error = userSafeActionError('log this entry'));
@@ -412,85 +440,73 @@ class _LogEventFormState extends ConsumerState<_LogEventForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<MoneyEventKind>(
-                    initialValue: _kind,
-                    decoration: const InputDecoration(
-                      labelText: 'Kind',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: _kinds
-                        .map(
-                          (k) =>
-                              DropdownMenuItem(value: k, child: Text(k.name)),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) setState(() => _kind = value);
-                    },
-                  ),
+            Expanded(
+              child: DropdownButtonFormField<MoneyEventKind>(
+                initialValue: _kind,
+                decoration: const InputDecoration(
+                  labelText: 'Kind',
+                  border: OutlineInputBorder(),
+                  isDense: true,
                 ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+                items: _kinds
+                    .map((k) => DropdownMenuItem(value: k, child: Text(k.name)))
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) setState(() => _kind = value);
+                },
               ),
-              decoration: const InputDecoration(
-                labelText: r'Amount ($)',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description (optional)',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Row(
-              children: [
-                FilledButton(
-                  onPressed: _submitting ? null : _submit,
-                  child: _submitting
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Log entry'),
-                ),
-                if (_error != null) ...[
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      _error!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
             ),
           ],
         ),
-      ),
+        const SizedBox(height: AppSpacing.sm),
+        TextField(
+          controller: _amountController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: r'Amount ($)',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextField(
+          controller: _descriptionController,
+          decoration: const InputDecoration(
+            labelText: 'Description (optional)',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          children: [
+            FilledButton(
+              onPressed: _submitting ? null : _submit,
+              child: _submitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Log entry'),
+            ),
+            if (_error != null) ...[
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  _error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }

@@ -2,20 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/account/account_context.dart';
 import '../../core/account/account_providers.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/money.dart';
 import '../../core/utils/user_safe_error.dart';
 import '../../core/widgets/account_sheet.dart';
+import '../../core/widgets/ledger_surface.dart';
 import 'business_repository.dart';
+import 'contacts/contacts_providers.dart';
+import 'opportunities/models/opportunity.dart';
+import 'opportunities/opportunities_providers.dart';
+import 'quotes/models/quote.dart';
+import 'quotes/quotes_providers.dart';
 
-/// The Business tab: account/business switching and membership management.
-///
-/// Every user has a personal account and may belong to one or more
-/// business accounts. This screen lets them see and switch the account
-/// they're currently acting as, which scopes everything else in the app
-/// (businesses, contacts, items, documents, actions across MAKE, PROTECT,
-/// and RECOVER).
+/// Presents the existing business engine as People, Work, and Quotes.
+/// Account switching stays in the shared account sheet; repositories and
+/// server-side lifecycle rules remain unchanged.
 class BusinessScreen extends ConsumerStatefulWidget {
   const BusinessScreen({super.key});
 
@@ -62,138 +65,220 @@ class _BusinessScreenState extends ConsumerState<BusinessScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final accounts = ref.watch(availableAccountsProvider);
     final active = ref.watch(activeAccountProvider);
+    final contacts = ref.watch(contactsProvider);
+    final opportunities = ref.watch(opportunitiesProvider);
+    final quotes = ref.watch(quotesProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Business'),
-        actions: const [AccountAvatarButton()],
+        actions: [
+          IconButton(
+            key: const Key('create-business-action'),
+            tooltip: 'Create a business',
+            onPressed: _creatingBusiness ? null : _createBusiness,
+            icon: _creatingBusiness
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.add_business_outlined),
+          ),
+          const AccountAvatarButton(),
+        ],
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          children: [
-            Text('Acting as', style: theme.textTheme.titleMedium),
-            const SizedBox(height: AppSpacing.sm),
-            accounts.when(
-              data: (list) => Column(
-                children: list
-                    .map(
-                      (account) => _AccountTile(
-                        account: account,
-                        selected: account.id == active.id,
-                        onTap: () => ref
-                            .read(activeAccountProvider.notifier)
-                            .select(account),
+        child: RefreshIndicator(
+          onRefresh: () => Future.wait([
+            ref.refresh(contactsProvider.future),
+            ref.refresh(opportunitiesProvider.future),
+            ref.refresh(quotesProvider.future),
+          ]),
+          child: ListView(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            children: [
+              LedgerPageIntro(
+                title: 'Business',
+                subtitle: 'People, work, and quotes for ${active.displayName}.',
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              LedgerHero(
+                eyebrow: 'Next',
+                value: Text(
+                  'Turn work into a clear quote.',
+                  style: theme.textTheme.headlineMedium,
+                ),
+                detail:
+                    'LOOP calculates the total and keeps its status honest.',
+                action: FilledButton.icon(
+                  key: const Key('business-create-quote-action'),
+                  onPressed: () => context.push('/business/quotes'),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Create quote'),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              LedgerSectionLabel(
+                'People',
+                trailing: TextButton(
+                  onPressed: () => context.push('/business/contacts'),
+                  child: const Text('See all'),
+                ),
+              ),
+              contacts.when(
+                data: (items) => items.isEmpty
+                    ? LedgerRow(
+                        title: 'No people yet',
+                        subtitle: 'Add a customer before creating a quote.',
+                        onTap: () => context.push('/business/contacts'),
+                      )
+                    : Column(
+                        children: [
+                          for (final contact in items.take(3))
+                            LedgerRow(
+                              title: contact.displayName,
+                              subtitle: contact.company,
+                              onTap: () => context.push('/business/contacts'),
+                            ),
+                        ],
                       ),
-                    )
-                    .toList(),
+                loading: () => const _SummaryLoading(),
+                error: (_, _) => const _SummaryError(label: 'people'),
               ),
-              loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-                child: Center(child: CircularProgressIndicator()),
+              const SizedBox(height: AppSpacing.lg),
+              LedgerSectionLabel(
+                'Work',
+                trailing: TextButton(
+                  onPressed: () => context.push('/business/opportunities'),
+                  child: const Text('See all'),
+                ),
               ),
-              error: (error, _) => Text(
-                'Could not load accounts.',
-                style: theme.textTheme.bodyMedium,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Card(
-              child: InkWell(
-                key: const Key('create-business-action'),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                onTap: _creatingBusiness ? null : _createBusiness,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Row(
+              opportunities.when(
+                data: (items) {
+                  final activeWork = items.where(
+                    (item) =>
+                        item.stage != OpportunityStage.won &&
+                        item.stage != OpportunityStage.lost,
+                  );
+                  if (activeWork.isEmpty) {
+                    return LedgerRow(
+                      title: 'No active work',
+                      subtitle: 'Start with a person or create an opportunity.',
+                      onTap: () => context.push('/business/opportunities'),
+                    );
+                  }
+                  return Column(
                     children: [
-                      if (_creatingBusiness)
-                        const SizedBox.square(
-                          dimension: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      else
-                        Icon(
-                          Icons.add_business_outlined,
-                          color: theme.colorScheme.primary,
+                      for (final item in activeWork.take(3))
+                        LedgerRow(
+                          title: item.title,
+                          subtitle: [
+                            item.contactDisplayName,
+                            opportunityStageLabel(item.stage),
+                          ].whereType<String>().join(' - '),
+                          trailing: item.estimatedValueCents == null
+                              ? null
+                              : Text(
+                                  MoneyUtils.formatCents(
+                                    item.estimatedValueCents,
+                                  ),
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: AppColors.opportunityText(
+                                      theme.brightness,
+                                    ),
+                                  ),
+                                ),
+                          onTap: () => context.push('/business/opportunities'),
                         ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          'Create a business',
-                          style: theme.textTheme.bodyLarge,
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right),
                     ],
-                  ),
+                  );
+                },
+                loading: () => const _SummaryLoading(),
+                error: (_, _) => const _SummaryError(label: 'work'),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              LedgerSectionLabel(
+                'Quotes',
+                trailing: TextButton(
+                  onPressed: () => context.push('/business/quotes'),
+                  child: const Text('See all'),
                 ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Text(
-              'Business accounts share your identity but keep their own '
-              'businesses, contacts, items, documents, and actions — '
-              'separate books, one login.',
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Text('MAKE / QuoteCloser', style: theme.textTheme.titleMedium),
-            const SizedBox(height: AppSpacing.sm),
-            GridView(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: AppSpacing.sm,
-                crossAxisSpacing: AppSpacing.sm,
-                mainAxisExtent: businessNavCardExtent(
-                  MediaQuery.textScalerOf(context),
-                ),
+              quotes.when(
+                data: (items) => items.isEmpty
+                    ? LedgerRow(
+                        title: 'No quotes yet',
+                        subtitle: 'Create one when the work is clear.',
+                        onTap: () => context.push('/business/quotes'),
+                      )
+                    : Column(
+                        children: [
+                          for (final quote in items.take(3))
+                            LedgerRow(
+                              title:
+                                  quote.contactDisplayName ?? quote.quoteNumber,
+                              subtitle:
+                                  '${quote.quoteNumber} - ${_quoteStatusLabel(quote.status)}',
+                              trailing: Text(
+                                MoneyUtils.formatCents(quote.totalCents),
+                                style: theme.textTheme.titleMedium,
+                              ),
+                              onTap: () => context.push('/business/quotes'),
+                            ),
+                        ],
+                      ),
+                loading: () => const _SummaryLoading(),
+                error: (_, _) => const _SummaryError(label: 'quotes'),
               ),
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                _NavCard(
-                  title: 'Contacts',
-                  description:
-                      'Customers, vendors, and anyone else you deal with.',
-                  icon: Icons.contacts_outlined,
-                  onTap: () => context.push('/business/contacts'),
-                ),
-                _NavCard(
-                  title: 'Leads',
-                  description: 'Track interest before it\'s worth quoting.',
-                  icon: Icons.leaderboard_outlined,
-                  onTap: () => context.push('/business/leads'),
-                ),
-                _NavCard(
-                  title: 'Opportunities',
-                  description: 'Qualified interest, tracked to won or lost.',
-                  icon: Icons.trending_up,
-                  onTap: () => context.push('/business/opportunities'),
-                ),
-                _NavCard(
-                  title: 'Quotes',
-                  description: 'Line items, totals, and status — the close.',
-                  icon: Icons.request_quote_outlined,
-                  onTap: () => context.push('/business/quotes'),
-                ),
-              ],
-            ),
-          ],
+              const SizedBox(height: AppSpacing.lg),
+              LedgerRow(
+                title: 'Leads',
+                subtitle: 'Early interest that is not active work yet.',
+                leading: const Icon(Icons.inbox_outlined, size: 20),
+                onTap: () => context.push('/business/leads'),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Keeps the two-column MAKE grid compact at normal size while allowing its
-/// icon, title, and two description lines to grow without clipping.
-double businessNavCardExtent(TextScaler textScaler) {
-  final scale = (textScaler.scale(16) / 16).clamp(1.0, 2.0).toDouble();
-  return 164 + (160 * (scale - 1));
+String _quoteStatusLabel(QuoteStatus status) {
+  final value = status.name;
+  return '${value[0].toUpperCase()}${value.substring(1)}';
+}
+
+class _SummaryLoading extends StatelessWidget {
+  const _SummaryLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+      child: LinearProgressIndicator(minHeight: 2),
+    );
+  }
+}
+
+class _SummaryError extends StatelessWidget {
+  const _SummaryError({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+      child: Text(
+        'Could not load $label.',
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
+    );
+  }
 }
 
 class _CreateBusinessDialog extends StatefulWidget {
@@ -252,116 +337,6 @@ class _CreateBusinessDialogState extends State<_CreateBusinessDialog> {
           child: const Text('Create'),
         ),
       ],
-    );
-  }
-}
-
-class _NavCard extends StatelessWidget {
-  const _NavCard({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String title;
-  final String description;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      key: ValueKey('business-nav-card-$title'),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: theme.colorScheme.primary),
-              const SizedBox(height: AppSpacing.xs),
-              Text(title, style: theme.textTheme.titleMedium),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                description,
-                style: theme.textTheme.bodyMedium,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AccountTile extends StatelessWidget {
-  const _AccountTile({
-    required this.account,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final AccountSummary account;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Card(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: theme.colorScheme.primary.withValues(
-                    alpha: 0.12,
-                  ),
-                  child: Icon(
-                    account.isPersonal
-                        ? Icons.person_outline
-                        : Icons.business_outlined,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        account.displayName,
-                        style: theme.textTheme.titleMedium,
-                      ),
-                      Text(
-                        account.role ??
-                            (account.isPersonal
-                                ? 'Personal account'
-                                : 'Business'),
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                ),
-                if (selected)
-                  Icon(Icons.check_circle, color: theme.colorScheme.primary),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

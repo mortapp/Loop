@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/account/account_providers.dart';
 import '../../core/account/account_context.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/account_sheet.dart';
+import '../../core/widgets/ledger_surface.dart';
 import '../../core/widgets/loop_seal.dart';
 import 'ai_repository.dart';
 
@@ -254,7 +254,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI'),
+        title: const Text('Ask LOOP'),
         actions: const [AccountAvatarButton()],
       ),
       body: SafeArea(
@@ -347,7 +347,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                       enabled: !_sending && _pendingConfirmation == null,
                       onSubmitted: (_) => _send(),
                       decoration: const InputDecoration(
-                        hintText: 'Ask about a quote, return, or your day…',
+                        hintText: 'Ask about your value in motion…',
                       ),
                     ),
                   ),
@@ -377,36 +377,28 @@ class _EmptyState extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
-        Text(
-          'Ask LOOP',
-          style: GoogleFonts.fraunces(
-            textStyle: theme.textTheme.headlineMedium,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          'What should we work through? Nothing here executes without you approving it first.',
-          style: theme.textTheme.bodyMedium,
+        const LedgerPageIntro(
+          title: 'Ask LOOP',
+          subtitle: 'Private counsel for your value in motion.',
         ),
         const SizedBox(height: AppSpacing.lg),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const LoopSeal(size: 32, keyPoint: false, opacity: 0.6),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  'Try asking LOOP to draft a follow-up action or log a money event — every action it proposes shows up here first for you to confirm or decline.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textMuted,
-                  ),
+        LedgerHero(
+          eyebrow: 'You stay in control',
+          value: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const LoopSeal(size: 28, keyPoint: false, opacity: 0.6),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  'Think through the next move.',
+                  style: theme.textTheme.headlineMedium,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          detail:
+              'LOOP can propose an action or money entry. Nothing changes until you review and approve it.',
         ),
       ],
     );

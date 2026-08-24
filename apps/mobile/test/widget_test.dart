@@ -42,7 +42,7 @@ void main() {
     expect(find.text('Money'), findsOneWidget);
     expect(find.text('Sell'), findsOneWidget);
     expect(find.text('Business'), findsOneWidget);
-    expect(find.text('AI'), findsOneWidget);
+    expect(find.text('Ask LOOP'), findsOneWidget);
   });
 
   testWidgets('Today tab shows the empty state when there are no actions', (
@@ -60,8 +60,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Nothing open. Add something above.'), findsOneWidget);
-    expect(find.text('Add'), findsOneWidget);
+    expect(find.text('You’re clear.'), findsOneWidget);
+    expect(find.text('Add an action'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('today-empty-add-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('What needs doing?'), findsOneWidget);
+    expect(find.text('Save'), findsOneWidget);
   });
 
   testWidgets('Unauthenticated users are redirected to sign-in, not Today', (
@@ -85,7 +91,7 @@ void main() {
 
     expect(find.text('Sign in'), findsWidgets);
     expect(find.text('Continue with Google'), findsOneWidget);
-    expect(find.text('Nothing open. Add something above.'), findsNothing);
+    expect(find.text('You’re clear.'), findsNothing);
   });
 
   testWidgets('Signed-in users cannot reach Today while profile is loading', (
@@ -103,7 +109,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text('Nothing open. Add something above.'), findsNothing);
+    expect(find.text('You’re clear.'), findsNothing);
   });
 
   testWidgets('Signed-in incomplete profiles reach canonical onboarding', (
@@ -138,7 +144,7 @@ void main() {
 
     expect(find.byType(OnboardingScreen), findsOneWidget);
     expect(find.text('Welcome to LOOP'), findsOneWidget);
-    expect(find.text('Nothing open. Add something above.'), findsNothing);
+    expect(find.text('You’re clear.'), findsNothing);
   });
 
   group('MoneyUtils', () {

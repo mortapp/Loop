@@ -5,6 +5,9 @@ import 'package:loop_mobile/core/account/account_context.dart';
 import 'package:loop_mobile/core/account/account_providers.dart';
 import 'package:loop_mobile/features/business/business_repository.dart';
 import 'package:loop_mobile/features/business/business_screen.dart';
+import 'package:loop_mobile/features/business/contacts/contacts_providers.dart';
+import 'package:loop_mobile/features/business/opportunities/opportunities_providers.dart';
+import 'package:loop_mobile/features/business/quotes/quotes_providers.dart';
 
 const _personal = AccountSummary(
   id: 'personal',
@@ -40,6 +43,9 @@ void main() {
           submittedName = name;
           return _business.id;
         }),
+        contactsProvider.overrideWith((ref) async => const []),
+        opportunitiesProvider.overrideWith((ref) async => const []),
+        quotesProvider.overrideWith((ref) async => const []),
       ],
     );
     addTearDown(container.dispose);
@@ -67,7 +73,7 @@ void main() {
   });
 
   for (final textScale in [1.0, 1.5]) {
-    testWidgets('MAKE cards fit Galaxy A14 portrait at ${textScale}x text', (
+    testWidgets('Ledger 2.0 fits Galaxy A14 portrait at ${textScale}x text', (
       tester,
     ) async {
       tester.view.physicalSize = const Size(1080, 2408);
@@ -83,6 +89,9 @@ void main() {
           availableAccountsProvider.overrideWith(
             (ref) async => const [_personal],
           ),
+          contactsProvider.overrideWith((ref) async => const []),
+          opportunitiesProvider.overrideWith((ref) async => const []),
+          quotesProvider.overrideWith((ref) async => const []),
         ],
       );
       addTearDown(container.dispose);
@@ -101,11 +110,18 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      for (final title in ['Contacts', 'Leads', 'Opportunities', 'Quotes']) {
-        expect(
-          find.byKey(ValueKey('business-nav-card-$title')),
-          findsOneWidget,
+      expect(
+        find.byKey(const Key('business-create-quote-action')),
+        findsOneWidget,
+      );
+      for (final title in ['PEOPLE', 'WORK', 'QUOTES']) {
+        await tester.scrollUntilVisible(
+          find.text(title),
+          260,
+          scrollable: find.byType(Scrollable).first,
         );
+        expect(find.text(title), findsOneWidget);
+        expect(tester.takeException(), isNull);
       }
     });
   }

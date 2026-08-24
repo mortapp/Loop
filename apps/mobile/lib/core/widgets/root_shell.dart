@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'loop_seal.dart';
 
 /// The persistent bottom-navigation shell wrapping every top-level tab:
-/// Today, Money, Sell, Business, AI.
+/// Today, Money, Sell, Business, Ask LOOP.
 ///
 /// This is shared chrome — the same shell hosts screens backed by any of
 /// the three engines (MAKE, PROTECT, RECOVER), which is what keeps LOOP
@@ -40,7 +40,7 @@ class RootShell extends StatelessWidget {
     NavigationDestination(
       icon: LoopSeal(size: 22, keyPoint: false, opacity: 0.7),
       selectedIcon: LoopSeal(size: 22, keyPoint: false),
-      label: 'AI',
+      label: 'Ask LOOP',
     ),
   ];
 
@@ -48,13 +48,22 @@ class RootShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) => navigationShell.goBranch(
-          index,
-          initialLocation: index == navigationShell.currentIndex,
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.7),
+            ),
+          ),
         ),
-        destinations: _destinations,
+        child: NavigationBar(
+          selectedIndex: navigationShell.currentIndex,
+          onDestinationSelected: (index) => navigationShell.goBranch(
+            index,
+            initialLocation: index == navigationShell.currentIndex,
+          ),
+          destinations: _destinations,
+        ),
       ),
     );
   }
