@@ -1,9 +1,9 @@
 import type { Action } from "@loop/contracts";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InlineActionForm } from "@/components/ui/inline-action-form";
+import { LedgerHero, LedgerPageIntro, LedgerRow, LedgerSectionLabel } from "@/components/ui/ledger";
 import { QuickAddForm } from "./quick-add-form";
 import { setActionStatus } from "./actions";
 
@@ -49,70 +49,115 @@ export default async function TodayPage() {
     : { data: [] as Action[] };
 
   const open = (actions ?? []).filter((a) => a.status === "open" || a.status === "snoozed");
-  const done = (actions ?? []).filter((a) => a.status === "done");
+  const done = (actions ?? []).filter((a) => a.status === "done").slice(0, 2);
+  const next = open[0];
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Today</h1>
+    <div className="flex flex-col gap-8">
+      <LedgerPageIntro
+        title="Today"
+        subtitle={new Intl.DateTimeFormat(undefined, {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        }).format(new Date())}
+      />
 
-      <QuickAddForm />
+      {next ? (
+        <LedgerHero
+          eyebrow="Next"
+          value={
+            <p
+              className="text-2xl text-[var(--color-text-primary)]"
+              style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}
+            >
+              {next.title}
+            </p>
+          }
+          detail={
+            next.due_at
+              ? `${isOverdue(next.due_at) ? "Overdue" : "Due"} ${formatDue(next.due_at)}`
+              : undefined
+          }
+          action={
+            <div className="flex items-center gap-3">
+              <InlineActionForm
+                action={setActionStatus.bind(null, next.id, "done")}
+                label="Mark done"
+                buttonClassName="rounded-[var(--radius-sm)] bg-[var(--color-brand)] px-4 py-2 text-sm font-semibold text-[var(--color-on-accent)] transition-opacity hover:opacity-90"
+              />
+              <InlineActionForm
+                action={setActionStatus.bind(null, next.id, "dismissed")}
+                label="Dismiss"
+                buttonClassName="px-2 py-2 text-xs text-[var(--color-text-tertiary)] transition-opacity hover:opacity-70"
+              />
+            </div>
+          }
+        />
+      ) : (
+        <div>
+          <EmptyState title="You’re clear." description="Nothing needs your attention right now." />
+        </div>
+      )}
 
-      <div className="flex flex-col gap-2">
-        {open.length === 0 ? (
-          <EmptyState
-            title="Nothing needs attention"
-            description="Quotes to follow up, return deadlines, and resell opportunities will show up here as they come due."
-          />
-        ) : (
-          open.map((action) => {
-            const overdue = isOverdue(action.due_at);
-            return (
-              <Card key={action.id} className="flex items-center justify-between px-4 py-3">
-                <div className="flex flex-col gap-0.5">
-                  <p className="text-sm font-medium text-[var(--color-text-primary)]">
-                    {action.title}
-                  </p>
-                  {action.due_at ? (
-                    <p
-                      className={`text-xs ${
-                        overdue
-                          ? "font-medium text-[var(--color-danger-text)]"
-                          : "text-[var(--color-text-tertiary)]"
-                      }`}
-                    >
-                      {overdue ? "Overdue · " : "Due "}
-                      {formatDue(action.due_at)}
+      <details className="group">
+        <summary className="cursor-pointer text-sm font-medium text-[var(--color-brand-text)] hover:opacity-70">
+          Add an action
+        </summary>
+        <div className="mt-3 max-w-xl">
+          <QuickAddForm />
+        </div>
+      </details>
+
+      {open.length > 1 ? (
+        <section>
+          <LedgerSectionLabel>Up next</LedgerSectionLabel>
+          <div className="mt-1">
+            {open.slice(1, 5).map((action) => {
+              const overdue = isOverdue(action.due_at);
+              return (
+                <LedgerRow key={action.id}>
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                      {action.title}
                     </p>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-3">
-                  <InlineActionForm
-                    action={setActionStatus.bind(null, action.id, "done")}
-                    label="Done"
-                    buttonClassName="text-xs font-medium text-[var(--color-brand-text)] transition-opacity hover:opacity-70"
-                  />
-                  <InlineActionForm
-                    action={setActionStatus.bind(null, action.id, "dismissed")}
-                    label="Dismiss"
-                    buttonClassName="text-xs text-[var(--color-text-tertiary)] transition-opacity hover:opacity-70"
-                  />
-                </div>
-              </Card>
-            );
-          })
-        )}
-      </div>
+                    {action.due_at ? (
+                      <p
+                        className={`text-xs ${
+                          overdue
+                            ? "font-medium text-[var(--color-danger-text)]"
+                            : "text-[var(--color-text-tertiary)]"
+                        }`}
+                      >
+                        {overdue ? "Overdue · " : "Due "}
+                        {formatDue(action.due_at)}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <InlineActionForm
+                      action={setActionStatus.bind(null, action.id, "done")}
+                      label="Done"
+                      buttonClassName="text-xs font-medium text-[var(--color-brand-text)] transition-opacity hover:opacity-70"
+                    />
+                  </div>
+                </LedgerRow>
+              );
+            })}
+            {open.length > 5 ? (
+              <p className="mt-2 text-xs text-[var(--color-text-tertiary)]">
+                {open.length - 5} more waiting
+              </p>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       {done.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-tertiary)]">
-            Recently done
-          </h2>
+        <section>
+          <LedgerSectionLabel>Recently done</LedgerSectionLabel>
           {done.map((action) => (
-            <div
-              key={action.id}
-              className="flex items-center justify-between rounded-[var(--radius-md)] px-4 py-2"
-            >
+            <LedgerRow key={action.id}>
               <p className="text-sm text-[var(--color-text-tertiary)] line-through">
                 {action.title}
               </p>
@@ -121,9 +166,9 @@ export default async function TodayPage() {
                 label="Reopen"
                 buttonClassName="text-xs text-[var(--color-text-tertiary)] transition-opacity hover:opacity-70"
               />
-            </div>
+            </LedgerRow>
           ))}
-        </div>
+        </section>
       ) : null}
     </div>
   );

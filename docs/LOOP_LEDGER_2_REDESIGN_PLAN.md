@@ -52,8 +52,9 @@ created.
 | Business simplification | Complete | People/Work/Quotes summaries use existing live providers and routes |
 | Ask LOOP and account simplification | Complete | Private-counsel language and Account/Profile/Appearance/Help/Sign out menu |
 | Native onboarding simplification | Complete | One calm form; verified email, name, username, conditional secure password |
-| Mobile regression and physical Samsung QA | Pending | Wireless ADB transport currently unavailable |
-| Web parity | Pending | Reuse current app shell and server actions |
+| Mobile regression | Complete | All 22 Flutter test files pass serially; analyzer clean |
+| Physical Samsung QA | Pending | Wireless ADB transport currently unavailable |
+| Web parity | Complete | Five-destination ledger UI uses existing server actions and account-scoped reads |
 | Final security, build, and release evidence | Pending | No release claim until current gates pass |
 
 ## External or current gates
@@ -79,9 +80,21 @@ created.
 
 ## Current phase
 
-Mobile-wide regression and web parity. Onboarding retained username checks,
-credential binding, safe errors, and focus recovery; its 10 focused tests pass.
-Sell retained exact money parsing, private photos, and canonical lifecycle RPCs;
-its empty state and Add Item sheet pass at Galaxy A14 dimensions and 150% text.
-The next automatic gate is the full mobile suite, then the existing web shell
-and pages receive the same product hierarchy.
+Configured Android build and physical-device verification. Mobile onboarding
+retains username checks, credential binding, safe errors, and focus recovery.
+Sell retains exact money parsing, private photos, and canonical lifecycle RPCs.
+Every one of the 22 Flutter test files passes when run independently, avoiding a
+Windows/OneDrive compiler-cache collision in the parallel runner.
+
+## Web parity verification
+
+- `npm run lint`: PASS.
+- `npm run typecheck`: PASS.
+- `npm run test:unit`: PASS, 4 tests.
+- `npm run build`: PASS, 24 routes generated.
+- `npm run test:e2e`: PASS for all executed tests, 31 passed and 60 skipped.
+- The 60 skipped tests require `QA_TEST_EMAIL` and `QA_TEST_PASSWORD`; neither is
+  present in process or User-scope environment. No credential was fabricated.
+- Public accessibility, responsive behavior, auth guards, bearer-token API
+  boundaries, AI confirmation binding, and idempotency tests executed and passed.
+- Authenticated web journeys remain an explicit QA-credential gate.

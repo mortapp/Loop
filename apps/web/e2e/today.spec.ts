@@ -6,19 +6,24 @@ test.describe("Today", () => {
     test.skip(!hasQaCredentials, "requires QA_TEST_EMAIL/QA_TEST_PASSWORD");
   });
 
-  test("quick-add creates an action, then Done and Dismiss remove it from the open list", async ({ page }) => {
+  test("quick-add creates an action, then Done and Dismiss remove it from the open list", async ({
+    page,
+  }) => {
     await page.goto("/today");
 
     const title = `E2E quick-add ${Date.now()}`;
+    await page.getByText("Add an action", { exact: true }).click();
     await page.getByPlaceholder(/add something to do/i).fill(title);
     await page.getByRole("button", { name: "Add" }).click();
 
-    // Open row: <Card><div><p>title</p>...</div><div>Done/Dismiss</div></Card>
-    // -- two levels up from the title text reaches the Card.
-    const openRow = page.getByText(title, { exact: true }).locator("..").locator("..");
+    const openRow = page
+      .getByText(title, { exact: true })
+      .locator(
+        "xpath=ancestor::*[.//button[normalize-space()='Done' or normalize-space()='Mark done']][1]",
+      );
     await expect(page.getByText(title, { exact: true })).toBeVisible();
 
-    await openRow.getByRole("button", { name: "Done" }).click();
+    await openRow.getByRole("button", { name: /done/i }).click();
     await expect(page.getByText(title, { exact: true })).not.toBeVisible();
 
     // Recently done row: <div><p className="line-through">title</p><form>Reopen</form></div>
@@ -29,7 +34,9 @@ test.describe("Today", () => {
     await doneRow.getByRole("button", { name: "Reopen" }).click();
     await expect(page.getByText(title, { exact: true })).toBeVisible();
 
-    const reopenedRow = page.getByText(title, { exact: true }).locator("..").locator("..");
+    const reopenedRow = page
+      .getByText(title, { exact: true })
+      .locator("xpath=ancestor::*[.//button[normalize-space()='Dismiss']][1]");
     await reopenedRow.getByRole("button", { name: "Dismiss" }).click();
     await expect(page.getByText(title, { exact: true })).not.toBeVisible();
   });

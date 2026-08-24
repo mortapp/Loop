@@ -140,7 +140,7 @@ export function ValuationForm({ itemId }: { itemId: string }) {
   );
 }
 
-export function ListingForm({ itemId }: { itemId: string }) {
+export function ListingForm({ itemId, primary = false }: { itemId: string; primary?: boolean }) {
   const [open, setOpen] = useState(false);
   const { formRef, state, formAction, pending } = useItemForm(createListing);
 
@@ -148,9 +148,13 @@ export function ListingForm({ itemId }: { itemId: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-xs text-[var(--color-text-tertiary)] hover:underline"
+        className={
+          primary
+            ? "rounded-[var(--radius-sm)] bg-[var(--color-brand)] px-3 py-2 text-xs font-semibold text-[var(--color-on-accent)] transition-opacity hover:opacity-90"
+            : "text-xs text-[var(--color-text-tertiary)] hover:underline"
+        }
       >
-        + List for sale
+        List for sale
       </button>
     );
   }
@@ -177,7 +181,15 @@ export function ListingForm({ itemId }: { itemId: string }) {
   );
 }
 
-export function SaleForm({ itemId, listingId }: { itemId: string; listingId?: string }) {
+export function SaleForm({
+  itemId,
+  listingId,
+  primary = false,
+}: {
+  itemId: string;
+  listingId?: string;
+  primary?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const { formRef, state, formAction, pending } = useItemForm(recordSale);
 
@@ -185,9 +197,13 @@ export function SaleForm({ itemId, listingId }: { itemId: string; listingId?: st
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-xs text-[var(--color-brand-text)] hover:underline"
+        className={
+          primary
+            ? "rounded-[var(--radius-sm)] bg-[var(--color-brand)] px-3 py-2 text-xs font-semibold text-[var(--color-on-accent)] transition-opacity hover:opacity-90"
+            : "text-xs text-[var(--color-text-tertiary)] hover:underline"
+        }
       >
-        + Record sale
+        {primary ? "Record sale" : "Sold already?"}
       </button>
     );
   }

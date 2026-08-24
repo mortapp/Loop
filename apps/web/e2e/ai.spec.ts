@@ -16,7 +16,7 @@ test.describe("AI", () => {
     await expect(page.getByRole("heading", { name: /ask loop/i })).toBeVisible();
 
     const chatInput = page.getByPlaceholder(/ask|message/i);
-    const notConfiguredNotice = page.getByText(/ANTHROPIC_API_KEY/);
+    const notConfiguredNotice = page.getByText(/Ask LOOP is not available yet/i);
 
     await expect(chatInput.or(notConfiguredNotice).first()).toBeVisible();
   });

@@ -8,27 +8,27 @@ export const NAV_ITEMS = [
   {
     href: "/today",
     label: "Today",
-    description: "Your unified queue of actions across everything LOOP tracks.",
+    description: "The next thing that needs your attention.",
   },
   {
     href: "/money",
     label: "Money",
-    description: "Everything earned, spent, refunded, and recovered.",
+    description: "Everything made, protected, and recovered.",
   },
   {
     href: "/sell",
     label: "Sell",
-    description: "RECOVER / ResellLens — turn owned items back into cash.",
+    description: "Inventory you can turn back into value.",
   },
   {
     href: "/business",
     label: "Business",
-    description: "Switch between your personal account and businesses you belong to.",
+    description: "People, work, and quotes in one place.",
   },
   {
     href: "/ai",
-    label: "AI",
-    description: "Ask LOOP to take safe, confirmed actions on your behalf.",
+    label: "Ask LOOP",
+    description: "Private counsel for your value in motion.",
   },
 ] as const;
 

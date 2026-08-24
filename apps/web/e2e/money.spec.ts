@@ -11,7 +11,7 @@ test.describe("Money", () => {
 
     const madeBefore = await page.getByText("MADE").locator("..").getByText(/^\$/).textContent();
 
-    await page.getByText("Log a manual entry").click();
+    await page.getByText("Add entry", { exact: true }).click();
     const description = `E2E manual entry ${Date.now()}`;
     await page.locator('select[name="kind"]').selectOption("earn");
     await page.getByPlaceholder("$ amount").fill("12.34");

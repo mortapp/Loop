@@ -4,8 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
 import { formatCents } from "@/lib/format";
 import { Amount } from "@/components/ui/amount";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { LedgerHero, LedgerPageIntro, LedgerRow, LedgerSectionLabel } from "@/components/ui/ledger";
 import { LogEventForm } from "./log-event-form";
 
 const KIND_SIGN: Record<MoneyEventKind, 1 | -1> = {
@@ -64,104 +64,100 @@ export default async function MoneyPage() {
   const net = totals.net_cents;
 
   return (
-    <div className="flex flex-col gap-10">
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Money</h1>
-        <Link
-          href="/money/purchases"
-          className="text-sm font-medium text-[var(--color-brand-text)] hover:opacity-70"
-        >
-          Purchases &amp; returns →
-        </Link>
-      </div>
+    <div className="flex flex-col gap-8">
+      <LedgerPageIntro title="Money" subtitle="Everything you made, protected, and recovered." />
 
       {/* The hero: one dominant editorial figure, not six equally-weighted
           boxes. Neutral Bone even when positive — a private ledger states
           a number, it doesn't cheer for it. */}
-      <div>
-        <p className="text-xs font-semibold tracking-[0.15em] text-[var(--color-text-secondary)]">
-          TOTAL VALUE THROUGH LOOP
-        </p>
-        <p
-          className={`tabular-nums-mono mt-1 text-5xl ${
-            net < 0 ? "text-[var(--color-danger-text)]" : "text-[var(--color-text-primary)]"
-          }`}
-          style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}
-        >
-          {formatCents(net)}
-        </p>
-
-        {/* MAKE / PROTECT / RECOVER — the three engines that produced this
-            number. */}
-        <div className="mt-6 grid grid-cols-3 gap-4 border-t border-[var(--color-border-subtle)] pt-4">
-          {(
-            [
-              ["MADE", totals.made_cents],
-              ["PROTECTED", totals.protected_cents],
-              ["RECOVERED", totals.recovered_cents],
-            ] as const
-          ).map(([label, cents]) => (
-            <div key={label}>
-              <p className="text-[10px] font-semibold tracking-[0.12em] text-[var(--color-text-tertiary)]">
-                {label}
-              </p>
-              <Amount cents={cents} tone="neutral" size="md" className="mt-0.5 font-medium" />
+      <LedgerHero
+        eyebrow="Current value"
+        value={
+          <p
+            className={`tabular-nums-mono text-5xl ${
+              net < 0 ? "text-[var(--color-danger-text)]" : "text-[var(--color-text-primary)]"
+            }`}
+            style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}
+          >
+            {formatCents(net)}
+          </p>
+        }
+        action={
+          <details className="group">
+            <summary className="inline-flex cursor-pointer rounded-[var(--radius-sm)] bg-[var(--color-brand)] px-4 py-2 text-sm font-semibold text-[var(--color-on-accent)] transition-opacity hover:opacity-90">
+              Add entry
+            </summary>
+            <div className="mt-3 max-w-xl">
+              <LogEventForm initialRequestId={crypto.randomUUID()} />
             </div>
-          ))}
-        </div>
+          </details>
+        }
+      />
 
-        {/* Costs — real, but quieter; not part of the three-engine story. */}
-        <div className="mt-3 flex gap-6">
-          {(
-            [
-              ["Spent", totals.spent_cents],
-              ["Fees", totals.fees_cents],
-            ] as const
-          ).map(([label, cents]) => (
-            <p key={label} className="text-xs text-[var(--color-text-tertiary)]">
-              {label} <Amount cents={cents} tone="neutral" size="sm" className="ml-1" />
+      <div className="grid grid-cols-3 gap-4">
+        {(
+          [
+            ["MADE", totals.made_cents],
+            ["PROTECTED", totals.protected_cents],
+            ["RECOVERED", totals.recovered_cents],
+          ] as const
+        ).map(([label, cents]) => (
+          <div key={label}>
+            <p className="text-[10px] font-semibold tracking-[0.12em] text-[var(--color-text-tertiary)]">
+              {label}
             </p>
-          ))}
-        </div>
+            <Amount cents={cents} tone="neutral" size="md" className="mt-0.5 font-medium" />
+          </div>
+        ))}
       </div>
 
-      <details className="group">
-        <summary className="cursor-pointer text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
-          Log a manual entry
-        </summary>
-        <div className="mt-3">
-          <LogEventForm initialRequestId={crypto.randomUUID()} />
-        </div>
-      </details>
+      <Link href="/money/purchases" className="block">
+        <LedgerRow>
+          <div>
+            <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+              Purchases, returns &amp; warranties
+            </p>
+            <p className="mt-0.5 text-xs text-[var(--color-text-tertiary)]">
+              Keep what you bought protected.
+            </p>
+          </div>
+          <span aria-hidden className="text-[var(--color-text-tertiary)]">
+            →
+          </span>
+        </LedgerRow>
+      </Link>
 
-      <div className="flex flex-col gap-2">
-        {(events ?? []).length === 0 ? (
-          <EmptyState
-            title="Your ledger begins with the first recorded value"
-            description="Sales, refunds, and manual entries will appear here as they happen."
-          />
-        ) : (
-          (events ?? []).map((event) => (
-            <Card key={event.id} className="flex items-center justify-between px-4 py-3">
-              <div>
-                <p className="text-sm font-medium text-[var(--color-text-primary)]">
-                  {event.description || KIND_LABEL[event.kind]}
-                </p>
-                <p className="text-xs text-[var(--color-text-tertiary)]">
-                  {new Date(event.occurred_at).toLocaleDateString()} ·{" "}
-                  {event.source_type ?? "manual"}
-                </p>
-              </div>
-              <Amount
-                cents={KIND_SIGN[event.kind] * event.amount_cents}
-                tone="auto"
-                signed
-                className="font-medium"
-              />
-            </Card>
-          ))
-        )}
-      </div>
+      <section>
+        <LedgerSectionLabel>Ledger</LedgerSectionLabel>
+        <div className="mt-1">
+          {(events ?? []).length === 0 ? (
+            <EmptyState
+              title="Your ledger begins with the first recorded value"
+              description="Sales, refunds, and manual entries will appear here as they happen."
+            />
+          ) : (
+            (events ?? []).map((event) => (
+              <LedgerRow key={event.id}>
+                <div>
+                  <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                    {event.description || KIND_LABEL[event.kind]}
+                  </p>
+                  <p className="text-xs text-[var(--color-text-tertiary)]">
+                    {new Date(event.occurred_at).toLocaleDateString()} ·{" "}
+                    {event.source_type ?? "manual"}
+                  </p>
+                </div>
+                <Amount
+                  cents={KIND_SIGN[event.kind] * event.amount_cents}
+                  tone="auto"
+                  signed
+                  className="font-medium"
+                />
+              </LedgerRow>
+            ))
+          )}
+        </div>
+      </section>
     </div>
   );
 }

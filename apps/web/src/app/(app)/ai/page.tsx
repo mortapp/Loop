@@ -1,34 +1,29 @@
 import { isAiConfigured } from "@/lib/ai/client";
-import { Card } from "@/components/ui/card";
+import { LedgerHero, LedgerPageIntro } from "@/components/ui/ledger";
 import { ChatUi } from "./chat-ui";
 
 export default function AiPage() {
   const configured = isAiConfigured();
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1
-          className="text-2xl tracking-[0.08em] text-[var(--color-text-primary)]"
-          style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}
-        >
-          Ask LOOP
-        </h1>
-        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-          What should we work through? Nothing here executes without you approving it first.
-        </p>
-      </div>
+    <div className="flex flex-col gap-8">
+      <LedgerPageIntro title="Ask LOOP" subtitle="Private counsel for your value in motion." />
 
       {configured ? (
         <ChatUi />
       ) : (
-        <Card className="border-dashed p-8">
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            AI isn&apos;t configured yet — set <code>ANTHROPIC_API_KEY</code> (and optionally{" "}
-            <code>ANTHROPIC_MODEL</code>, defaults to <code>claude-opus-5</code>) to enable it.
-            See docs/KNOWN_ISSUES.md.
-          </p>
-        </Card>
+        <LedgerHero
+          eyebrow="Unavailable"
+          value={
+            <p
+              className="text-2xl text-[var(--color-text-primary)]"
+              style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}
+            >
+              Ask LOOP is not available yet.
+            </p>
+          }
+          detail="Your ledger still works normally. This space will remain closed until its private counsel provider is configured."
+        />
       )}
     </div>
   );

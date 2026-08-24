@@ -17,8 +17,8 @@ type AccountMenuProps = {
 
 /**
  * The account identity control — avatar + name opens a menu with
- * Switch account / Personalization / Profile / Settings / Help & Support
- * / Sign out. Deliberately no billing/plan/upgrade rows: LOOP has no
+ * Account / Profile / Appearance / Help / Sign out. Deliberately no
+ * billing/plan/upgrade rows: LOOP has no
  * subscription tiers, so those would be dead UI copied from a ChatGPT-
  * style reference rather than earned by a real product need.
  *
@@ -120,23 +120,17 @@ export function AccountMenu({
           </div>
 
           <div className="py-1">
-            <MenuLink ref={firstItemRef} href="/business" onSelect={() => setOpen(false)}>
-              Switch account
-            </MenuLink>
-            <MenuLink href="/settings/personalization" onSelect={() => setOpen(false)}>
-              Personalization
+            <MenuLink ref={firstItemRef} href="/settings" onSelect={() => setOpen(false)}>
+              Account
             </MenuLink>
             <MenuLink href="/profile" onSelect={() => setOpen(false)}>
               Profile
             </MenuLink>
-            <MenuLink href="/settings" onSelect={() => setOpen(false)}>
-              Settings
+            <MenuLink href="/settings/personalization" onSelect={() => setOpen(false)}>
+              Appearance
             </MenuLink>
-          </div>
-
-          <div className="border-t border-[var(--color-border-subtle)] py-1">
             <MenuLink href="/help" onSelect={() => setOpen(false)}>
-              Help &amp; Support
+              Help
             </MenuLink>
           </div>
 

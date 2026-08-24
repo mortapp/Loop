@@ -2,7 +2,6 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { completeProfile, type CompleteProfileState } from "./actions";
-import { LoopSeal } from "@/components/ui/loop-seal";
 import { createClient } from "@/lib/supabase/client";
 
 type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid";
@@ -86,37 +85,26 @@ export function CompleteProfileForm({
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-4 py-8">
-      <form
-        action={formAction}
-        className="flex w-full max-w-sm flex-col gap-4 rounded-[var(--radius-lg)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-6"
-      >
-        <div className="flex flex-col items-center gap-3 text-center">
-          <LoopSeal size={32} />
-          <p className="text-xs font-medium text-[var(--color-brand-text)]">✓ Verified</p>
-          <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">
-            Welcome to LOOP
+      <form action={formAction} className="flex w-full max-w-sm flex-col gap-4">
+        <div>
+          <h1
+            className="text-3xl text-[var(--color-text-primary)]"
+            style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}
+          >
+            Finish your account
           </h1>
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            Let&apos;s finish setting up your account.
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+            One private ledger, ready in one step.
           </p>
         </div>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[10px] font-semibold tracking-[0.15em] text-[var(--color-text-secondary)]">
-            EMAIL
-          </span>
-          <input
-            value={email}
-            readOnly
-            disabled
-            className="rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text-tertiary)] outline-none"
-          />
-        </label>
+        <div className="border-y border-[var(--color-border-subtle)] py-3">
+          <p className="text-sm font-medium text-[var(--color-text-primary)]">{email}</p>
+          <p className="mt-0.5 text-xs text-[var(--color-text-tertiary)]">Verified email</p>
+        </div>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[10px] font-semibold tracking-[0.15em] text-[var(--color-text-secondary)]">
-            NAME
-          </span>
+          <span className="text-xs font-medium text-[var(--color-text-secondary)]">Name</span>
           <input
             name="displayName"
             required
@@ -127,9 +115,7 @@ export function CompleteProfileForm({
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[10px] font-semibold tracking-[0.15em] text-[var(--color-text-secondary)]">
-            USERNAME
-          </span>
+          <span className="text-xs font-medium text-[var(--color-text-secondary)]">Username</span>
           <div className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] px-3 py-2 focus-within:border-[var(--color-brand)]">
             <span className="text-sm text-[var(--color-text-tertiary)]">@</span>
             <input
@@ -158,9 +144,8 @@ export function CompleteProfileForm({
         {requirePasswordSetup ? (
           <>
             <label className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-semibold tracking-[0.15em] text-[var(--color-text-secondary)]">
-                CREATE PASSWORD{" "}
-                <span className="text-[var(--color-text-tertiary)]">(required)</span>
+              <span className="text-xs font-medium text-[var(--color-text-secondary)]">
+                Create password
               </span>
               <input
                 name="password"
@@ -173,8 +158,8 @@ export function CompleteProfileForm({
               />
             </label>
             <label className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-semibold tracking-[0.15em] text-[var(--color-text-secondary)]">
-                CONFIRM PASSWORD
+              <span className="text-xs font-medium text-[var(--color-text-secondary)]">
+                Confirm password
               </span>
               <input
                 name="confirmPassword"
@@ -198,8 +183,7 @@ export function CompleteProfileForm({
         <button
           type="submit"
           disabled={pending || usernameStatus === "taken" || usernameStatus === "invalid"}
-          className="mt-1 rounded-[var(--radius-sm)] px-4 py-2.5 text-sm font-semibold tracking-wide text-[var(--color-on-accent)] transition-opacity disabled:opacity-50"
-          style={{ background: "linear-gradient(90deg, #2B1728, #693754, #401C38)" }}
+          className="mt-1 rounded-[var(--radius-sm)] bg-[var(--color-brand)] px-4 py-2.5 text-sm font-semibold text-[var(--color-on-accent)] transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {pending ? "Saving…" : "Finish setup"}
         </button>

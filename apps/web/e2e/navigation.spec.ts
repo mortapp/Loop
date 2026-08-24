@@ -32,7 +32,7 @@ test.describe("primary navigation", () => {
   test("the rail nav links to every primary destination", async ({ page }) => {
     await page.goto("/today");
     const nav = page.getByRole("navigation", { name: "Primary" }).first();
-    for (const label of ["Today", "Money", "Sell", "Business", "AI"]) {
+    for (const label of ["Today", "Money", "Sell", "Business", "Ask LOOP"]) {
       await expect(nav.getByRole("link", { name: label })).toBeVisible();
     }
   });

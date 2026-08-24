@@ -10,6 +10,7 @@ test.describe("Sell", () => {
     await page.goto("/sell");
 
     const name = `E2E Item ${Date.now()}`;
+    await page.getByText("Add item", { exact: true }).click();
     await page.getByPlaceholder("Item name").fill(name);
     await page.getByPlaceholder("Category (optional)").fill("Electronics");
     await page.getByRole("button", { name: /add item/i }).click();

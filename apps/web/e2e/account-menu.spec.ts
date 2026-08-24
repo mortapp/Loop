@@ -14,11 +14,14 @@ test.describe("account menu", () => {
   test("opens with every expected item and no billing/plan UI", async ({ page }) => {
     await page.goto("/today");
 
-    await page.getByRole("button", { name: /^Account menu for/ }).first().click();
+    await page
+      .getByRole("button", { name: /^Account menu for/ })
+      .first()
+      .click();
     const menu = page.getByRole("menu", { name: "Account menu" });
     await expect(menu).toBeVisible();
 
-    for (const item of ["Switch account", "Personalization", "Profile", "Settings", "Help & Support", "Sign out"]) {
+    for (const item of ["Account", "Profile", "Appearance", "Help", "Sign out"]) {
       await expect(menu.getByRole("menuitem", { name: item })).toBeVisible();
     }
 
@@ -41,7 +44,10 @@ test.describe("account menu", () => {
 
   test("Profile navigates and closes the menu", async ({ page }) => {
     await page.goto("/today");
-    await page.getByRole("button", { name: /^Account menu for/ }).first().click();
+    await page
+      .getByRole("button", { name: /^Account menu for/ })
+      .first()
+      .click();
     await page.getByRole("menuitem", { name: "Profile" }).click();
     await expect(page).toHaveURL(/\/profile$/);
     await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();

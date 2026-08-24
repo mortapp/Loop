@@ -11,15 +11,22 @@ test.describe("Business", () => {
     await expect(page.getByText("Active").first()).toBeVisible();
 
     for (const [label, path] of [
-      ["Contacts", "/business/contacts"],
+      ["People", "/business/contacts"],
       ["Leads", "/business/leads"],
-      ["Opportunities", "/business/opportunities"],
+      ["Work", "/business/opportunities"],
       ["Quotes", "/business/quotes"],
     ] as const) {
       await page.goto("/business");
-      await page.getByRole("link", { name: new RegExp(label) }).click();
+      if (label === "Leads") {
+        await page.getByRole("link", { name: /Leads/ }).click();
+      } else {
+        const sectionHeader = page.getByRole("heading", { name: label }).locator("..");
+        await sectionHeader.getByRole("link", { name: "See all" }).click();
+      }
       await expect(page).toHaveURL(new RegExp(`${path}$`));
-      await expect(page.getByRole("heading", { name: label })).toBeVisible();
+      const destinationHeading =
+        label === "People" ? "Contacts" : label === "Work" ? "Opportunities" : label;
+      await expect(page.getByRole("heading", { name: destinationHeading })).toBeVisible();
     }
   });
 });
