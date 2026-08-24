@@ -9,7 +9,7 @@ import '../../core/account/profile_providers.dart';
 import '../../core/supabase/supabase_providers.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
-import '../../core/widgets/loop_seal.dart';
+import '../../core/widgets/ledger_surface.dart';
 
 final _usernamePattern = RegExp(r'^[a-z0-9_]{3,20}$');
 final _asciiLowercaseFormatter = TextInputFormatter.withFunction((
@@ -448,64 +448,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Center(child: LoopSeal(size: 32)),
-                    const SizedBox(height: AppSpacing.sm),
-                    Center(
-                      child: Text(
-                        'ACCOUNT SETUP',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: AppColors.tyrianText,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      'Welcome to LOOP',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      "Let's finish setting up your account.",
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    const LedgerPageIntro(
+                      title: 'Finish your account',
+                      subtitle: 'One private ledger, ready in one step.',
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    const _FieldLabel('EMAIL'),
-                    const SizedBox(height: AppSpacing.xs),
                     Semantics(
-                      label: 'Account email',
+                      label: 'Verified account email: ${_identity.email}',
                       readOnly: true,
-                      child: Container(
-                        width: double.infinity,
-                        constraints: const BoxConstraints(minHeight: 48),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 13,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(
-                            AppSpacing.radiusSm,
-                          ),
-                          border: Border.all(
-                            color: AppColors.platinum.withValues(alpha: 0.25),
-                          ),
-                        ),
-                        child: Text(
-                          _identity.email,
-                          softWrap: true,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textMuted,
-                          ),
+                      child: LedgerRow(
+                        title: _identity.email,
+                        subtitle: 'Verified email',
+                        leading: const Icon(
+                          Icons.verified_outlined,
+                          size: 20,
+                          color: AppColors.successBright,
                         ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    const _FieldLabel('NAME'),
-                    const SizedBox(height: AppSpacing.xs),
                     Semantics(
                       label: 'Name',
                       textField: true,
@@ -519,14 +480,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         autofillHints: const [AutofillHints.name],
                         onChanged: _handleFieldChanged,
                         onSubmitted: (_) => _usernameFocusNode.requestFocus(),
-                        decoration: const InputDecoration(
-                          hintText: 'Your name',
-                        ),
+                        decoration: const InputDecoration(labelText: 'Name'),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    const _FieldLabel('USERNAME'),
-                    const SizedBox(height: AppSpacing.xs),
                     Semantics(
                       label: 'Username',
                       textField: true,
@@ -551,6 +508,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         },
                         decoration: const InputDecoration(
                           prefixText: '@',
+                          labelText: 'Username',
                           hintText: 'your_username',
                         ),
                       ),
@@ -602,8 +560,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     ],
                     if (_identity.credentialsRequired) ...[
                       const SizedBox(height: AppSpacing.md),
-                      const _FieldLabel('PASSWORD', required: true),
-                      const SizedBox(height: AppSpacing.xs),
                       Semantics(
                         label: 'Password, required',
                         textField: true,
@@ -621,6 +577,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           onSubmitted: (_) =>
                               _confirmPasswordFocusNode.requestFocus(),
                           decoration: InputDecoration(
+                            labelText: 'Create password',
                             hintText: 'At least 8 characters',
                             suffixIcon: IconButton(
                               key: const Key('onboarding-password-visibility'),
@@ -644,14 +601,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'Required to finish setting up this Google account.',
+                        'This also gives your Google account a secure LOOP password.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: AppColors.textMuted,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
-                      const _FieldLabel('CONFIRM PASSWORD', required: true),
-                      const SizedBox(height: AppSpacing.xs),
                       Semantics(
                         label: 'Confirm password, required',
                         textField: true,
@@ -668,6 +623,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           onChanged: _handleFieldChanged,
                           onSubmitted: (_) => _submit(),
                           decoration: InputDecoration(
+                            labelText: 'Confirm password',
                             hintText: 'Enter the same password again',
                             suffixIcon: IconButton(
                               key: const Key(
@@ -735,51 +691,29 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     const SizedBox(height: AppSpacing.md),
                     SizedBox(
                       height: 52,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(
-                            AppSpacing.radiusSm,
-                          ),
-                          gradient: const LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                            colors: [
-                              AppColors.imperialPlum,
-                              AppColors.tyrianRoyal,
-                              AppColors.tyrianDeep,
-                            ],
-                          ),
-                        ),
-                        child: ElevatedButton(
-                          key: const Key('onboarding-submit'),
-                          onPressed: _submitting ? null : _submit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            disabledBackgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            elevation: 0,
-                          ),
-                          child: _submitting
-                              ? const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox.square(
-                                      dimension: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: AppColors.onAccentFill,
-                                      ),
+                      child: FilledButton(
+                        key: const Key('onboarding-submit'),
+                        onPressed: _submitting ? null : _submit,
+                        child: _submitting
+                            ? const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox.square(
+                                    dimension: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.onAccentFill,
                                     ),
-                                    SizedBox(width: AppSpacing.sm),
-                                    Flexible(child: Text('Finishing setup...')),
-                                  ],
-                                )
-                              : Text(
-                                  _submissionFailed
-                                      ? 'Try setup again'
-                                      : 'Finish setup',
-                                ),
-                        ),
+                                  ),
+                                  SizedBox(width: AppSpacing.sm),
+                                  Flexible(child: Text('Finishing setup...')),
+                                ],
+                              )
+                            : Text(
+                                _submissionFailed
+                                    ? 'Try setup again'
+                                    : 'Finish setup',
+                              ),
                       ),
                     ),
                   ],
@@ -821,37 +755,5 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       case _UsernameStatus.checking:
         return AppColors.textMuted;
     }
-  }
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text, {this.required = false});
-
-  final String text;
-  final bool required;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.labelMedium?.copyWith(
-      color: AppColors.textStructural,
-      letterSpacing: 1.3,
-      fontSize: 11,
-    );
-    return Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.xs,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Text(text, style: style),
-        if (required)
-          Text(
-            'REQUIRED',
-            style: style?.copyWith(
-              color: AppColors.tyrianText,
-              letterSpacing: 0.8,
-            ),
-          ),
-      ],
-    );
   }
 }

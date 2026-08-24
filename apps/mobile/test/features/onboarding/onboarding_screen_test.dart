@@ -36,11 +36,14 @@ void main() {
         find.byKey(const Key('onboarding-confirm-password-field')),
         findsOneWidget,
       );
-      expect(find.text('REQUIRED'), findsNWidgets(2));
       expect(
-        find.text('Required to finish setting up this Google account.'),
+        find.text(
+          'This also gives your Google account a secure LOOP password.',
+        ),
         findsOneWidget,
       );
+      expect(find.text('Create password'), findsOneWidget);
+      expect(find.text('Confirm password'), findsOneWidget);
       expect(
         tester.getSize(find.byKey(const Key('onboarding-submit'))).height,
         greaterThanOrEqualTo(48),

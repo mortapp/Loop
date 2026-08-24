@@ -7,6 +7,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/account_sheet.dart';
 import '../../core/widgets/async_error_view.dart';
+import '../../core/widgets/ledger_surface.dart';
 import '../../core/widgets/loop_seal.dart';
 import 'item_actions.dart';
 import 'models/item.dart';
@@ -37,6 +38,35 @@ Color _statusColor(ItemStatus status) {
 class SellScreen extends ConsumerWidget {
   const SellScreen({super.key});
 
+  void _showCreateItem(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
+            AppSpacing.md,
+            MediaQuery.viewInsetsOf(sheetContext).bottom + AppSpacing.md,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Add item',
+                style: Theme.of(sheetContext).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _CreateItemForm(onAdded: () => Navigator.of(sheetContext).pop()),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageAsync = ref.watch(sellPageProvider);
@@ -44,11 +74,19 @@ class SellScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sell'),
-        actions: const [AccountAvatarButton()],
+        actions: [
+          IconButton(
+            tooltip: 'Add item',
+            onPressed: () => _showCreateItem(context),
+            icon: const Icon(Icons.add),
+          ),
+          const AccountAvatarButton(),
+        ],
       ),
       body: SafeArea(
         child: pageAsync.when(
-          data: (data) => _SellBody(data: data),
+          data: (data) =>
+              _SellBody(data: data, onAdd: () => _showCreateItem(context)),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => AsyncErrorView(
             error: error,
@@ -61,28 +99,57 @@ class SellScreen extends ConsumerWidget {
 }
 
 class _SellBody extends ConsumerWidget {
-  const _SellBody({required this.data});
+  const _SellBody({required this.data, required this.onAdd});
 
   final SellPageData data;
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final recoveryPotential = data.latestValuationByItem.values.fold<int>(
+      0,
+      (total, valuation) => total + valuation.estimatedValueCents,
+    );
+
     return RefreshIndicator(
       onRefresh: () => ref.refresh(sellPageProvider.future),
       child: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          Text(
-            'RECOVER / ResellLens. Value an item, list it, then record the '
-            'sale — a completed sale posts straight to Money as recovered '
-            'value.',
-            style: Theme.of(context).textTheme.bodyMedium,
+          const LedgerPageIntro(
+            title: 'Sell',
+            subtitle: 'Inventory you can turn back into value.',
           ),
-          const SizedBox(height: AppSpacing.md),
-          const _CreateItemForm(),
           const SizedBox(height: AppSpacing.lg),
+          LedgerHero(
+            eyebrow: recoveryPotential > 0
+                ? 'Recovery potential'
+                : 'Private inventory',
+            value: Text(
+              recoveryPotential > 0
+                  ? MoneyUtils.formatCents(recoveryPotential)
+                  : '${data.items.length} ${data.items.length == 1 ? 'item' : 'items'}',
+              style: theme.textTheme.headlineLarge?.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+            detail: 'A completed sale posts recovered value to Money.',
+            action: FilledButton.icon(
+              key: const Key('sell-add-item-action'),
+              onPressed: onAdd,
+              icon: const Icon(Icons.add),
+              label: const Text('Add item'),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          const LedgerSectionLabel('Inventory'),
+          const SizedBox(height: AppSpacing.sm),
           if (data.items.isEmpty)
-            const Text('No items yet.')
+            const LedgerEmptyState(
+              title: 'Nothing here yet.',
+              detail: 'Add something you may want to recover value from.',
+            )
           else
             for (final item in data.items)
               _ItemTile(
@@ -363,7 +430,9 @@ class _ItemTile extends ConsumerWidget {
 }
 
 class _CreateItemForm extends ConsumerStatefulWidget {
-  const _CreateItemForm();
+  const _CreateItemForm({this.onAdded});
+
+  final VoidCallback? onAdded;
 
   @override
   ConsumerState<_CreateItemForm> createState() => _CreateItemFormState();
@@ -428,6 +497,7 @@ class _CreateItemFormState extends ConsumerState<_CreateItemForm> {
       _conditionController.clear();
       _priceController.clear();
       ref.invalidate(sellPageProvider);
+      widget.onAdded?.call();
     } catch (_) {
       if (mounted) {
         setState(() => _error = userSafeActionError('add this item'));
@@ -439,79 +509,70 @@ class _CreateItemFormState extends ConsumerState<_CreateItemForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _nameController,
+          decoration: const InputDecoration(
+            labelText: 'Item name',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextField(
+          controller: _categoryController,
+          decoration: const InputDecoration(
+            labelText: 'Category (optional)',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextField(
+          controller: _conditionController,
+          decoration: const InputDecoration(
+            labelText: 'Condition (optional)',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextField(
+          controller: _priceController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: r'Paid ($, optional)',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
           children: [
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Item name',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
+            FilledButton(
+              onPressed: _submitting ? null : _submit,
+              child: _submitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Add item'),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              controller: _categoryController,
-              decoration: const InputDecoration(
-                labelText: 'Category (optional)',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              controller: _conditionController,
-              decoration: const InputDecoration(
-                labelText: 'Condition (optional)',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              controller: _priceController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(
-                labelText: r'Paid ($, optional)',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Row(
-              children: [
-                FilledButton(
-                  onPressed: _submitting ? null : _submit,
-                  child: _submitting
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Add item'),
+            if (_error != null) ...[
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  _error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
-                if (_error != null) ...[
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      _error!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+              ),
+            ],
           ],
         ),
-      ),
+      ],
     );
   }
 }

@@ -143,7 +143,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(OnboardingScreen), findsOneWidget);
-    expect(find.text('Welcome to LOOP'), findsOneWidget);
+    expect(find.text('Finish your account'), findsOneWidget);
     expect(find.text('You’re clear.'), findsNothing);
   });
 

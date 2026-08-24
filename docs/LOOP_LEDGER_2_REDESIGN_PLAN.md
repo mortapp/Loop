@@ -48,9 +48,10 @@ created.
 | Mobile ledger primitives and five-destination shell | Complete | Shared data-agnostic ledger primitives; Ask LOOP is the fifth destination |
 | Today simplification | Complete | One next action, up to four compact rows, quiet `You are clear` state |
 | Money and Protect integration | Complete | Value hero, Made/Protected/Recovered, ledger, Add entry sheet, Protect row |
-| Sell simplification | Pending | Inventory-first rows and state-based actions |
+| Sell simplification | Complete | Recovery hero, Add Item sheet, inventory tiles, one state-based primary action |
 | Business simplification | Complete | People/Work/Quotes summaries use existing live providers and routes |
 | Ask LOOP and account simplification | Complete | Private-counsel language and Account/Profile/Appearance/Help/Sign out menu |
+| Native onboarding simplification | Complete | One calm form; verified email, name, username, conditional secure password |
 | Mobile regression and physical Samsung QA | Pending | Wireless ADB transport currently unavailable |
 | Web parity | Pending | Reuse current app shell and server actions |
 | Final security, build, and release evidence | Pending | No release claim until current gates pass |
@@ -78,6 +79,9 @@ created.
 
 ## Current phase
 
-Sell and onboarding simplification. The next automatic verification gate is
-focused form and large-text coverage, followed by the full mobile suite and a
-configured APK for the connected Samsung when transport is restored.
+Mobile-wide regression and web parity. Onboarding retained username checks,
+credential binding, safe errors, and focus recovery; its 10 focused tests pass.
+Sell retained exact money parsing, private photos, and canonical lifecycle RPCs;
+its empty state and Add Item sheet pass at Galaxy A14 dimensions and 150% text.
+The next automatic gate is the full mobile suite, then the existing web shell
+and pages receive the same product hierarchy.

@@ -8,8 +8,8 @@ import '../../core/widgets/async_error_view.dart';
 import '../money/money_providers.dart';
 import 'sell_providers.dart';
 
-/// Per-item action row (+ Valuation / + List for sale / + Record sale) —
-/// mirrors `apps/web/src/app/(app)/sell/item-actions.tsx`.
+/// One state-based primary action with valuation and direct-sale recovery kept
+/// secondary. The underlying RPCs and exact money parsing are unchanged.
 class ItemActions extends StatelessWidget {
   const ItemActions({
     super.key,
@@ -28,9 +28,9 @@ class ItemActions extends StatelessWidget {
       spacing: AppSpacing.md,
       runSpacing: AppSpacing.xs,
       children: [
+        if (!isListed) _ListingAction(itemId: itemId, primary: true),
+        _SaleAction(itemId: itemId, listingId: listingId, primary: isListed),
         _ValuationAction(itemId: itemId),
-        if (!isListed) _ListingAction(itemId: itemId),
-        _SaleAction(itemId: itemId, listingId: listingId),
       ],
     );
   }
@@ -118,9 +118,10 @@ class _ValuationActionState extends ConsumerState<_ValuationAction> {
 }
 
 class _ListingAction extends ConsumerStatefulWidget {
-  const _ListingAction({required this.itemId});
+  const _ListingAction({required this.itemId, this.primary = false});
 
   final String itemId;
+  final bool primary;
 
   @override
   ConsumerState<_ListingAction> createState() => _ListingActionState();
@@ -179,9 +180,16 @@ class _ListingActionState extends ConsumerState<_ListingAction> {
   @override
   Widget build(BuildContext context) {
     if (!_open) {
+      void onPressed() => setState(() => _open = true);
+      if (widget.primary) {
+        return FilledButton(
+          onPressed: onPressed,
+          child: const Text('List for sale'),
+        );
+      }
       return TextButton(
-        onPressed: () => setState(() => _open = true),
-        child: const Text('+ List for sale'),
+        onPressed: onPressed,
+        child: const Text('List for sale'),
       );
     }
     return Row(
@@ -222,10 +230,15 @@ class _ListingActionState extends ConsumerState<_ListingAction> {
 }
 
 class _SaleAction extends ConsumerStatefulWidget {
-  const _SaleAction({required this.itemId, this.listingId});
+  const _SaleAction({
+    required this.itemId,
+    this.listingId,
+    this.primary = false,
+  });
 
   final String itemId;
   final String? listingId;
+  final bool primary;
 
   @override
   ConsumerState<_SaleAction> createState() => _SaleActionState();
@@ -290,9 +303,16 @@ class _SaleActionState extends ConsumerState<_SaleAction> {
   @override
   Widget build(BuildContext context) {
     if (!_open) {
+      void onPressed() => setState(() => _open = true);
+      if (widget.primary) {
+        return FilledButton(
+          onPressed: onPressed,
+          child: const Text('Record sale'),
+        );
+      }
       return TextButton(
-        onPressed: () => setState(() => _open = true),
-        child: const Text('+ Record sale'),
+        onPressed: onPressed,
+        child: const Text('Sold already?'),
       );
     }
     return Row(
