@@ -9,6 +9,19 @@ ItemStatus itemStatusFromString(String value) {
   );
 }
 
+/// Statuses from which a listing may be created or a sale recorded — must
+/// mirror `private.guard_listing_lifecycle`/`private.guard_sale_lifecycle`
+/// in supabase/migrations/20260823060632_enforce_atomic_money_lifecycle.sql
+/// (`v_item_status not in ('owned', 'listed')` is rejected). A returned or
+/// disposed item is server-rejected even though it is not `sold`, so `status
+/// != ItemStatus.sold` is not a valid eligibility check on its own.
+const _sellableItemStatuses = {ItemStatus.owned, ItemStatus.listed};
+
+bool canPrepareListing(ItemStatus status) =>
+    _sellableItemStatuses.contains(status);
+
+bool canRecordSale(ItemStatus status) => _sellableItemStatuses.contains(status);
+
 /// A single row from `public.items`.
 class Item {
   const Item({

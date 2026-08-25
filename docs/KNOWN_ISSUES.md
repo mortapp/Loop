@@ -13,11 +13,15 @@ The repaired configured APK is
 Google returning-user login returned through the native callback directly to
 Today without onboarding or a Vercel page. Current-process logcat was clean.
 
-Remaining gaps are narrower: Sell Copy/Share/Export controls are absent; an
-invalid listing action is still shown for returned/disposed items even though
-the server rejects it; multiple-line quote creation and a real alternate-account
-switch were not completed physically; and no valid Flutter frame-timing profile
-was captured. These are not represented as passed.
+Remaining gaps are narrower: multiple-line quote creation and a real
+alternate-account switch were not completed physically, and no valid Flutter
+frame-timing profile was captured. These are not represented as passed.
+
+Sell Copy/Share/Export controls (real clipboard/share-sheet/file-export
+listing preparation, no fake marketplace publish) and the returned/disposed
+listing-action mismatch are fixed in code (see "Resolved in the Final Pass")
+but not yet physically re-certified on the Galaxy A14 in this pass — a new
+configured QA APK has not been built or installed since these changes.
 
 ### Live AI provider
 
@@ -85,6 +89,17 @@ spend money solely from this task.
 
 ## Resolved in the Final Pass
 
+- Sell now has real Copy/Share/Export listing preparation on both platforms
+  (clipboard write, native/Web Share, and a downloaded/shared `.txt` file of
+  the canonical listing text — no ids, account ids, or Storage paths, and no
+  fake marketplace publish). Mobile uses `share_plus`/`cross_file`; web uses
+  `navigator.clipboard`, the Web Share API, and a Blob download.
+- The Sell listing/sale action mismatch is fixed: client eligibility
+  (`canPrepareListing`/`canRecordSale` in both the Flutter model and
+  `@loop/contracts`) now matches the server's `guard_listing_lifecycle`/
+  `guard_sale_lifecycle` triggers exactly (`owned`/`listed` only), so a
+  returned or disposed item — which is not `sold` but is still
+  server-rejected — no longer shows an action the backend refuses.
 - AI proposals cannot survive an account switch or execute under a different
   user/account/tool/input.
 - AI confirmation retries are exactly-once at the database boundary.

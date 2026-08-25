@@ -11,9 +11,9 @@ Updated: 2026-08-24
 | Item photos                   | pgTAP `011_atomic_item_photos.sql`                                       | PASS - atomic attach/detach and cross-account denial                 |
 | Private Storage               | pgTAP `008_private_storage.sql`                                          | PASS - private buckets, paths, MIME, size, isolation                 |
 | Money lifecycle               | pgTAP `009_atomic_money_lifecycle.sql`                                   | PASS - atomic purchase/listing/sale/refund                           |
-| Flutter format                | `dart format --output=none --set-exit-if-changed lib test`               | PASS - 83 files, 0 changes                                           |
+| Flutter format                | `dart format --output=none --set-exit-if-changed lib test`               | PASS - 92 files, 0 changes                                           |
 | Flutter analysis              | `flutter analyze --no-pub`                                               | PASS - no issues                                                     |
-| Flutter tests                 | GitHub Quality plus local file-by-file rerun                             | PASS - 93/93; all 22 test files pass                                 |
+| Flutter tests                 | `flutter test --no-pub --concurrency=1`                                  | PASS - 99/99; all 24 test files pass                                 |
 | Ask LOOP mobile failures      | Account scope plus repository focused tests                              | PASS - 11/11                                                         |
 | Web typecheck                 | `npm run typecheck --workspace apps/web`                                 | PASS                                                                 |
 | Web lint                      | `npm run lint --workspace apps/web`                                      | PASS                                                                 |

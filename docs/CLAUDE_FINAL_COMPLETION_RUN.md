@@ -1,0 +1,98 @@
+# Claude Final Completion Run
+
+Updated: 2026-08-24
+
+Recovery ledger for the Claude session resuming after Codex's interrupted
+blocker-closure pass. Existing for continuity if this session stops; not a
+substitute for `docs/KNOWN_ISSUES.md` or `docs/LOOP_FINAL_STATE.md`.
+
+## Start state (verified, not assumed)
+
+- `START_HEAD=ff5dc4d5a57b1b902f7cd5eaf99e386adba735b1`
+- `START_ORIGIN_MAIN=46c9c98e3114b2db2a3426f968117271dc8a0f37` (local was 2
+  commits ahead: `385a787`, `ff5dc4d`)
+- `START_DIRTY_FILES=apps/mobile/pubspec.yaml, apps/mobile/pubspec.lock`
+  (only). No Dart/TS source changes were left uncommitted by Codex — its
+  root-cause finding on the returned-item mismatch was not yet turned into
+  code.
+- `CODEX_DEPENDENCY_CHANGES=share_plus ^13.3.0, cross_file ^0.3.5+4` added to
+  `apps/mobile/pubspec.yaml` (and resolved in `pubspec.lock`). Verified both
+  are actually used by the new listing-preparation code below, so both were
+  kept.
+- Historical QA screenshots/APKs under `artifacts/` and a stray
+  `supabase/.temp.pre-link-20260823/` were untracked and left untouched
+  (evidence from prior runs, not this session's concern).
+
+## Work completed this pass
+
+1. **Sell listing preparation (Copy/Share/Export)**, real device
+   clipboard/share-sheet/file-export, no fake marketplace publish:
+   - `apps/mobile/lib/features/sell/listing_text.dart` (new) — canonical
+     listing text formatter (name, category/condition, active listing price
+     or latest valuation; no ids/paths).
+   - `apps/mobile/lib/features/sell/listing_preparation_actions.dart` (new)
+     — Copy (`Clipboard`), Share (`SharePlus.instance.share`), Export
+     (`XFile.fromData` + share sheet as `.txt`).
+   - `apps/web/src/app/(app)/sell/listing-text.ts` (new) — same formatter,
+     web-side.
+   - `apps/web/src/app/(app)/sell/listing-preparation.tsx` (new) — Copy
+     (`navigator.clipboard`), Share (Web Share API, falls back to copy),
+     Export (Blob download).
+2. **Returned/disposed listing-action mismatch fixed**: added
+   `canPrepareListing`/`canRecordSale` to
+   `apps/mobile/lib/features/sell/models/item.dart` and
+   `packages/contracts/src/core.ts`, mirroring the server's
+   `owned`/`listed`-only rule in `guard_listing_lifecycle`/
+   `guard_sale_lifecycle`
+   (`supabase/migrations/20260823060632_enforce_atomic_money_lifecycle.sql`).
+   Wired into `item_actions.dart`, `sell_screen.dart`, and
+   `apps/web/src/app/(app)/sell/page.tsx` in place of the old
+   `status != sold` check.
+3. **Root-cause build fix**: `packages/contracts/src/index.ts` used `.js`
+   relative-export extensions (valid under `moduleResolution: "Bundler"` for
+   `tsc`, but unresolvable by Next's Turbopack bundler, which has no
+   `.js`-to-`.ts` extension aliasing). This was latent — every prior web
+   import from `@loop/contracts` was type-only and got erased before
+   bundling, so it never executed. `canPrepareListing` is the first runtime
+   value import from that package, and it broke the production build.
+   Fixed by dropping the extensions (valid and idiomatic under Bundler
+   resolution) rather than adding bundler config.
+4. Added regression tests: `listing_eligibility_test.dart`,
+   `listing_text_test.dart` (Flutter).
+5. Updated `docs/KNOWN_ISSUES.md` and `docs/LOOP_FINAL_STATE.md` to reflect
+   the above; corrected a stale Flutter test count in `docs/TEST_MATRIX.md`.
+
+## Verified locally (this pass)
+
+- `dart format --output=none --set-exit-if-changed lib test` — clean.
+- `flutter analyze --no-pub` — no issues.
+- `flutter test --no-pub --concurrency=1` — 99/99 pass (94 baseline + 5 new).
+- `npm run typecheck --workspaces --if-present` — clean.
+- `npm run lint --workspaces --if-present` — clean.
+- `npm run build --workspace apps/web` — production build succeeds, 24 routes.
+- `npm run test:unit` (web) — 4/4 pass, unchanged.
+- `npx playwright test` (web) — 31 pass, 60 credential-gated skips, 0 fail —
+  matches the documented baseline exactly.
+
+## Not done in this pass (explicit blockers, not silently skipped)
+
+- **No new configured QA APK built, no Galaxy A14 install/physical retest.**
+  The device's current connection state has not been checked in this
+  session. Needs `adb devices -l` (wireless) before anything physical.
+- **Multi-line quote physical test** ($0.05 two-line quote, lifecycle
+  transitions, exactly-once Money event) — not attempted this pass.
+- **Protect `PASS_WITH_LIMITATIONS` resolution** — not investigated this
+  pass beyond what's already in `KNOWN_ISSUES.md`.
+- **Hosted Supabase**: no migration was needed for the eligibility fix (the
+  server guard already enforced the correct rule; only the clients were
+  wrong), so nothing was applied to the hosted project this pass.
+- **Git**: changes are committed locally but not yet pushed to
+  `origin/main` as of this checkpoint — see current `git status`/`git log`
+  for the authoritative state.
+- **Vercel/GitHub CI**: not triggered this pass.
+
+## Next action
+
+Confirm with the owner whether to proceed to physical Galaxy A14
+verification (requires the device reachable over wireless ADB) before
+building a new configured QA APK, and confirm before pushing/deploying.

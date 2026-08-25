@@ -27,9 +27,12 @@ physical Light-mode retest passed.
 
 ## Why Not Ready
 
-- Sell Copy/Share/Export controls are absent from Flutter.
-- Returned/disposed items expose a listing action that the server correctly
-  rejects.
+- Sell Copy/Share/Export are now implemented and unit/widget-tested on both
+  platforms, and the returned/disposed listing-action mismatch is fixed in
+  code (client eligibility now matches the server's `owned`/`listed` guard
+  exactly) — see `docs/KNOWN_ISSUES.md`. Neither has been physically
+  re-certified on the Galaxy A14 yet; no new configured QA APK has been built
+  since these changes.
 - Multiple-line quote creation and a real alternate-account isolation switch
   were not completed physically.
 - A fresh purchase/return/warranty mutation was not recreated in this run.

@@ -43,6 +43,24 @@ export const itemSchema = z.object({
 });
 export type Item = z.infer<typeof itemSchema>;
 
+/**
+ * Statuses from which a listing may be created or a sale recorded — must
+ * mirror `private.guard_listing_lifecycle`/`private.guard_sale_lifecycle` in
+ * supabase/migrations/20260823060632_enforce_atomic_money_lifecycle.sql
+ * (`v_item_status not in ('owned', 'listed')` is rejected). A returned or
+ * disposed item is server-rejected even though it is not `sold`, so
+ * `status !== "sold"` is not a valid eligibility check on its own.
+ */
+const SELLABLE_ITEM_STATUSES: ReadonlySet<ItemStatus> = new Set(["owned", "listed"]);
+
+export function canPrepareListing(status: ItemStatus): boolean {
+  return SELLABLE_ITEM_STATUSES.has(status);
+}
+
+export function canRecordSale(status: ItemStatus): boolean {
+  return SELLABLE_ITEM_STATUSES.has(status);
+}
+
 export const documentKindSchema = z.enum([
   "receipt",
   "invoice",

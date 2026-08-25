@@ -15,6 +15,7 @@ class ItemActions extends StatelessWidget {
     super.key,
     required this.itemId,
     required this.isListed,
+    required this.canSell,
     this.listingId,
   });
 
@@ -22,14 +23,21 @@ class ItemActions extends StatelessWidget {
   final bool isListed;
   final String? listingId;
 
+  /// Whether the item's current status permits creating a listing or
+  /// recording a sale — see `canPrepareListing`/`canRecordSale` in
+  /// models/item.dart. A returned or disposed item cannot, even though it
+  /// is not `sold`.
+  final bool canSell;
+
   @override
   Widget build(BuildContext context) {
     return Wrap(
       spacing: AppSpacing.md,
       runSpacing: AppSpacing.xs,
       children: [
-        if (!isListed) _ListingAction(itemId: itemId, primary: true),
-        _SaleAction(itemId: itemId, listingId: listingId, primary: isListed),
+        if (canSell && !isListed) _ListingAction(itemId: itemId, primary: true),
+        if (canSell)
+          _SaleAction(itemId: itemId, listingId: listingId, primary: isListed),
         _ValuationAction(itemId: itemId),
       ],
     );

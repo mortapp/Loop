@@ -10,6 +10,7 @@ import '../../core/widgets/async_error_view.dart';
 import '../../core/widgets/ledger_surface.dart';
 import '../../core/widgets/loop_seal.dart';
 import 'item_actions.dart';
+import 'listing_preparation_actions.dart';
 import 'models/item.dart';
 import 'models/listing.dart';
 import 'models/valuation.dart';
@@ -412,11 +413,20 @@ class _ItemTile extends ConsumerWidget {
                         ItemActions(
                           itemId: item.id,
                           isListed: item.status == ItemStatus.listed,
+                          canSell: canPrepareListing(item.status),
                           listingId: listings.isNotEmpty
                               ? listings.first.id
                               : null,
                         ),
                       ],
+                    ),
+                  ],
+                  if (canPrepareListing(item.status)) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    ListingPreparationActions(
+                      item: item,
+                      valuation: valuation,
+                      listings: listings,
                     ),
                   ],
                 ],

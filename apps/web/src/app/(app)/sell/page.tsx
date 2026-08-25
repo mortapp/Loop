@@ -1,4 +1,5 @@
 import type { Item, ItemStatus } from "@loop/contracts";
+import { canPrepareListing } from "@loop/contracts";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAccountId } from "@/lib/active-account";
 import { Amount } from "@/components/ui/amount";
@@ -10,6 +11,7 @@ import { LoopSeal } from "@/components/ui/loop-seal";
 import { LedgerHero, LedgerPageIntro, LedgerSectionLabel } from "@/components/ui/ledger";
 import { CreateItemForm } from "./create-item-form";
 import { ValuationForm, ListingForm, SaleForm, AddPhotoControl } from "./item-actions";
+import { ListingPreparationActions } from "./listing-preparation";
 import { removeItemPhoto } from "./actions";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hour -- regenerated on every render
@@ -236,17 +238,26 @@ export default async function SellPage() {
 
                     {item.status !== "sold" ? (
                       <div className="mt-auto flex flex-wrap items-center gap-4 border-t border-[var(--color-border-subtle)] pt-3">
-                        {item.status !== "listed" ? (
-                          <ListingForm itemId={item.id} primary />
-                        ) : (
-                          <SaleForm itemId={item.id} listingId={itemListings[0]?.id} primary />
-                        )}
+                        {canPrepareListing(item.status) ? (
+                          item.status !== "listed" ? (
+                            <ListingForm itemId={item.id} primary />
+                          ) : (
+                            <SaleForm itemId={item.id} listingId={itemListings[0]?.id} primary />
+                          )
+                        ) : null}
                         <AddPhotoControl itemId={item.id} accountId={item.account_id} />
                         <ValuationForm itemId={item.id} />
-                        {item.status !== "listed" ? (
+                        {canPrepareListing(item.status) && item.status !== "listed" ? (
                           <SaleForm itemId={item.id} listingId={itemListings[0]?.id} />
                         ) : null}
                       </div>
+                    ) : null}
+                    {canPrepareListing(item.status) ? (
+                      <ListingPreparationActions
+                        item={item}
+                        valuation={valuation}
+                        listings={itemListings}
+                      />
                     ) : null}
                   </div>
                 </Card>

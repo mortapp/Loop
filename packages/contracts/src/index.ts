@@ -10,9 +10,9 @@
  * renamed, or removed there should be reflected here in the same change.
  */
 
-export * from "./money.js";
-export * from "./identity.js";
-export * from "./core.js";
-export * from "./domains/make.js";
-export * from "./domains/protect.js";
-export * from "./domains/recover.js";
+export * from "./money";
+export * from "./identity";
+export * from "./core";
+export * from "./domains/make";
+export * from "./domains/protect";
+export * from "./domains/recover";
