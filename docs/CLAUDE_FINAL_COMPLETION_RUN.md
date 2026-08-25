@@ -122,9 +122,25 @@ physical test, alternate-account switch, sign-out/returning-user Google
 login (deferred — session was preserved throughout, deliberately not
 re-authenticated).
 
+## Physical pass (checkpoint 3) — multi-line quote
+
+Owner asked to continue. Same APK/session as checkpoint 2 (`48a0184`, no
+reinstall needed — runtime code did not change for this test). Created a
+two-line quote for `QA c963f65 contact` (qty 1 @ $0.01, qty 2 @ $0.02),
+confirmed the server-computed total read exactly `$0.05` before submitting,
+then walked `draft` → `sent` → `viewed` → `accepted` via the exact button
+the UI offered at each state. Money's current value moved $10.04 → $10.09
+immediately, with exactly one new ledger row (`+$0.05`); the other three
+already-accepted quotes on the account each show their own single,
+correctly-amounted event — no duplicates anywhere in the ledger. Once
+accepted, the UI exposes no re-accept control, so a same-quote UI-level
+retry isn't reproducible by design; the underlying exactly-once guarantee
+is covered by the 209-case database suite. Logcat clean throughout.
+
+`MULTILINE_QUOTE_PHYSICAL=PASS`, `QUOTE_SERVER_TOTAL=PASS`,
+`QUOTE_ACCEPTANCE_MONEY_PHYSICAL=PASS`.
+
 ## Next action
 
-Multi-line quote physical test (Business, $0.05 two-line quote → server
-total → accept → exactly-once Money event → retry-proof), then the
-remaining Protect `PASS_WITH_LIMITATIONS` gaps, then 100%/150% text and
+The remaining Protect `PASS_WITH_LIMITATIONS` gaps, then 100%/150% text and
 rotation, then sign-out-last + owner-assisted returning-user Google login.

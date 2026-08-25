@@ -45,9 +45,22 @@ Physically verified this pass on that APK:
   FATAL/AndroidRuntime/E:flutter/FlutterError/PlatformException/ANR/
   OOM/SecurityException) were clean throughout.
 
-Remaining gaps are narrower: multiple-line quote creation and a real
-alternate-account switch were not completed physically, and no valid Flutter
-frame-timing profile was captured. These are not represented as passed.
+Multiple-line quote creation is now physically verified too: a two-line
+quote (qty 1 @ $0.01, qty 2 @ $0.02) on the same APK produced a
+server-computed total of exactly $0.05 (`Q-2026-2YGUY`), and walking it
+through `draft` → `sent` → `viewed` → `accepted` posted exactly one
+`Accepted quote Q-2026-2YGUY · +$0.05` event to Money immediately (current
+value moved from $10.04 to $10.09). Once accepted, the UI offers no
+re-accept control — only forward-only lifecycle actions are ever shown, and
+the same account's ledger shows three separate accepted quotes with three
+separate, correctly-amounted Money events (no duplicates for any one quote).
+The server-side exactly-once/idempotency guarantee itself is covered by the
+209-case database suite; this pass confirms the client path posts correctly
+against the real hosted backend.
+
+Remaining gaps are narrower: a real alternate-account switch was not
+completed physically, and no valid Flutter frame-timing profile was
+captured. These are not represented as passed.
 
 ### OneDrive build locking
 

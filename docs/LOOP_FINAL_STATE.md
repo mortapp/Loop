@@ -37,6 +37,27 @@ Updated: 2026-08-24
   quote, alternate-account switch, sign-out/returning-user login (session was
   preserved, not re-authenticated).
 
+### Follow-up physical pass — multi-line quote
+
+- Same APK/source as above (`48a0184`).
+- Created `Q-2026-2YGUY` for `QA c963f65 contact` with two line items
+  (qty 1 @ $0.01, qty 2 @ $0.02); the server-computed total read exactly
+  `Total: $0.05` before submission.
+- Walked `draft` → `sent` (`Mark sent`) → `viewed` (`Mark viewed`) →
+  `accepted` (`Mark accepted`); each transition used the exact button the
+  UI offered for that state.
+- Money's current value moved from $10.04 to $10.09 immediately, with
+  exactly one new ledger row: `Accepted quote Q-2026-2YGUY · +$0.05`.
+  Three separate previously-accepted quotes on the same account each show
+  their own single, correctly-amounted Money event — no duplicates.
+- Once accepted, the UI exposes no re-accept control (forward-only lifecycle
+  actions only), so a same-quote UI retry could not be reproduced; the
+  server-side exactly-once guarantee itself is covered by the 209-case
+  database suite.
+- Current-process logcat was clean throughout (filtered for
+  FATAL/AndroidRuntime/E:flutter/FlutterError/PlatformException/ANR/OOM/
+  SecurityException).
+
 ## Repair Verified
 
 Physical QA found unreadable option cards in Light appearance mode. Commit
@@ -47,11 +68,11 @@ physical Light-mode retest passed.
 
 ## Why Not Ready
 
-- Sell Copy/Share/Export and the returned/disposed listing-action mismatch
-  are implemented, tested, and now physically re-certified on the Galaxy A14
-  (see "Follow-up physical pass" above and `docs/KNOWN_ISSUES.md`).
-- Multiple-line quote creation and a real alternate-account isolation switch
-  were not completed physically.
+- Sell Copy/Share/Export, the returned/disposed listing-action mismatch, and
+  multiple-line quote creation are implemented, tested, and now physically
+  re-certified on the Galaxy A14 (see the "Follow-up physical pass" sections
+  above and `docs/KNOWN_ISSUES.md`).
+- A real alternate-account isolation switch was not completed physically.
 - A fresh purchase/return/warranty mutation was not recreated in this run.
 - A valid Flutter frame-timing profile was not captured.
 - Live AI, authenticated Playwright, native iOS, legal/privacy, operational,
