@@ -156,8 +156,20 @@ return. Logcat clean throughout.
 
 `PROTECT_PHYSICAL_QA=PASS` (was `PASS_WITH_LIMITATIONS`).
 
+## Physical pass (checkpoint 5) — 100%/150% text and rotation
+
+Same APK/session. Set `system font_scale` to `1.5` via `adb shell settings
+put` and swept Today, Money, Sell, Business, and Ask LOOP: clean reflow, no
+overflow. Rotated to landscape (`user_rotation 1`): composer, send button,
+and keyboard all render and remain usable. Restored rotation and font scale
+to defaults afterward. Logcat clean throughout (including a `RenderFlex`
+filter this time).
+
+`GALAXY_A14_100_PERCENT=PASS`, `GALAXY_A14_150_PERCENT=PASS` (re-confirmed
+on `48a0184`).
+
 ## Next action
 
-100%/150% text and rotation, then sign-out-last + owner-assisted
-returning-user Google login. After that: full database/Flutter/web test
-suites, GitHub CI, and Vercel production verification.
+Sign-out-last + owner-assisted returning-user Google login (the only
+physical item left). After that: full database/Flutter/web test suites,
+GitHub CI, and Vercel production verification.

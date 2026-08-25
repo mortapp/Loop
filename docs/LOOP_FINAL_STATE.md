@@ -77,6 +77,20 @@ Updated: 2026-08-24
   linked — can't start a return.").
 - Current-process logcat was clean throughout.
 
+### Follow-up physical pass — 100%/150% text and rotation
+
+- Same APK/session as above. Set `system font_scale` to `1.5` via `adb shell
+  settings put` and swept all five primary tabs (Today, Money, Sell,
+  Business, Ask LOOP): text reflows and wraps correctly, no clipped
+  controls, no `RenderFlex` overflow.
+- Rotated to landscape (`user_rotation 1`): the Ask LOOP composer, send
+  button, and on-screen keyboard all render and remain usable; the primary
+  nav stays reachable.
+- Restored `user_rotation 0`, `accelerometer_rotation 1`, and `font_scale
+  1.0` afterward. Logcat (filtered for FATAL/AndroidRuntime/E:flutter/
+  FlutterError/PlatformException/ANR/OOM/SecurityException/RenderFlex) was
+  clean throughout.
+
 ## Repair Verified
 
 Physical QA found unreadable option cards in Light appearance mode. Commit
