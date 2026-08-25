@@ -17,6 +17,26 @@ Updated: 2026-08-24
 - Final current-process logcat had zero relevant fatal, Flutter, layout,
   disposed-state, security, ANR/OOM, or auth-callback errors.
 
+### Follow-up physical pass — Sell listing preparation
+
+- Source: `48a0184` (built outside OneDrive; see "OneDrive build locking" in
+  `docs/KNOWN_ISSUES.md`).
+- APK: `artifacts/final-head-48a0184/loop-48a0184-configured-debug-qa.apk`.
+- SHA-256:
+  `0cec8c5e09064388810fab383b150dace7ccbebea62828fe7844c982827769fb`.
+- Installed with `adb install -r`, preserving the existing session (no
+  sign-out).
+- Verified physically: Copy/Share/Export on an owned and a listed item
+  (clipboard write, real Android share sheet with correct preview text,
+  correctly named `listing.txt` export); a pre-existing returned item shows
+  no listing/sale/Copy/Share/Export controls; a fresh item's full
+  owned → listed (eBay $9.99) → sold lifecycle, with the sale posting
+  `+$9.99` to Money immediately; background/resume; and a clean
+  current-process logcat throughout.
+- Not covered in this follow-up pass: 100%/150% text, rotation, multi-line
+  quote, alternate-account switch, sign-out/returning-user login (session was
+  preserved, not re-authenticated).
+
 ## Repair Verified
 
 Physical QA found unreadable option cards in Light appearance mode. Commit
@@ -27,12 +47,9 @@ physical Light-mode retest passed.
 
 ## Why Not Ready
 
-- Sell Copy/Share/Export are now implemented and unit/widget-tested on both
-  platforms, and the returned/disposed listing-action mismatch is fixed in
-  code (client eligibility now matches the server's `owned`/`listed` guard
-  exactly) — see `docs/KNOWN_ISSUES.md`. Neither has been physically
-  re-certified on the Galaxy A14 yet; no new configured QA APK has been built
-  since these changes.
+- Sell Copy/Share/Export and the returned/disposed listing-action mismatch
+  are implemented, tested, and now physically re-certified on the Galaxy A14
+  (see "Follow-up physical pass" above and `docs/KNOWN_ISSUES.md`).
 - Multiple-line quote creation and a real alternate-account isolation switch
   were not completed physically.
 - A fresh purchase/return/warranty mutation was not recreated in this run.

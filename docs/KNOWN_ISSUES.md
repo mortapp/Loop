@@ -6,22 +6,59 @@ Updated: 2026-08-24
 
 ### Remaining Ledger 2.0 physical gaps
 
-The Galaxy A14 physical run is complete for the core authenticated journey.
-The repaired configured APK is
-`artifacts/ledger-2-385a787/loop-ledger-2-385a787-configured-debug-qa.apk`
-(SHA-256 `967ABD5BC393EE160E50AE5FCDD0A91193C51B3C5B6196939FDF22795A6D7A1A`).
-Google returning-user login returned through the native callback directly to
-Today without onboarding or a Vercel page. Current-process logcat was clean.
+The Galaxy A14 physical run is complete for the core authenticated journey,
+and Sell Copy/Share/Export plus the returned-item eligibility fix are now
+physically re-certified. The current configured APK, built from
+`48a0184` in a detached worktree outside OneDrive (Gradle's output
+directory could not be cleaned in place — see "OneDrive build locking"
+below), is
+`artifacts/final-head-48a0184/loop-48a0184-configured-debug-qa.apk`
+(SHA-256
+`0cec8c5e09064388810fab383b150dace7ccbebea62828fe7844c982827769fb`,
+v2-signed with the Android debug certificate,
+`com.loop.app.loop_mobile` `1.0.0`, minSdk 24 / targetSdk 36, no
+secret-shaped strings found in the extracted APK). Installed with `adb
+install -r`, preserving the existing session.
+
+Physically verified this pass on that APK:
+
+- Copy writes the canonical listing text to the clipboard (confirmed by
+  both the app's own snackbar and the system's native "Copied to
+  clipboard" toast).
+- Share opens the real Android share sheet with the correct preview text
+  — `<name>` alone for an unlisted item, `<name>\nAsking $9.99 on eBay`
+  once listed — and was safely dismissed without sending anywhere.
+- Export opens the share sheet with a correctly named `listing.txt` file
+  attachment (not a random/generic name), proving the
+  `fileNameOverrides` handling for `XFile.fromData` is correct on
+  Android.
+- A previously-existing **returned** item (`QA c963f65 item`) shows only
+  `+ Photo`/`+ Valuation` — no `List for sale`, no `Record sale`/`Sold
+  already?`, no Copy/Share/Export row — confirming the eligibility fix
+  live, not just in tests.
+- A fresh item walked through the full `owned` → `listed` (eBay, $9.99)
+  → `sold` lifecycle: `List for sale`/`Sold already?` and Copy/Share/
+  Export appeared while owned; only `Record sale` (primary) and Copy/
+  Share/Export appeared once listed; no actions once sold. The recorded
+  sale posted `Item sold via RECOVER · +$9.99` to Money immediately.
+- Background/resume and current-process logcat (filtered for
+  FATAL/AndroidRuntime/E:flutter/FlutterError/PlatformException/ANR/
+  OOM/SecurityException) were clean throughout.
 
 Remaining gaps are narrower: multiple-line quote creation and a real
 alternate-account switch were not completed physically, and no valid Flutter
 frame-timing profile was captured. These are not represented as passed.
 
-Sell Copy/Share/Export controls (real clipboard/share-sheet/file-export
-listing preparation, no fake marketplace publish) and the returned/disposed
-listing-action mismatch are fixed in code (see "Resolved in the Final Pass")
-but not yet physically re-certified on the Galaxy A14 in this pass — a new
-configured QA APK has not been built or installed since these changes.
+### OneDrive build locking
+
+Building `flutter build apk` directly inside
+`C:\Users\micha\OneDrive\Desktop\Loop\apps\mobile` failed with `Unable to
+delete directory ... mergeDebugResources\out` — OneDrive briefly locks files
+under `build\` while syncing, which Gradle's incremental clean cannot work
+around. Building in a `git worktree` outside OneDrive
+(`C:\loop-build\loop-<sha>`) and copying the resulting APK back into
+`artifacts/` avoids this reliably; this does not indicate a source-code
+defect.
 
 ### Live AI provider
 

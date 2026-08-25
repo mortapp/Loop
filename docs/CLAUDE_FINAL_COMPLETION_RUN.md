@@ -91,8 +91,40 @@ substitute for `docs/KNOWN_ISSUES.md` or `docs/LOOP_FINAL_STATE.md`.
   for the authoritative state.
 - **Vercel/GitHub CI**: not triggered this pass.
 
+## Physical pass (checkpoint 2)
+
+Owner confirmed the Galaxy A14 was reachable and asked to proceed. Built a
+new configured QA APK from `48a0184` in a worktree outside OneDrive
+(`C:\loop-build\loop-48a0184`) after `flutter build apk` failed in place
+with a Gradle "Unable to delete directory ... mergeDebugResources" error —
+see "OneDrive build locking" in `docs/KNOWN_ISSUES.md`.
+
+- `FINAL_RUNTIME_COMMIT=48a0184`
+- `FINAL_QA_APK=artifacts/final-head-48a0184/loop-48a0184-configured-debug-qa.apk`
+- `FINAL_QA_APK_SHA256=0cec8c5e09064388810fab383b150dace7ccbebea62828fe7844c982827769fb`
+- Signature: v2, Android debug certificate. Package
+  `com.loop.app.loop_mobile` `1.0.0`, minSdk 24, targetSdk 36.
+- Secret scan of the extracted APK: no matches.
+- Installed with `adb install -r`, session preserved (no sign-out, no
+  re-auth).
+
+Physically verified: Copy/Share/Export (clipboard, native share sheet with
+correct preview text, correctly-named `listing.txt` export) on both an owned
+and a listed item; a pre-existing returned item correctly shows no
+listing/sale/Copy/Share/Export controls; a fresh item's full
+owned → listed (eBay, $9.99) → sold lifecycle with the sale posting `+$9.99`
+to Money immediately; background/resume; clean current-process logcat
+throughout (no FATAL/AndroidRuntime/E:flutter/FlutterError/
+PlatformException/ANR/OOM/SecurityException).
+
+Not covered in this pass: 100%/150% text and rotation, multi-line quote
+physical test, alternate-account switch, sign-out/returning-user Google
+login (deferred — session was preserved throughout, deliberately not
+re-authenticated).
+
 ## Next action
 
-Confirm with the owner whether to proceed to physical Galaxy A14
-verification (requires the device reachable over wireless ADB) before
-building a new configured QA APK, and confirm before pushing/deploying.
+Multi-line quote physical test (Business, $0.05 two-line quote → server
+total → accept → exactly-once Money event → retry-proof), then the
+remaining Protect `PASS_WITH_LIMITATIONS` gaps, then 100%/150% text and
+rotation, then sign-out-last + owner-assisted returning-user Google login.
