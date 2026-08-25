@@ -4,21 +4,20 @@ Updated: 2026-08-24
 
 ## Open External Gates
 
-### Final authenticated Galaxy A14 gauntlet
+### Remaining Ledger 2.0 physical gaps
 
-The owner has physically confirmed that native Google login works and reaches
-authenticated LOOP. The working callback is
-`com.loop.app.loop-mobile://app/login-callback` and must not be changed.
+The Galaxy A14 physical run is complete for the core authenticated journey.
+The repaired configured APK is
+`artifacts/ledger-2-385a787/loop-ledger-2-385a787-configured-debug-qa.apk`
+(SHA-256 `967ABD5BC393EE160E50AE5FCDD0A91193C51B3C5B6196939FDF22795A6D7A1A`).
+Google returning-user login returned through the native callback directly to
+Today without onboarding or a Vercel page. Current-process logcat was clean.
 
-Wireless `adb devices -l` and `adb mdns services` currently return no device.
-The exact configured Ledger 2.0 QA APK built from `66188b9` is
-`artifacts/ledger-2-66188b9/loop-ledger-2-66188b9-configured-debug-qa.apk`
-(SHA-256 `0628AD3B756A3E476065D1087124C29DA256C2E0410E1F3DFD60D7FCDA753320`).
-It therefore has not been installed or traversed. Do not mark the
-following complete until the exact APK is tested without clearing the owner's
-session: Today, Money, Sell/photo picker, Business/quotes, Protect, Ask LOOP,
-account switching, background/resume, logcat, sign-out last, then Google
-returning-user sign-in.
+Remaining gaps are narrower: Sell Copy/Share/Export controls are absent; an
+invalid listing action is still shown for returned/disposed items even though
+the server rejects it; multiple-line quote creation and a real alternate-account
+switch were not completed physically; and no valid Flutter frame-timing profile
+was captured. These are not represented as passed.
 
 ### Live AI provider
 

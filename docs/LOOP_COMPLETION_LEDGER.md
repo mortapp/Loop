@@ -7,21 +7,21 @@ was silently assumed.
 
 | Area                         | Status                 | Evidence                                                                                    |
 | ---------------------------- | ---------------------- | ------------------------------------------------------------------------------------------- |
-| REPOSITORY                   | PASS                   | `main`; Ledger 2.0 runtime checkpoint `66188b9`; ordinary fast-forward pushes only           |
+| REPOSITORY                   | PASS                   | `main`; physical-QA repair `385a787` on Ledger 2.0 checkpoint `66188b9`                      |
 | GITHUB                       | PASS                   | Unified Quality workflow is tracked and running on source changes                           |
 | SOURCE                       | PASS                   | All discovered Critical/High findings repaired; `git diff --check` clean                    |
 | MUREX_NOIR                   | PASS                   | Private-ledger palette and typography retained with less card chrome                        |
 | WEB                          | PASS                   | Five-destination parity; typecheck, ESLint, build, and executed Playwright pass              |
-| MOBILE                       | PASS                   | Five-destination Ledger 2.0 UI; analyzer clean, 93/93 Flutter tests                         |
+| MOBILE                       | PASS                   | Five-destination Ledger 2.0 UI; analyzer clean, 94/94 Flutter tests                         |
 | AUTH                         | PASS                   | Email/Google/session gates covered; owner confirms native Google login works                |
 | GOOGLE_AUTH_WEB              | PASS                   | Existing hosted flow preserved                                                              |
 | GOOGLE_AUTH_ANDROID          | PASS                   | Physical owner confirmation; callback architecture regression-locked                        |
 | PKCE                         | PASS                   | Exact callback, code/error filtering, cancellation, timeout, and session consistency tested |
 | MOBILE_CALLBACK              | PASS                   | `com.loop.app.loop-mobile://app/login-callback` registered on Android/iOS/Supabase          |
-| FLUTTER_SESSION              | PASS                   | Owner reached authenticated native LOOP; final sign-out/in retest remains physical QA       |
+| FLUTTER_SESSION              | PASS                   | Physical sign-out/in retest restored the existing native session directly to Today          |
 | OAUTH_CANCEL                 | PASS                   | Actionable cancellation UI and physical retest at prior checkpoint                          |
 | NEW_USER_ONBOARDING          | PASS                   | Canonical display-name/username/password flow and race tests                                |
-| RETURNING_USER_LOGIN         | PASS                   | Routing contract covered; final physical sign-out/in journey still required                 |
+| RETURNING_USER_LOGIN         | PASS                   | Physical Google -> Supabase -> native callback -> existing profile -> Today; no onboarding  |
 | USERNAME                     | PASS                   | Database constraints/RPC plus web/mobile validation                                         |
 | PASSWORD_SETUP               | PASS                   | Same Auth identity; no duplicate account architecture                                       |
 | SINGLE_IDENTITY              | PASS                   | Google password setup updates the existing Supabase user                                    |
@@ -48,7 +48,7 @@ was silently assumed.
 | RPC_SECURITY                 | PASS                   | Invoker RPCs, explicit grants, auth/account binding                                         |
 | PRIVATE_STORAGE              | PASS                   | Private buckets, bounded signed URLs, account/path/MIME/size policy                         |
 | DATABASE_TESTS               | PASS                   | 14 files, 209 assertions                                                                    |
-| FLUTTER_TESTS                | PASS                   | 93/93                                                                                       |
+| FLUTTER_TESTS                | PASS                   | 94/94, including Galaxy A14 light-theme contrast regression                                |
 | WEB_TYPECHECK                | PASS                   | Clean checkout no longer needs generated `LayoutProps`                                      |
 | WEB_LINT                     | PASS                   | ESLint clean                                                                                |
 | WEB_BUILD                    | PASS                   | Next production build, 24 routes                                                            |
@@ -64,28 +64,40 @@ was silently assumed.
 | SUPABASE_SECURITY_ADVISOR    | ACCEPTED_WITH_EVIDENCE | Seven intentional functions plus plan-limited Auth enhancement                              |
 | SUPABASE_PERFORMANCE_ADVISOR | ACCEPTED_WITH_EVIDENCE | Unused-index INFO only on low-traffic dataset                                               |
 | LEAKED_PASSWORD_PROTECTION   | OWNER_ACTION_REQUIRED  | `DEFERRED - PLAN-LIMITED SECURITY ENHANCEMENT`                                              |
-| GALAXY_A14_CONNECTION        | FAIL                   | Wireless ADB and mDNS discovery currently list no device                                    |
-| FINAL_HEAD_APK_INSTALLED     | FAIL                   | Exact `66188b9` configured QA APK awaits wireless reconnect                                 |
-| GALAXY_A14_AUTHENTICATED_QA  | PARTIAL                | Google auth owner-confirmed historically; Ledger 2.0 journey not run                        |
-| GALAXY_A14_PERFORMANCE       | PARTIAL                | Prior unauthenticated stress pass; authenticated final APK pass not run                     |
-| LOGCAT                       | PARTIAL                | Prior configured APK clean; exact final APK logcat unavailable                              |
+| GALAXY_A14_CONNECTION        | PASS                   | Wireless ADB used with Samsung SM-A146U as `device`                                         |
+| FINAL_QA_APK_INSTALLED       | PASS                   | Configured debug QA APK for `385a787` installed with app data preserved                     |
+| GALAXY_A14_AUTHENTICATED_QA  | PASS_WITH_LIMITATIONS  | Core Ledger 2.0 journey, write paths, 100%/150%, rotation, resume, and returning login pass |
+| GALAXY_A14_PERFORMANCE       | PASS_WITH_LIMITATIONS  | Warm starts 78-87 ms; no ANR/OOM/crash; Flutter frame-timing profile was not captured      |
+| LOGCAT                       | PASS                   | Final current-process scan: zero fatal, Flutter, layout, dispose, security, or auth errors  |
 | IOS_SOURCE_PARITY            | PASS                   | Static config/shared-source audit clean                                                     |
 | IOS_REAL_BUILD               | EXTERNAL_BLOCKER       | macOS/Xcode required                                                                        |
 | VERCEL                       | PASS                   | GitHub status confirms deployment completed for `66188b9`                                   |
 | PRODUCTION_WEB               | PASS                   | Canonical sign-in returns HTTP 200 with LOOP and Google CTA                                 |
-| FINAL_QA_APK                 | PASS                   | `66188b9`; 157,684,544 bytes; SHA-256 `0628AD3B...DA753320`                                  |
+| FINAL_QA_APK                 | PASS                   | `385a787`; 157,684,912 bytes; SHA-256 `967ABD5B...A6D7A1A`                                  |
 | DOCUMENTATION                | PASS                   | Canonical status/test/issue/handoff docs updated                                            |
 
 ## External Blockers
 
-1. Wireless Galaxy connection and complete authenticated physical gauntlet.
-2. Dedicated QA credentials for authenticated Playwright.
-3. Server-side Anthropic credential and live provider QA.
-4. Supabase Pro for leaked-password protection.
-5. macOS/Xcode, Apple signing, TestFlight, and iPhone QA.
-6. Product, privacy, legal, operational, and release-signing approval.
+1. Dedicated QA credentials for authenticated Playwright.
+2. Server-side Anthropic credential and live provider QA.
+3. Supabase Pro for leaked-password protection.
+4. macOS/Xcode, Apple signing, TestFlight, and iPhone QA.
+5. Product, privacy, legal, operational, and release-signing approval.
+
+## Remaining Product And QA Gaps
+
+1. Sell Copy/Share/Export controls are absent from the Flutter client.
+2. Returned/disposed items still expose the listing action even though the
+   server correctly rejects that invalid lifecycle transition.
+3. Multiple-line quote creation and a real alternate-account data-isolation
+   switch were not completed in this physical run.
+4. A new purchase/return/warranty mutation was not recreated in this run; its
+   physical UI and existing automated/backend coverage passed.
+5. No valid Flutter frame-timing profile was captured from the Galaxy A14.
 
 `LOOP_FINAL_STATE=NOT_READY`
 
-Ledger 2.0 code-controlled gates pass, but its exact APK has not completed the
-required physical certification. This is not public-release approval.
+Ledger 2.0 core physical certification passed after repairing the unreadable
+light-theme option surfaces. The remaining product and QA gaps above prevent a
+public-release verdict. This remains a closed-test build and is not
+public-release approval.
