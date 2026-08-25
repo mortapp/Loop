@@ -58,6 +58,24 @@ The server-side exactly-once/idempotency guarantee itself is covered by the
 209-case database suite; this pass confirms the client path posts correctly
 against the real hosted backend.
 
+The Protect purchase/return/refund lifecycle is now physically verified end
+to end too, closing the prior `PASS_WITH_LIMITATIONS` gap: a purchase linked
+to `Claude QA Listing Item` ($9.99, `Claude QA Vendor 2`) was walked through
+`initiated` → `shipped` → `received` → `refunded`. Confirming an empty
+refund amount was correctly rejected ("Enter a valid refund amount.")
+before a valid `$9.99` succeeded. Money posted `Purchase from Claude QA
+Vendor 2 · -$9.99` on purchase and `Return refunded · +$9.99` on refund —
+exact amounts, no drift. The linked item's own status flipped live from
+`sold` to `returned` as a direct result of the refund RPC (not a
+pre-existing fixture), and the Sell screen picked up that fresh status on
+its next fetch: `Claude QA Listing Item` now shows only
+`+ Photo`/`+ Valuation`, confirming `canPrepareListing`/`canRecordSale`
+correctly evaluate a freshly-written `returned` status, not just the
+already-tested static fixture from an earlier session. A second, unlinked
+purchase correctly refused to start a return ("No item linked — can't
+start a return."). Logcat was
+clean throughout.
+
 Remaining gaps are narrower: a real alternate-account switch was not
 completed physically, and no valid Flutter frame-timing profile was
 captured. These are not represented as passed.

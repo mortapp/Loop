@@ -140,7 +140,24 @@ is covered by the 209-case database suite. Logcat clean throughout.
 `MULTILINE_QUOTE_PHYSICAL=PASS`, `QUOTE_SERVER_TOTAL=PASS`,
 `QUOTE_ACCEPTANCE_MONEY_PHYSICAL=PASS`.
 
+## Physical pass (checkpoint 4) — Protect purchase/return/refund
+
+Owner asked to continue. Same APK/session (`48a0184`). Added a purchase
+linked to `Claude QA Listing Item` (`Claude QA Vendor 2`, $9.99) and walked
+its return through `initiated` → `shipped` → `received` → `refunded`,
+confirming an empty refund amount is rejected before a valid `$9.99`
+succeeds. Money posted the purchase as `-$9.99` and the refund as `+$9.99`,
+exact amounts. The linked item's status flipped live from `sold` to
+`returned` as a direct result of the refund, and Sell picked up that fresh
+status immediately, showing only `+ Photo`/`+ Valuation` — the eligibility
+fix confirmed against a live transition, not only the static fixture from
+checkpoint 2. A second, unlinked purchase correctly refused to start a
+return. Logcat clean throughout.
+
+`PROTECT_PHYSICAL_QA=PASS` (was `PASS_WITH_LIMITATIONS`).
+
 ## Next action
 
-The remaining Protect `PASS_WITH_LIMITATIONS` gaps, then 100%/150% text and
-rotation, then sign-out-last + owner-assisted returning-user Google login.
+100%/150% text and rotation, then sign-out-last + owner-assisted
+returning-user Google login. After that: full database/Flutter/web test
+suites, GitHub CI, and Vercel production verification.

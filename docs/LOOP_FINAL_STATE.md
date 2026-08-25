@@ -58,6 +58,25 @@ Updated: 2026-08-24
   FATAL/AndroidRuntime/E:flutter/FlutterError/PlatformException/ANR/OOM/
   SecurityException).
 
+### Follow-up physical pass — Protect purchase/return/refund
+
+- Same APK/source as above (`48a0184`).
+- Added a purchase linked to `Claude QA Listing Item` (`Claude QA Vendor 2`,
+  $9.99) and started a return, then walked `initiated` → `shipped` →
+  `received` → `refunded` via the exact button offered at each state.
+- Confirmed an empty refund amount is rejected ("Enter a valid refund
+  amount.") before a valid `$9.99` succeeds.
+- Money posted `Purchase from Claude QA Vendor 2 · -$9.99` on purchase and
+  `Return refunded · +$9.99` on refund, exact amounts.
+- The linked item's status flipped live from `sold` to `returned` as a
+  direct result of the refund, and Sell picked up that fresh status on its
+  next fetch, showing only `+ Photo`/`+ Valuation` — confirming the
+  eligibility fix against a freshly-written status, not only the
+  already-tested static fixture.
+- A second, unlinked purchase correctly refused to start a return ("No item
+  linked — can't start a return.").
+- Current-process logcat was clean throughout.
+
 ## Repair Verified
 
 Physical QA found unreadable option cards in Light appearance mode. Commit
@@ -72,8 +91,12 @@ physical Light-mode retest passed.
   multiple-line quote creation are implemented, tested, and now physically
   re-certified on the Galaxy A14 (see the "Follow-up physical pass" sections
   above and `docs/KNOWN_ISSUES.md`).
+- The Protect purchase/return/refund lifecycle is also now physically
+  re-certified (see "Follow-up physical pass — Protect purchase/return/
+  refund" above), including the empty-refund-amount rejection and the live
+  `sold` → `returned` ownership transition.
 - A real alternate-account isolation switch was not completed physically.
-- A fresh purchase/return/warranty mutation was not recreated in this run.
+- A warranty claim mutation was not recreated in this run.
 - A valid Flutter frame-timing profile was not captured.
 - Live AI, authenticated Playwright, native iOS, legal/privacy, operational,
   release-signing, and public-release approvals remain external gates.
