@@ -1,6 +1,13 @@
 # LOOP Known Issues and External Gates
 
-Updated: 2026-08-24
+Updated: 2026-08-25
+
+The database suite (209/209), migration parity (27/27 against hosted),
+security/performance advisors (no new findings beyond what's already
+accepted below), GitHub CI (green on `48a0184`, the last runtime commit),
+and Vercel production (deployed from current `HEAD`, HTTP 200) are all
+re-verified as of this update. See `docs/TEST_MATRIX.md` for the full
+matrix and `docs/LOOP_FINAL_STATE.md` for the verdict.
 
 ## Open External Gates
 

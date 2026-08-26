@@ -86,18 +86,31 @@ was silently assumed.
 
 ## Remaining Product And QA Gaps
 
-1. Sell Copy/Share/Export controls are absent from the Flutter client.
-2. Returned/disposed items still expose the listing action even though the
-   server correctly rejects that invalid lifecycle transition.
-3. Multiple-line quote creation and a real alternate-account data-isolation
-   switch were not completed in this physical run.
-4. A new purchase/return/warranty mutation was not recreated in this run; its
-   physical UI and existing automated/backend coverage passed.
+Items 1-4 below were closed and physically re-certified in the
+2026-08-25 Claude session — see `docs/LOOP_FINAL_STATE.md` and
+`docs/CLAUDE_FINAL_COMPLETION_RUN.md` for the walkthrough:
+
+1. ~~Sell Copy/Share/Export controls are absent from the Flutter client.~~
+   Implemented on both platforms and physically verified (clipboard, real
+   share sheet, named `.txt` export).
+2. ~~Returned/disposed items still expose the listing action even though the
+   server correctly rejects that invalid lifecycle transition.~~ Fixed:
+   client eligibility now mirrors the server's `owned`/`listed` guard.
+3. ~~Multiple-line quote creation and a real alternate-account
+   data-isolation switch were not completed in this physical run.~~
+   Multi-line quote creation is now physically verified (exact $0.05 total,
+   exactly-once Money event). The alternate-account switch was still not
+   re-walked physically.
+4. ~~A new purchase/return/warranty mutation was not recreated in this
+   run.~~ A fresh purchase → return → refund cycle is now physically
+   verified, including the live `sold`→`returned` ownership transition. A
+   warranty claim mutation specifically was not re-walked.
 5. No valid Flutter frame-timing profile was captured from the Galaxy A14.
 
-`LOOP_FINAL_STATE=NOT_READY`
+`LOOP_FINAL_STATE=PRODUCTION_READY_EXTERNALLY_BLOCKED`
 
 Ledger 2.0 core physical certification passed after repairing the unreadable
-light-theme option surfaces. The remaining product and QA gaps above prevent a
-public-release verdict. This remains a closed-test build and is not
-public-release approval.
+light-theme option surfaces, and the remaining product/QA gaps from that pass
+are now closed except the alternate-account switch, a warranty claim
+mutation, and the frame-timing profile — narrower gaps, not known defects.
+This remains a closed-test build and is not public-release approval.

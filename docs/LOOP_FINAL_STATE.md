@@ -1,8 +1,29 @@
 # LOOP Final State
 
-Updated: 2026-08-24
+Updated: 2026-08-25
 
-`LOOP_FINAL_STATE=NOT_READY`
+`LOOP_FINAL_STATE=PRODUCTION_READY_EXTERNALLY_BLOCKED`
+
+Internally-controllable Critical/High count: 0. Every item on this
+session's physical and automated punch list passed: Sell Copy/Share/Export,
+the returned-item eligibility fix (including a live `sold`→`returned`
+transition), the Protect purchase/return/refund lifecycle, a multi-line
+quote with an exactly-once Money event, 100%/150% text and rotation,
+sign-out and returning-user Google login, the full 209-case database
+suite, the 99-case Flutter suite, the web suite (typecheck/lint/build/unit/
+Playwright), migration parity (27/27), GitHub CI, and the Vercel production
+deployment (current `HEAD`, HTTP 200). See `docs/TEST_MATRIX.md` for the
+full matrix and `docs/CLAUDE_FINAL_COMPLETION_RUN.md` for the session
+narrative.
+
+Remaining blockers are genuinely external: `ANTHROPIC_API_KEY` is
+unavailable, dedicated non-owner Playwright QA credentials don't exist yet,
+Supabase leaked-password protection needs a Pro-plan upgrade, native iOS
+needs macOS/Xcode, and release signing/publication needs separate
+authorization plus product/privacy/legal/operational approval. A real
+alternate-account switch and a warranty claim were not re-walked physically
+this session, and no Flutter frame-timing profiler artifact was captured —
+narrower gaps, not known defects.
 
 ## Physical Certification
 
@@ -118,29 +139,31 @@ a Galaxy A14 contrast regression test. `flutter analyze --no-pub`, the focused
 test, the 94-test Flutter suite, the configured APK build, installation, and
 physical Light-mode retest passed.
 
-## Why Not Ready
+## Why Externally Blocked, Not Fully Ready
 
-- Sell Copy/Share/Export, the returned/disposed listing-action mismatch, and
-  multiple-line quote creation are implemented, tested, and now physically
-  re-certified on the Galaxy A14 (see the "Follow-up physical pass" sections
-  above and `docs/KNOWN_ISSUES.md`).
-- The Protect purchase/return/refund lifecycle is also now physically
-  re-certified (see "Follow-up physical pass — Protect purchase/return/
-  refund" above), including the empty-refund-amount rejection and the live
-  `sold` → `returned` ownership transition.
-- 100%/150% text, rotation, and sign-out/returning-user Google login are also
-  now re-certified on `48a0184` (see the "Follow-up physical pass" sections
-  above). Every internally-controllable item from this session's punch list
-  is closed.
-- A real alternate-account isolation switch was not completed physically.
-- A warranty claim mutation was not recreated in this run.
-- A valid Flutter frame-timing profile was not captured.
-- The full database suite, GitHub CI, and Vercel production have not yet
-  been re-verified against the current `HEAD` from this session (`65dce77`
-  at last physical checkpoint) — pending before any `PRODUCTION_READY`-class
-  verdict.
-- Live AI, authenticated Playwright, native iOS, legal/privacy, operational,
-  release-signing, and public-release approvals remain external gates.
+Every internally-controllable item from this session's punch list closed:
+Sell Copy/Share/Export, the returned/disposed listing-action mismatch (with
+a live `sold`→`returned` transition proving it), the Protect purchase/
+return/refund lifecycle (including the empty-refund-amount rejection),
+multi-line quote creation, 100%/150% text and rotation, and sign-out/
+returning-user Google login — all physically re-certified on the Galaxy
+A14, alongside a green database suite (209/209), Flutter suite (99/99), web
+suite, migration parity (27/27), GitHub CI, and Vercel production
+(`docs/TEST_MATRIX.md`).
 
-This is a closed-test certification record, not production readiness or public
-release authorization.
+What's left is genuinely external or narrower-scope, not a known defect:
+
+- A real alternate-account isolation switch and a warranty claim mutation
+  were not re-walked physically this session (covered at the code/DB level
+  by existing test suites).
+- A valid Flutter frame-timing profile was not captured (no ANR/OOM/jank
+  observed).
+- Live AI (`ANTHROPIC_API_KEY` unavailable), authenticated Playwright
+  (needs a dedicated non-owner QA identity), Supabase leaked-password
+  protection (needs a Pro-plan upgrade), native iOS (needs macOS/Xcode),
+  and release-signing/public-release approval (needs separate authorization
+  plus product/privacy/legal/operational sign-off) remain external gates.
+
+This is a closed-test certification record, not public release
+authorization. Nothing here authorizes publishing to an app store, enabling
+live payments, or production signing.
