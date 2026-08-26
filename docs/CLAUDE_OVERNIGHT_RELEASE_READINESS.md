@@ -41,13 +41,13 @@ Update this table after each phase or checkpoint.
 | 5.1 — Secret scan deep pass | DONE | Clean; one self-labeled "test-only" placeholder string in a Playwright spec, not a real secret |
 | 6 — Supabase release-readiness | DONE (re-confirmed same as prior session) | 27/27 migration parity, advisors unchanged |
 | 6.1 — SECURITY DEFINER inventory | DONE | docs/SECURITY_DEFINER_INVENTORY.md — 13 functions, 7 RPC-callable, all search_path-hardened |
-| 6.2 — DB recovery runbook | PENDING | |
-| 6.3 — Backup/restore reality | PENDING | |
-| 7 — Auth release readiness | PENDING | |
-| 7.1 — Google OAuth release checklist | PENDING | |
-| 8 — Ask LOOP provider prep | PENDING | |
-| 8.1 — AI enablement runbook | PENDING | |
-| 9 — Playwright credential prep | PENDING | |
+| 6.2 — DB recovery runbook | DONE | docs/DATABASE_RELEASE_AND_RECOVERY_RUNBOOK.md |
+| 6.3 — Backup/restore reality | DONE | Free plan confirmed via get_organization; exact backup policy needs owner dashboard check (not fabricated) |
+| 7 — Auth release readiness | DONE | Verified no client-side key exposure, callback consistency, web callback derives origin dynamically |
+| 7.1 — Google OAuth release checklist | DONE | docs/GOOGLE_OAUTH_RELEASE_CHECKLIST.md |
+| 8 — Ask LOOP provider prep | DONE | Verified: ANTHROPIC_API_KEY server-only, 3 usages, mobile never touches it, calls web API only |
+| 8.1 — AI enablement runbook | DONE | docs/ASK_LOOP_PROVIDER_ENABLEMENT.md |
+| 9 — Playwright credential prep | DONE | docs/AUTHENTICATED_E2E_ENABLEMENT.md; harness already correct, just needs the secret |
 | 10 — Privacy & data inventory | PENDING | |
 | 10.1 — Third-party data flows | PENDING | |
 | 11 — Play data safety input | PENDING | |
