@@ -168,8 +168,26 @@ filter this time).
 `GALAXY_A14_100_PERCENT=PASS`, `GALAXY_A14_150_PERCENT=PASS` (re-confirmed
 on `48a0184`).
 
+## Physical pass (checkpoint 6) — sign-out and returning-user Google login
+
+Signed out via Account → Sign out (native sign-in screen returned cleanly,
+no stale data, no crash). Tapped Continue with Google: the flow opened the
+real `accounts.google.com` account chooser requesting access to
+`zqalnvfwxmfrnyjcuehq.supabase.co`, not a Vercel page. Asked the owner to
+select `Joseph Lecctron (josephlecctron@gmail.com)` on-device rather than
+tapping through it myself. Owner confirmed the tap; the flow landed on
+native Today with no onboarding and no Vercel redirect. Logcat clean
+throughout.
+
+`RETURNING_USER_LOGIN=PASS`.
+
+This closes every internally-controllable item from the original punch
+list on the physical device. Remaining physical gaps (alternate-account
+switch, a warranty claim mutation, Flutter frame-timing profile) are
+narrower and not re-attempted this pass.
+
 ## Next action
 
-Sign-out-last + owner-assisted returning-user Google login (the only
-physical item left). After that: full database/Flutter/web test suites,
-GitHub CI, and Vercel production verification.
+Full database/Flutter/web test suites, GitHub CI, and Vercel production
+verification against current `HEAD`, then the final certification
+artifact and `LOOP_FINAL_STATE` verdict.

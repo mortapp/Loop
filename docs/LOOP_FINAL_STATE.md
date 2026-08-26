@@ -91,6 +91,25 @@ Updated: 2026-08-24
   FlutterError/PlatformException/ANR/OOM/SecurityException/RenderFlex) was
   clean throughout.
 
+### Follow-up physical pass — sign-out and returning-user Google login
+
+- Same APK/session as above. Signed out via Account → Sign out: returned
+  cleanly to the native sign-in screen (Continue with Google, email/password,
+  Sign up), no stale private data visible, no crash.
+- Tapped Continue with Google: the flow opened the real
+  `accounts.google.com` account chooser requesting access to
+  `zqalnvfwxmfrnyjcuehq.supabase.co` (the hosted project) — not a Vercel
+  page.
+- Owner selected `Joseph Lecctron (josephlecctron@gmail.com)` on-device.
+  Google → Supabase → the native LOOP callback → an existing, already
+  -completed profile → Today, with no onboarding step and no Vercel
+  redirect at any point.
+- Current-process logcat (filtered for FATAL/AndroidRuntime/E:flutter/
+  FlutterError/PlatformException/ANR/OOM/SecurityException/auth-callback
+  errors) was clean throughout.
+
+`RETURNING_USER_LOGIN=PASS` (re-confirmed on `48a0184`).
+
 ## Repair Verified
 
 Physical QA found unreadable option cards in Light appearance mode. Commit
@@ -109,9 +128,17 @@ physical Light-mode retest passed.
   re-certified (see "Follow-up physical pass — Protect purchase/return/
   refund" above), including the empty-refund-amount rejection and the live
   `sold` → `returned` ownership transition.
+- 100%/150% text, rotation, and sign-out/returning-user Google login are also
+  now re-certified on `48a0184` (see the "Follow-up physical pass" sections
+  above). Every internally-controllable item from this session's punch list
+  is closed.
 - A real alternate-account isolation switch was not completed physically.
 - A warranty claim mutation was not recreated in this run.
 - A valid Flutter frame-timing profile was not captured.
+- The full database suite, GitHub CI, and Vercel production have not yet
+  been re-verified against the current `HEAD` from this session (`65dce77`
+  at last physical checkpoint) — pending before any `PRODUCTION_READY`-class
+  verdict.
 - Live AI, authenticated Playwright, native iOS, legal/privacy, operational,
   release-signing, and public-release approvals remain external gates.
 
