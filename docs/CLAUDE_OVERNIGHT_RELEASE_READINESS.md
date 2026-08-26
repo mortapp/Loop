@@ -48,12 +48,12 @@ Update this table after each phase or checkpoint.
 | 8 — Ask LOOP provider prep | DONE | Verified: ANTHROPIC_API_KEY server-only, 3 usages, mobile never touches it, calls web API only |
 | 8.1 — AI enablement runbook | DONE | docs/ASK_LOOP_PROVIDER_ENABLEMENT.md |
 | 9 — Playwright credential prep | DONE | docs/AUTHENTICATED_E2E_ENABLEMENT.md; harness already correct, just needs the secret |
-| 10 — Privacy & data inventory | PENDING | |
-| 10.1 — Third-party data flows | PENDING | |
-| 11 — Play data safety input | PENDING | |
-| 11.1 — Play permission declaration input | PENDING | |
-| 12 — Account deletion audit | PENDING | |
-| 13 — Logging & redaction audit | PENDING | |
+| 10 — Privacy & data inventory | DONE | docs/TECHNICAL_DATA_INVENTORY.md — full table-by-table inventory |
+| 10.1 — Third-party data flows | DONE | docs/THIRD_PARTY_DATA_FLOWS.md; confirmed repo is genuinely public via `gh repo view` |
+| 11 — Play data safety input | DONE | docs/PLAY_DATA_SAFETY_TECHNICAL_INPUT.md |
+| 11.1 — Play permission declaration input | DONE | docs/ANDROID_PERMISSION_DECLARATION_INPUT.md |
+| 12 — Account deletion audit | DONE | Zero matches for delete-account patterns anywhere; real gap documented, not built (product/legal semantics needed first) |
+| 13 — Logging & redaction audit | DONE | Clean: main.dart's debugPrint is kDebugMode-gated and never prints secrets; web's safeMetadata() whitelists only code/status fields |
 | 14 — Failure-mode audit | PENDING | |
 | 15 — Operations runbook | PENDING | |
 | 15.1 — Security incident checklist | PENDING | |
