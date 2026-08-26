@@ -54,9 +54,9 @@ Update this table after each phase or checkpoint.
 | 11.1 — Play permission declaration input | DONE | docs/ANDROID_PERMISSION_DECLARATION_INPUT.md |
 | 12 — Account deletion audit | DONE | Zero matches for delete-account patterns anywhere; real gap documented, not built (product/legal semantics needed first) |
 | 13 — Logging & redaction audit | DONE | Clean: main.dart's debugPrint is kDebugMode-gated and never prints secrets; web's safeMetadata() whitelists only code/status fields |
-| 14 — Failure-mode audit | PENDING | |
-| 15 — Operations runbook | PENDING | |
-| 15.1 — Security incident checklist | PENDING | |
+| 14 — Failure-mode audit | DONE | docs/FAILURE_MODE_AUDIT.md; no new defect found |
+| 15 — Operations runbook | DONE | docs/PRODUCTION_OPERATIONS_RUNBOOK.md |
+| 15.1 — Security incident checklist | DONE | docs/SECURITY_INCIDENT_CHECKLIST.md |
 | 16 — CI/CD release readiness | PENDING | |
 | 16.1 — Release build workflow design | PENDING | |
 | 17 — Android release build dry run | PENDING | |
