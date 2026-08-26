@@ -71,8 +71,28 @@ Update this table after each phase or checkpoint.
 | 21 — Owner action center | DONE | docs/OWNER_RELEASE_ACTION_CENTER.md — 10 ordered steps |
 | 21.1 — External gate matrix | DONE | docs/EXTERNAL_GATE_MATRIX.md |
 | 22 — Final regression (only if justified) | NOT NEEDED | No runtime code changed this pass — full regression already current from the prior session (209/209 DB, 99/99 Flutter, web suite green, all re-verified before this overnight pass began) |
-| 23 — Git checkpoints | DONE | 7 checkpoint commits, all pushed |
-| 24 — Final overnight report | IN PROGRESS | |
+| 23 — Git checkpoints | DONE | 8 checkpoint commits, all pushed |
+| 24 — Final overnight report | DONE | artifacts/overnight-release-readiness-595b7b5/LOOP_OVERNIGHT_HANDOFF.txt |
+
+## Overnight pass complete
+
+FINAL_HEAD=595b7b5 (plus this commit)
+LOOP_FINAL_STATE=PRODUCTION_READY_EXTERNALLY_BLOCKED (unchanged)
+RUNTIME_CHANGED=NO
+New docs this pass: SECURITY_DEFINER_INVENTORY.md,
+ANDROID_RELEASE_ARTIFACTS_RUNBOOK.md, RELEASE_VERSIONING.md,
+DATABASE_RELEASE_AND_RECOVERY_RUNBOOK.md, GOOGLE_OAUTH_RELEASE_CHECKLIST.md,
+ASK_LOOP_PROVIDER_ENABLEMENT.md, AUTHENTICATED_E2E_ENABLEMENT.md,
+TECHNICAL_DATA_INVENTORY.md, THIRD_PARTY_DATA_FLOWS.md,
+PLAY_DATA_SAFETY_TECHNICAL_INPUT.md, ANDROID_PERMISSION_DECLARATION_INPUT.md,
+FAILURE_MODE_AUDIT.md, PRODUCTION_OPERATIONS_RUNBOOK.md,
+SECURITY_INCIDENT_CHECKLIST.md, IOS_XCODE_HANDOFF.md,
+PLAY_RELEASE_READINESS.md, THIRD_PARTY_DEPENDENCY_INVENTORY.md,
+OWNER_RELEASE_ACTION_CENTER.md, EXTERNAL_GATE_MATRIX.md.
+
+See `artifacts/overnight-release-readiness-595b7b5/LOOP_OVERNIGHT_HANDOFF.txt`
+for the full final report and `docs/OWNER_RELEASE_ACTION_CENTER.md` for
+what to do next.
 
 ## Runtime changes this pass
 
