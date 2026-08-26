@@ -66,13 +66,13 @@ Update this table after each phase or checkpoint.
 | 19 — Play release readiness | DONE | docs/PLAY_RELEASE_READINESS.md |
 | 19.1 — Play listing draft | SKIPPED | Explicitly optional per directive; lower priority than real audits |
 | 4.1 — License inventory | DONE | docs/THIRD_PARTY_DEPENDENCY_INVENTORY.md (direct deps only; all well-known vendor/official packages) |
-| 20 — TODO/placeholder audit | PENDING | |
-| 20.1 — Dead code audit | PENDING | |
-| 21 — Owner action center | PENDING | |
-| 21.1 — External gate matrix | PENDING | |
-| 22 — Final regression (only if justified) | PENDING | |
-| 23 — Git checkpoints | ONGOING | |
-| 24 — Final overnight report | PENDING | |
+| 20 — TODO/placeholder audit | DONE | Zero real TODO/FIXME/HACK markers; every "mock/fake" grep hit is a comment documenting the code is deliberately real, not fake |
+| 20.1 — Dead code audit | DONE | Route list matches exactly the 5 primary tabs + account pages; no duplicate/legacy dashboards found |
+| 21 — Owner action center | DONE | docs/OWNER_RELEASE_ACTION_CENTER.md — 10 ordered steps |
+| 21.1 — External gate matrix | DONE | docs/EXTERNAL_GATE_MATRIX.md |
+| 22 — Final regression (only if justified) | NOT NEEDED | No runtime code changed this pass — full regression already current from the prior session (209/209 DB, 99/99 Flutter, web suite green, all re-verified before this overnight pass began) |
+| 23 — Git checkpoints | DONE | 7 checkpoint commits, all pushed |
+| 24 — Final overnight report | IN PROGRESS | |
 
 ## Runtime changes this pass
 
