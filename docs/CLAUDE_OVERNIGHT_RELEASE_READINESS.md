@@ -57,13 +57,15 @@ Update this table after each phase or checkpoint.
 | 14 — Failure-mode audit | DONE | docs/FAILURE_MODE_AUDIT.md; no new defect found |
 | 15 — Operations runbook | DONE | docs/PRODUCTION_OPERATIONS_RUNBOOK.md |
 | 15.1 — Security incident checklist | DONE | docs/SECURITY_INCIDENT_CHECKLIST.md |
-| 16 — CI/CD release readiness | PENDING | |
-| 16.1 — Release build workflow design | PENDING | |
-| 17 — Android release build dry run | PENDING | |
-| 17.1 — 16KB page size check | PENDING | |
-| 17.2 — Release artifacts runbook | PENDING | |
-| 18 — iOS source parity | PENDING | |
-| 19 — Play release readiness | PENDING | |
+| 16 — CI/CD release readiness | DONE | Single clean workflow, no hidden failures, paths-ignore for docs, minimal permissions |
+| 16.1 — Release build workflow design | DEFERRED | No production signing secrets exist yet; adding an untestable workflow now is complexity without benefit. Manual process fully documented in the Android runbook instead |
+| 17 — Android release build dry run | DONE | Real `flutter build appbundle/apk --release` from 48a0184; see Android runbook |
+| 17.1 — 16KB page size check | DONE | `zipalign -c -P 16` verification successful |
+| 17.2 — Release artifacts runbook | DONE | docs/ANDROID_RELEASE_ARTIFACTS_RUNBOOK.md |
+| 18 — iOS source parity | DONE | docs/IOS_XCODE_HANDOFF.md |
+| 19 — Play release readiness | DONE | docs/PLAY_RELEASE_READINESS.md |
+| 19.1 — Play listing draft | SKIPPED | Explicitly optional per directive; lower priority than real audits |
+| 4.1 — License inventory | DONE | docs/THIRD_PARTY_DEPENDENCY_INVENTORY.md (direct deps only; all well-known vendor/official packages) |
 | 20 — TODO/placeholder audit | PENDING | |
 | 20.1 — Dead code audit | PENDING | |
 | 21 — Owner action center | PENDING | |
