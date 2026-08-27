@@ -7,6 +7,8 @@ struct OnboardingView: View {
     @Environment(AppState.self) private var appState
     @State private var step: Step = .welcome
     @State private var displayName: String = ""
+    @State private var username: String = ""
+    @State private var password: String = ""
     @State private var accountName: String = "Personal"
     @State private var density: LoopPreferences.ActionDensity = .balanced
     @State private var isFinishing = false
@@ -97,6 +99,20 @@ struct OnboardingView: View {
                 placeholder: "Personal",
                 capitalization: .words
             )
+            LoopTextField(
+                label: "Username",
+                text: $username,
+                placeholder: "avery",
+                capitalization: .never,
+                contentType: .username,
+                isRequired: true
+            )
+            VStack(alignment: .leading, spacing: LoopSpacing.xs) {
+                LoopEyebrow(text: "Password")
+                SecureField("12+ characters with upper, lower, number and symbol", text: $password)
+                    .textContentType(.newPassword)
+                    .textFieldStyle(.roundedBorder)
+            }
             Text("You can add more accounts later — for example a separate one for your business.")
                 .font(LoopFont.footnote)
                 .foregroundStyle(LoopColor.inkTertiary)
@@ -162,7 +178,11 @@ struct OnboardingView: View {
             LoopButton(
                 title: step == .preference ? "Enter LOOP" : "Continue",
                 isLoading: isFinishing,
-                isEnabled: step != .identity || !displayName.trimmingCharacters(in: .whitespaces).isEmpty
+                isEnabled: step != .identity || (
+                    !displayName.trimmingCharacters(in: .whitespaces).isEmpty
+                    && !username.trimmingCharacters(in: .whitespaces).isEmpty
+                    && !password.isEmpty
+                )
             ) {
                 advance()
             }
@@ -192,7 +212,7 @@ struct OnboardingView: View {
         isFinishing = true
         appState.update { $0.actionDensity = density }
         Task {
-            await appState.completeOnboarding(displayName: displayName, accountName: accountName)
+            await appState.completeOnboarding(displayName: displayName, username: username, password: password, accountName: accountName)
             isFinishing = false
         }
     }

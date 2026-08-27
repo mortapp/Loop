@@ -88,6 +88,7 @@ nonisolated enum ActionSource: Codable, Hashable, Sendable {
     case warranty(UUID)
     case ownedItem(UUID)
     case sale(UUID)
+    case customer(UUID)
     case lead(UUID)
     case opportunity(UUID)
     case quote(UUID)
@@ -101,6 +102,7 @@ nonisolated enum ActionSource: Codable, Hashable, Sendable {
         case .warranty(let id): return .warranty(id)
         case .ownedItem(let id): return .ownedItem(id)
         case .sale(let id): return .sale(id)
+        case .customer(let id): return .customer(id)
         case .lead(let id): return .lead(id)
         case .opportunity(let id): return .opportunity(id)
         case .quote(let id): return .quote(id)
@@ -115,7 +117,7 @@ nonisolated enum ActionSource: Codable, Hashable, Sendable {
             return .money
         case .ownedItem, .sale:
             return .sell
-        case .lead, .opportunity, .quote:
+        case .customer, .lead, .opportunity, .quote:
             return .business
         }
     }
