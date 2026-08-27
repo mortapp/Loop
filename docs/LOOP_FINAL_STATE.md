@@ -167,3 +167,19 @@ What's left is genuinely external or narrower-scope, not a known defect:
 This is a closed-test certification record, not public release
 authorization. Nothing here authorizes publishing to an app store, enabling
 live payments, or production signing.
+
+## Cross-platform certification addendum — 2026-08-27
+
+Native SwiftUI iOS is now part of the same repository and backend contract as
+the web and Flutter clients. Its macOS GitHub Actions simulator build passed
+unsigned on run `33068098716` at source `54a1ec8`, after the workflow moved to
+`actions/checkout@v5`. The shared contract is recorded in
+`docs/CROSS_PLATFORM_BACKEND_CONTRACT.md`; the client adapters use the same
+Supabase project, PKCE callback, account graph, tables, private storage, and
+server-authoritative lifecycle RPCs. A current source scan found no runtime
+references to the retired fake table/RPC names.
+
+The new Quality workflow run is verifying current GitHub Action runtimes. No
+product runtime code changed in this addendum. Physical iPhone testing and
+Apple production signing remain external gates; the existing Galaxy A14
+evidence remains valid because the Flutter runtime was not modified.

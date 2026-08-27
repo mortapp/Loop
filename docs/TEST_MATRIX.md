@@ -39,8 +39,8 @@ Updated: 2026-08-25
 | Native Google login           | Owner physical confirmation                                              | PASS - returning user reached Today with no onboarding/Vercel        |
 | Live AI provider              | Controlled provider request                                              | OWNER_ACTION_REQUIRED - key unavailable                              |
 | iOS source/config parity      | Static Android/iOS/shared-source audit                                   | PASS                                                                 |
-| Native iOS build               | Xcode build and device/TestFlight                                        | EXTERNAL_BLOCKER - macOS/Xcode required                              |
-| GitHub CI                     | Quality run `32794998919` on `48a0184`; docs-only since, correctly skips | PASS - both jobs, every executed step                                |
+| Native iOS build               | GitHub macOS Xcode Simulator build, run `33068098716`                    | PASS - unsigned Simulator build on `54a1ec8`                         |
+| GitHub CI                     | Quality run `33069271696` on `4f637e0`                                  | IN PROGRESS - current-runtime action verification                    |
 | Security advisors             | `get_advisors` (security)                                                | ACCEPTED_WITH_EVIDENCE - 7 SECURITY DEFINER + leaked-password (plan) |
 | Performance advisors          | `get_advisors` (performance)                                             | ACCEPTED_WITH_EVIDENCE - unused-index INFO only, no new findings     |
 

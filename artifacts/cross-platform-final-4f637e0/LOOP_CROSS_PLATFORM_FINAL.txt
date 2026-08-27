@@ -1,0 +1,30 @@
+LOOP CROSS-PLATFORM FINAL CERTIFICATION
+
+Certification source commit: 4f637e0462b2f3d40fb4ddb062644bcaf014bd62
+Branch / remote: main / github.com:mortapp/Loop.git
+Shared backend: Supabase zqalnvfwxmfrnyjcuehq
+
+IOS_NATIVE_CI=PASS
+  GitHub macOS Simulator run 33068098716, actions/checkout@v5, unsigned build.
+
+QUALITY_CI=IN_PROGRESS
+  Run 33069271696 validates actions/setup-node@v5,
+  supabase/setup-cli@v3, and actions/upload-artifact@v5.
+
+BACKEND_CONTRACT=PASS
+  One project, one Auth identity, canonical PKCE callback,
+  account-scoped RLS, server-authoritative money and lifecycle RPCs.
+
+LOCAL_SCHEMA=27 migrations
+HOSTED_PARITY=previously verified 27/27; no hosted mutation in this pass.
+STALE_RUNTIME_TABLE_RPC_REFERENCES=0
+SOURCE_SECRET_SCAN=PASS_WITH_EXPECTED_PUBLIC_SUPABASE_KEY_AND_TEST_FIXTURE
+VERCEL_SMOKE=PASS (HTTP 307 to /sign-in)
+
+ANDROID_PHYSICAL=prior Galaxy A14 evidence retained; no Flutter runtime change.
+IOS_PHYSICAL_IPHONE=EXTERNAL_BLOCKER
+RELEASE_SIGNING_AND_STORE_SUBMISSION=OWNER_ACTION_REQUIRED
+LIVE_AI_PROVIDER=OWNER_ACTION_REQUIRED
+DEDICATED_CREDENTIALLED_E2E_ACCOUNT=OWNER_ACTION_REQUIRED
+
+LOOP_FINAL_STATE=PRODUCTION_READY_EXTERNALLY_BLOCKED
