@@ -23,7 +23,7 @@ foreach ($path in @($configuration, $liveServices, $infoPlist, $projectFile)) {
 $configurationText = Get-Content -Raw -LiteralPath $configuration
 $liveServicesText = Get-Content -Raw -LiteralPath $liveServices
 $projectText = Get-Content -Raw -LiteralPath $projectFile
-$iosSource = (Get-ChildItem -LiteralPath $iosRoot -Recurse -File -Include *.swift,*.plist,*.pbxproj | ForEach-Object {
+$iosSource = (Get-ChildItem -LiteralPath $iosRoot -Recurse -File | Where-Object { $_.Extension -in '.swift', '.plist', '.pbxproj' } | ForEach-Object {
     Get-Content -Raw -LiteralPath $_.FullName
 }) -join "`n"
 
