@@ -29,8 +29,21 @@
 		105FC5932E9EAD3200EA8BCF /* LOOPUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LOOPUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		105FC5A62E9EAD3200EA8BCF /* Exceptions for "LOOP" folder in "LOOP" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 105FC5792E9EAD3100EA8BCF /* LOOP */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		105FC57C2E9EAD3100EA8BCF /* LOOP */ = {
+			exceptions = (
+				105FC5A62E9EAD3200EA8BCF /* Exceptions for "LOOP" folder in "LOOP" target */,
+			);
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = LOOP;
 			sourceTree = "<group>";

@@ -30,6 +30,7 @@ $iosSource = (Get-ChildItem -LiteralPath $iosRoot -Recurse -File -Include *.swif
 Assert-True ($configurationText -match 'https://zqalnvfwxmfrnyjcuehq\.supabase\.co') 'LOOP Supabase URL is not configured.'
 Assert-True ($configurationText -match 'com\.loop\.app\.loop_mobile://login-callback') 'Canonical Supabase PKCE callback is not configured.'
 Assert-True ($projectText -match 'PRODUCT_BUNDLE_IDENTIFIER = com\.loop\.app\.loop_ios;') 'Native app bundle identifier is not com.loop.app.loop_ios.'
+Assert-True ($projectText -match 'membershipExceptions = \([\s\S]*Info\.plist') 'Xcode project does not exclude Info.plist from filesystem-synchronized resource membership.'
 
 foreach ($rpc in @('account_money_totals', 'create_purchase_with_money_event', 'create_listing_and_mark_item', 'create_quote_with_line_items', 'generate_today_actions', 'record_item_sale', 'refund_return_with_money_event', 'set_quote_status_with_money_event')) {
     Assert-True ($liveServicesText -match [regex]::Escape('"' + $rpc + '"')) "Missing canonical RPC: $rpc"
