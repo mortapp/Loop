@@ -72,8 +72,12 @@ final class SampleAccountService: AccountService {
     func completeOnboarding(
         profile: LoopProfile,
         displayName: String,
+        username: String,
+        password: String,
         accountName: String
     ) async throws -> LoopProfile {
+        _ = username
+        _ = password
         var updated = profile
         updated.user.displayName = displayName.isEmpty ? profile.user.displayName : displayName
         if let index = updated.accounts.firstIndex(where: { $0.id == updated.activeAccountID }),
@@ -157,6 +161,11 @@ final class SamplePurchaseService: PurchaseService {
             throw LoopError.notFound
         }
         return match
+    }
+
+    func create(purchase: Purchase) async throws -> Purchase {
+        store.upsert(purchase: purchase)
+        return purchase
     }
 
     func ownedItems(accountID: UUID) async throws -> [OwnedItem] {
