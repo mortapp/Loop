@@ -1,15 +1,16 @@
 LOOP CROSS-PLATFORM FINAL CERTIFICATION
 
-Certification source commit: 4f637e0462b2f3d40fb4ddb062644bcaf014bd62
+Certification source commit: ec677dd21ac5679f088569bc424a40427226d391
 Branch / remote: main / github.com:mortapp/Loop.git
 Shared backend: Supabase zqalnvfwxmfrnyjcuehq
 
 IOS_NATIVE_CI=PASS
   GitHub macOS Simulator run 33068098716, actions/checkout@v5, unsigned build.
 
-QUALITY_CI=IN_PROGRESS
-  Run 33069271696 validates actions/setup-node@v5,
-  supabase/setup-cli@v3, and actions/upload-artifact@v5.
+QUALITY_CI=PASS
+  Run 33069806560 passed actions/setup-node@v5,
+  supabase/setup-cli@v3, and actions/upload-artifact@v7.
+  GitHub Node 20 action annotations: 0.
 
 BACKEND_CONTRACT=PASS
   One project, one Auth identity, canonical PKCE callback,

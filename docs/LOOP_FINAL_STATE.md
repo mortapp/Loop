@@ -179,7 +179,8 @@ Supabase project, PKCE callback, account graph, tables, private storage, and
 server-authoritative lifecycle RPCs. A current source scan found no runtime
 references to the retired fake table/RPC names.
 
-The new Quality workflow run is verifying current GitHub Action runtimes. No
-product runtime code changed in this addendum. Physical iPhone testing and
+Quality run `33069806560` passed both jobs after the action-runtime update,
+with zero GitHub Node 20 action annotations. No product runtime code changed
+in this addendum. Physical iPhone testing and
 Apple production signing remain external gates; the existing Galaxy A14
 evidence remains valid because the Flutter runtime was not modified.
